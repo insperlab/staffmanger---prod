@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제 실패 - StaffManager</title>
+    <meta name="description" content="결제 처리 중 문제가 발생했습니다. 카드 정보를 확인하고 다시 시도해주세요">
+    <meta property="og:title" content="결제 실패 - StaffManager">
+    <meta property="og:url" content="https://staffmanager.io/billing-fail.html">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            background: #f8f9fa;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 600px;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            font-size: 3rem;
+            color: white;
+        }
+        h1 {
+            color: #e74c3c;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        .error-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            border-radius: 5px;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        .error-code {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        .help-text {
+            color: #666;
+            margin: 1.5rem 0;
+            line-height: 1.8;
+        }
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .button {
+            flex: 1;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+        .button:hover { transform: translateY(-2px); }
+        .button-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .button-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .contact-info {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+            text-align: left;
+        }
+        .contact-info h3 {
+            margin-bottom: 1rem;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        .contact-info p {
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-icon">✕</div>
+        <h1>결제가 완료되지 않았습니다</h1>
+        <p style="color: #666; margin-bottom: 2rem;">
+            결제 처리 중 문제가 발생했습니다.
+        </p>
+        
+        <div class="error-box">
+            <strong>⚠️ 발생한 문제</strong>
+            <p style="margin-top: 0.5rem;" id="errorMessage">
+                빌링키 발급이 실패했습니다.
+            </p>
+            <div class="error-code" id="errorCode">
+                오류 코드: BILLING_FAILED
+            </div>
+        </div>
+        
+        <div class="help-text">
+            <strong>다음 사항을 확인해주세요:</strong>
+            <ul style="text-align: left; margin-top: 1rem; margin-left: 2rem;">
+                <li>카드 한도가 충분한지 확인해주세요</li>
+                <li>카드 정보가 정확한지 확인해주세요</li>
+                <li>해외 결제가 차단되어 있지 않은지 확인해주세요</li>
+                <li>카드사에 문의하여 결제 제한이 없는지 확인해주세요</li>
+            </ul>
+        </div>
+        
+        <div class="button-group">
+            <a href="/billing.html" class="button button-primary">다시 시도하기</a>
+            <a href="/plans.html" class="button button-secondary">플랜 다시 선택</a>
+        </div>
+        
+        <div class="contact-info">
+            <h3>💬 도움이 필요하신가요?</h3>
+            <p><strong>이메일:</strong> support@staffmanager.io</p>
+            <p><strong>운영시간:</strong> 평일 09:00 - 18:00</p>
+            <p style="margin-top: 1rem; color: #999; font-size: 0.9rem;">
+                결제 관련 문의 시 오류 코드를 함께 알려주세요.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 오류 정보 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorCode = urlParams.get('code');
+        const errorMessage = urlParams.get('message');
+        
+        if (errorMessage) {
+            document.getElementById('errorMessage').textContent = decodeURIComponent(errorMessage);
+        }
+        
+        if (errorCode) {
+            document.getElementById('errorCode').textContent = '오류 코드: ' + errorCode;
+        }
+    </script>
+</body>
+</html>

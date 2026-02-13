@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>요금제 - StaffManager</title>
+    <meta name="description" content="무료부터 월 49,900원까지. AI 세무/회계 자동화로 연 750만원 절약. 7일 무료 체험, 언제든 해지 가능.">
+    <meta property="og:title" content="StaffManager 요금제 - 무료로 시작하세요">
+    <meta property="og:description" content="FREE 플랜 무료 제공. PRO 플랜 월 49,900원으로 세무사 연 180만원 절약. 7일 환불 보장.">
+    <meta property="og:url" content="https://staffmanager.io/plans.html">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* 헤더 */
+        header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        /* 히어로 */
+        .page-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 2rem 3rem;
+            text-align: center;
+        }
+        
+        .page-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* 플랜 비교 */
+        .plan-comparison {
+            padding: 4rem 2rem;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1.5rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comparison-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .comparison-table thead th:first-child {
+            text-align: left;
+            background: white;
+        }
+        
+        .comparison-table tbody th {
+            text-align: left;
+            font-weight: 500;
+            background: #fafafa;
+        }
+        
+        .plan-header {
+            background: white !important;
+            padding: 2rem 1rem !important;
+        }
+        
+        .plan-header.featured {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white;
+        }
+        
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .plan-price {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .plan-desc {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .check-icon {
+            color: #2ecc71;
+            font-size: 1.5rem;
+        }
+        
+        .cross-icon {
+            color: #ccc;
+            font-size: 1.5rem;
+        }
+        
+        .category-header {
+            background: #667eea !important;
+            color: white !important;
+            font-weight: bold !important;
+            text-align: left !important;
+        }
+        
+        .cta-button {
+            background: #667eea;
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .plan-header.featured .cta-button {
+            background: white;
+            color: #667eea;
+        }
+        
+        /* 개별 플랜 상세 */
+        .plan-details {
+            padding: 4rem 2rem;
+            background: #f8f9fa;
+        }
+        
+        .plan-detail-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .plan-detail-card h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        
+        .plan-detail-card h3 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .feature-list li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: start;
+        }
+        
+        .feature-list li:before {
+            content: "✓";
+            color: #2ecc71;
+            font-weight: bold;
+            margin-right: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .price-breakdown {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+        
+        .price-breakdown h4 {
+            margin-bottom: 1rem;
+        }
+        
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .price-item.total {
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-top: 2px solid #333;
+            margin-top: 1rem;
+            padding-top: 1rem;
+        }
+        
+        /* 푸터 */
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 3rem 2rem 1rem;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section h4 {
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+        
+        .footer-section ul {
+            list-style: none;
+        }
+        
+        .footer-section a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 0.3rem 0;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .comparison-table {
+                font-size: 0.85rem;
+            }
+            
+            .comparison-table th,
+            .comparison-table td {
+                padding: 1rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="/" class="logo">StaffManager</a>
+            <ul class="nav-links">
+                <li><a href="/">홈</a></li>
+                <li><a href="/#features">기능</a></li>
+                <li><a href="/plans.html">가격</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="page-hero">
+        <div class="container">
+            <h1>요금제 비교</h1>
+            <p>귀하의 비즈니스에 맞는 플랜을 선택하세요</p>
+        </div>
+    </section>
+
+    <section class="plan-comparison">
+        <div class="container">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th class="plan-header">
+                            <div class="plan-name">FREE</div>
+                            <div class="plan-price">무료</div>
+                            <div class="plan-desc">직원 3명까지</div>
+                            <a href="/billing.html?plan=free" class="cta-button">시작하기</a>
+                        </th>
+                        <th class="plan-header">
+                            <div class="plan-name">BASIC</div>
+                            <div class="plan-price">29,900원</div>
+                            <div class="plan-desc">직원 10명까지</div>
+                            <a href="/billing.html?plan=basic" class="cta-button">시작하기</a>
+                        </th>
+                        <th class="plan-header featured">
+                            <div class="plan-name">PRO ⭐</div>
+                            <div class="plan-price">49,900원</div>
+                            <div class="plan-desc">직원 30명까지</div>
+                            <a href="/billing.html?plan=pro" class="cta-button">시작하기</a>
+                        </th>
+                        <th class="plan-header">
+                            <div class="plan-name">ENTERPRISE</div>
+                            <div class="plan-price">99,900원</div>
+                            <div class="plan-desc">직원 무제한</div>
+                            <a href="/billing.html?plan=enterprise" class="cta-button">문의하기</a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th colspan="5" class="category-header">기본 HR 관리</th>
+                    </tr>
+                    <tr>
+                        <th>출퇴근 관리</th>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>급여 계산</th>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>4대보험 신고</th>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>카카오톡 알림</th>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    
+                    <tr>
+                        <th colspan="5" class="category-header">AI 세무/회계 자동화</th>
+                    </tr>
+                    <tr>
+                        <th>AI 계정과목 추천</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>영수증 AI 자동 분류</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>실시간 세무 경고</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>AI 절세 컨설팅</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>정부 지원금 자동 추천</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    
+                    <tr>
+                        <th colspan="5" class="category-header">POS 연동 기능</th>
+                    </tr>
+                    <tr>
+                        <th>실시간 매출 모니터링</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>AI 자동 부가세 신고</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>지능형 재고 관리</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>매출 예측 & 전략</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>실시간 손익 분석</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    
+                    <tr>
+                        <th colspan="5" class="category-header">지원 & 추가 기능</th>
+                    </tr>
+                    <tr>
+                        <th>이메일 지원</th>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>우선 고객 지원</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>전담 매니저</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>맞춤 대시보드</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                    <tr>
+                        <th>API 연동</th>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="cross-icon">✗</span></td>
+                        <td><span class="check-icon">✓</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="plan-details">
+        <div class="container">
+            <div class="plan-detail-card" id="free">
+                <h2>FREE 플랜</h2>
+                <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">개인사업자와 소규모 팀을 위한 무료 플랜</p>
+                
+                <h3>주요 기능</h3>
+                <ul class="feature-list">
+                    <li>직원 3명까지 관리</li>
+                    <li>출퇴근 관리 및 근무 시간 추적</li>
+                    <li>급여 자동 계산</li>
+                    <li>4대보험 신고 지원</li>
+                    <li>카카오톡 알림</li>
+                    <li>이메일 고객 지원</li>
+                </ul>
+                
+                <h3>이런 분께 추천합니다</h3>
+                <ul class="feature-list">
+                    <li>직원 1-3명의 개인사업자</li>
+                    <li>StaffManager를 먼저 체험해보고 싶은 분</li>
+                    <li>기본 HR 관리만 필요한 분</li>
+                </ul>
+                
+                <a href="#" class="cta-button" style="margin-top: 2rem; font-size: 1.1rem; padding: 1rem 3rem;">무료로 시작하기</a>
+            </div>
+
+            <div class="plan-detail-card" id="basic">
+                <h2>BASIC 플랜</h2>
+                <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">AI 세무 기능이 필요한 소규모 기업</p>
+                
+                <div class="price-breakdown">
+                    <h4>💰 연간 ROI 분석</h4>
+                    <div class="price-item">
+                        <span>월 구독료</span>
+                        <span>29,900원</span>
+                    </div>
+                    <div class="price-item">
+                        <span>연 구독료</span>
+                        <span>358,800원</span>
+                    </div>
+                    <div class="price-item" style="color: #2ecc71;">
+                        <span>세무사 비용 절감</span>
+                        <span>+ 1,800,000원</span>
+                    </div>
+                    <div class="price-item" style="color: #2ecc71;">
+                        <span>회계사 비용 절감</span>
+                        <span>+ 600,000원</span>
+                    </div>
+                    <div class="price-item total" style="color: #e74c3c;">
+                        <span>연 순이익</span>
+                        <span>2,041,200원</span>
+                    </div>
+                </div>
+                
+                <h3>주요 기능</h3>
+                <ul class="feature-list">
+                    <li>직원 10명까지 관리</li>
+                    <li>FREE 플랜의 모든 기능</li>
+                    <li>AI 계정과목 자동 추천</li>
+                    <li>영수증 사진 → AI 자동 분류</li>
+                    <li>실시간 세무 경고 시스템</li>
+                    <li>장부 자동 작성</li>
+                </ul>
+                
+                <h3>이런 분께 추천합니다</h3>
+                <ul class="feature-list">
+                    <li>직원 4-10명의 소규모 기업</li>
+                    <li>세무사 비용을 절감하고 싶은 분</li>
+                    <li>AI 자동화로 업무 효율을 높이고 싶은 분</li>
+                </ul>
+                
+                <a href="#" class="cta-button" style="margin-top: 2rem; font-size: 1.1rem; padding: 1rem 3rem;">BASIC 시작하기</a>
+            </div>
+
+            <div class="plan-detail-card" id="pro" style="border: 3px solid #667eea;">
+                <h2>PRO 플랜 ⭐ 추천</h2>
+                <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">음식점, 카페, 소매점 등 POS가 있는 모든 비즈니스</p>
+                
+                <div class="price-breakdown" style="background: linear-gradient(135deg, #f8f9fa 0%, #e8eaf6 100%);">
+                    <h4>💰 연간 ROI 분석 (가장 인기)</h4>
+                    <div class="price-item">
+                        <span>월 구독료</span>
+                        <span>49,900원</span>
+                    </div>
+                    <div class="price-item">
+                        <span>연 구독료</span>
+                        <span>598,800원</span>
+                    </div>
+                    <div class="price-item" style="color: #2ecc71;">
+                        <span>세무사 대체</span>
+                        <span>+ 1,800,000원</span>
+                    </div>
+                    <div class="price-item" style="color: #2ecc71;">
+                        <span>회계사 대체</span>
+                        <span>+ 1,200,000원</span>
+                    </div>
+                    <div class="price-item" style="color: #2ecc71;">
+                        <span>AI 절세</span>
+                        <span>+ 500,000원</span>
+                    </div>
+                    <div class="price-item" style="color: #2ecc71;">
+                        <span>정부 지원금</span>
+                        <span>+ 2,000,000원</span>
+                    </div>
+                    <div class="price-item" style="color: #2ecc71;">
+                        <span>POS 최적화 (재고+매출)</span>
+                        <span>+ 2,000,000원</span>
+                    </div>
+                    <div class="price-item total" style="color: #e74c3c; font-size: 1.4rem;">
+                        <span>연 순이익</span>
+                        <span>6,901,200원</span>
+                    </div>
+                    <div class="price-item" style="color: #667eea; font-weight: bold;">
+                        <span>ROI</span>
+                        <span>1,153%</span>
+                    </div>
+                </div>
+                
+                <h3>주요 기능</h3>
+                <ul class="feature-list">
+                    <li>직원 30명까지 관리</li>
+                    <li>BASIC 플랜의 모든 기능</li>
+                    <li>AI 절세 컨설팅 (월별 절세 전략)</li>
+                    <li>정부 지원금 자동 추천 + AI 신청서 작성</li>
+                    <li>배민/Toss POS 실시간 연동</li>
+                    <li>AI 자동 부가세 신고 (원클릭)</li>
+                    <li>지능형 재고 관리 (AI 발주 추천)</li>
+                    <li>매출 예측 & 목표 달성 전략</li>
+                    <li>실시간 손익 분석</li>
+                </ul>
+                
+                <h3>이런 분께 추천합니다</h3>
+                <ul class="feature-list">
+                    <li>음식점, 카페, 베이커리 운영하시는 분</li>
+                    <li>소매점, 편의점 운영하시는 분</li>
+                    <li>배민, Toss Payments 사용하시는 분</li>
+                    <li>재고 관리와 매출 최적화가 필요한 분</li>
+                    <li>정부 지원금을 받고 싶은 분</li>
+                </ul>
+                
+                <a href="#" class="cta-button" style="margin-top: 2rem; font-size: 1.1rem; padding: 1rem 3rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">PRO 시작하기 →</a>
+            </div>
+
+            <div class="plan-detail-card" id="enterprise">
+                <h2>ENTERPRISE 플랜</h2>
+                <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">대규모 조직과 맞춤형 지원이 필요한 기업</p>
+                
+                <div class="price-breakdown">
+                    <h4>💰 포함 사항</h4>
+                    <div class="price-item">
+                        <span>월 구독료</span>
+                        <span>99,900원</span>
+                    </div>
+                    <div class="price-item">
+                        <span>직원 수</span>
+                        <span>무제한</span>
+                    </div>
+                    <div class="price-item">
+                        <span>전담 매니저</span>
+                        <span>포함</span>
+                    </div>
+                    <div class="price-item">
+                        <span>맞춤 대시보드</span>
+                        <span>포함</span>
+                    </div>
+                </div>
+                
+                <h3>주요 기능</h3>
+                <ul class="feature-list">
+                    <li>직원 무제한 (50명, 100명, 200명+)</li>
+                    <li>PRO 플랜의 모든 기능</li>
+                    <li>전담 고객 성공 매니저</li>
+                    <li>우선 고객 지원 (24시간 이내 응답)</li>
+                    <li>맞춤형 대시보드 제작</li>
+                    <li>API 연동 지원</li>
+                    <li>외부 시스템 통합 지원</li>
+                    <li>월간 비즈니스 리뷰</li>
+                    <li>맞춤 교육 및 온보딩</li>
+                </ul>
+                
+                <h3>이런 분께 추천합니다</h3>
+                <ul class="feature-list">
+                    <li>직원 30명 이상의 중견 기업</li>
+                    <li>여러 지점/매장을 운영하시는 분</li>
+                    <li>ERP, 회계 시스템과 연동이 필요한 분</li>
+                    <li>전담 지원과 맞춤 서비스가 필요한 분</li>
+                </ul>
+                
+                <a href="#" class="cta-button" style="margin-top: 2rem; font-size: 1.1rem; padding: 1rem 3rem;">견적 문의하기</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>StaffManager</h4>
+                    <p>AI 기반 HR SaaS<br>주식회사 인스퍼랩</p>
+                </div>
+                <div class="footer-section">
+                    <h4>제품</h4>
+                    <ul>
+                        <li><a href="/plans.html">요금제</a></li>
+                        <li><a href="/plans.html#free">FREE 플랜</a></li>
+                        <li><a href="/plans.html#pro">PRO 플랜</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>약관</h4>
+                    <ul>
+                        <li><a href="/terms.html">이용약관</a></li>
+                        <li><a href="/privacy.html">개인정보처리방침</a></li>
+                        <li><a href="/refund.html">환불정책</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>회사</h4>
+                    <ul>
+                        <li><a href="/about.html">회사소개</a></li>
+                        <li>문의: support@staffmanager.io</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 주식회사 인스퍼랩. All rights reserved.</p>
+                <p>사업자등록번호: 501-88-00966 | 대표: 김진호</p>
+                <p>주소: 서울특별시 송파구 올림픽로 300, 제월드타워동제7003호(신천동, 롯데월드타워앤드롯데월드몰)</p>
+                <p>이메일: support@staffmanager.io</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

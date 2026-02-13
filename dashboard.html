@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드 - StaffManager</title>
+    <style>
+        /* 기본 스타일 설정 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        /* 상단 네비게이션 바 */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0 30px;
+            height: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .navbar-menu a {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .navbar-menu a:hover {
+            color: #667eea;
+        }
+
+        .navbar-menu a.active {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .company-name {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .logout-btn {
+            padding: 8px 20px;
+            background: #f5f7fa;
+            border: none;
+            border-radius: 6px;
+            color: #666;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 메인 컨텐츠 영역 */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        .page-header {
+            margin-bottom: 40px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: #999;
+            font-size: 16px;
+        }
+
+        /* 통계 카드 그리드 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .stat-icon.blue { background: #e3f2fd; }
+        .stat-icon.green { background: #e8f5e9; }
+        .stat-icon.orange { background: #fff3e0; }
+        .stat-icon.purple { background: #f3e5f5; }
+
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-change {
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .stat-change.positive {
+            color: #27ae60;
+        }
+
+        .stat-change.negative {
+            color: #e74c3c;
+        }
+
+        /* 빠른 실행 버튼 */
+        .quick-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-btn.secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .action-btn.secondary:hover {
+            background: #f5f7fa;
+        }
+
+        /* 최근 활동 */
+        .recent-activity {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .activity-list {
+            list-style: none;
+        }
+
+        .activity-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .activity-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .activity-time {
+            color: #999;
+            font-size: 13px;
+        }
+
+        /* 로딩 상태 */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 네비게이션 -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🎯</span>
+            <span>StaffManager</span>
+        </div>
+        
+        <div class="navbar-menu">
+            <a href="/dashboard.html" class="active">대시보드</a>
+            <a href="/employees.html">직원 관리</a>
+            <a href="/attendances.html">출퇴근 관리</a>
+            <a href="/calendar.html">휴가 관리</a>
+            <a href="/salary.html">급여 관리</a>
+            <a href="/settings.html">설정</a>
+            <a href="/contracts.html">계약 관리</a>
+        </div>
+
+        <div class="user-menu">
+            <div class="user-info">
+                <div class="user-name" id="userName">사용자</div>
+                <div class="company-name" id="companyName">회사명</div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="container">
+        <!-- 페이지 헤더 -->
+        <div class="page-header">
+            <h1 class="page-title">대시보드</h1>
+            <p class="page-subtitle">오늘의 인사 현황을 한눈에 확인하세요</p>
+        </div>
+
+        <!-- 로딩 상태 -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p style="color: #999;">데이터를 불러오는 중...</p>
+        </div>
+
+        <!-- 메인 대시보드 (로딩 완료 후 표시) -->
+        <div id="dashboardContent" style="display: none;">
+            <!-- 통계 카드 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">전체 직원</div>
+                            <div class="stat-value" id="totalEmployees">0</div>
+                            <div class="stat-change positive">
+                                <span>+</span><span id="employeeChange">0</span> 이번 달
+                            </div>
+                        </div>
+                        <div class="stat-icon blue">👥</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">이번 달 급여 총액</div>
+                            <div class="stat-value" id="totalSalary">₩0</div>
+                            <div class="stat-change">
+                                <span id="salaryChange">전월 대비 -</span>
+                            </div>
+                        </div>
+                        <div class="stat-icon green">💰</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">오늘 출근</div>
+                            <div class="stat-value" id="todayAttendance">0</div>
+                            <div class="stat-change">
+                                <span>전체 직원 중 </span><span id="attendanceRate">0%</span>
+                            </div>
+                        </div>
+                        <div class="stat-icon orange">📅</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">대기 중인 승인</div>
+                            <div class="stat-value" id="pendingApprovals">0</div>
+                            <div class="stat-change">
+                                <span id="approvalType">연차 신청</span>
+                            </div>
+                        </div>
+                        <div class="stat-icon purple">⏱️</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 빠른 실행 -->
+            <div class="quick-actions">
+                <h2 class="section-title">빠른 실행</h2>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="window.location.href='/employees.html?action=new'">
+                        <span>➕</span>
+                        <span>직원 등록</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="window.location.href='/attendances.html'">
+                        <span>⏰</span>
+                        <span>출퇴근 기록</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="window.location.href='/salary.html?action=calculate'">
+                        <span>🧮</span>
+                        <span>급여 계산</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="window.location.href='/settings.html'">
+                        <span>⚙️</span>
+                        <span>설정</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 최근 활동 -->
+            <div class="recent-activity">
+                <h2 class="section-title">최근 활동</h2>
+                <ul class="activity-list" id="activityList">
+                    <li class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>아직 활동 내역이 없습니다</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        // 전역 변수
+        // ====================================
+        
+        let userInfo = null;
+        let authToken = null;
+
+        // ====================================
+        // 페이지 로드 시 실행
+        // ====================================
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            // 로그인 상태 확인
+            authToken = localStorage.getItem('authToken');
+            const userInfoStr = localStorage.getItem('userInfo');
+
+            if (!authToken || !userInfoStr) {
+                // 로그인하지 않았으면 로그인 페이지로 이동
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // 사용자 정보 파싱
+            try {
+                userInfo = JSON.parse(userInfoStr);
+            } catch (error) {
+                console.error('사용자 정보 파싱 오류:', error);
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // 사용자 정보 표시
+            document.getElementById('userName').textContent = userInfo.name;
+            document.getElementById('companyName').textContent = userInfo.companyName;
+
+            // 대시보드 데이터 로드
+            await loadDashboardData();
+        });
+
+        // ====================================
+        // 대시보드 데이터 로드
+        // ====================================
+
+        async function loadDashboardData() {
+            try {
+                // 직원 목록 조회
+                const employeesResponse = await fetch('/.netlify/functions/employees-list', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (employeesResponse.ok) {
+                    const employeesData = await employeesResponse.json();
+                    
+                    if (employeesData.success) {
+                        const employees = employeesData.data.employees || [];
+                        
+                        // 전체 직원 수 표시
+                        document.getElementById('totalEmployees').textContent = employees.length;
+                        
+                        // 이번 달 신규 직원 계산 (예시: 임의 값)
+                        document.getElementById('employeeChange').textContent = Math.min(employees.length, 2);
+                        
+                        // 출근율 계산 (예시: 임의 값 - 실제로는 attendances API에서 가져와야 함)
+                        const attendanceCount = Math.floor(employees.length * 0.8); // 80% 가정
+                        document.getElementById('todayAttendance').textContent = attendanceCount;
+                        
+                        if (employees.length > 0) {
+                            const rate = Math.round((attendanceCount / employees.length) * 100);
+                            document.getElementById('attendanceRate').textContent = rate + '%';
+                        }
+                    }
+                }
+
+                // 로딩 완료 - 대시보드 표시
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+
+            } catch (error) {
+                console.error('대시보드 데이터 로드 오류:', error);
+                
+                // 에러 발생 시에도 빈 대시보드 표시
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+            }
+        }
+
+        // ====================================
+        // 로그아웃 처리
+        // ====================================
+
+        function handleLogout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                // localStorage에서 인증 정보 삭제
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userInfo');
+                
+                // 로그인 페이지로 이동
+                window.location.href = '/login.html';
+            }
+        }
+
+        // ====================================
+        // 숫자 포맷팅 함수
+        // ====================================
+
+        function formatCurrency(amount) {
+            return '₩' + amount.toLocaleString('ko-KR');
+        }
+
+        function formatNumber(num) {
+            return num.toLocaleString('ko-KR');
+        }
+    </script>
+</body>
+</html>
