@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 // ====================================
 // Supabase 클라이언트 생성
@@ -53,13 +53,9 @@ function errorResponse(message, statusCode = 400) {
 // ====================================
 // 비밀번호 검증 함수
 // ====================================
-function verifyPassword(inputPassword, storedHash) {
-  // SHA-256으로 해시화 (직원 등록 시 사용한 방식과 동일)
-  const inputHash = crypto.createHash('sha256')
-    .update(inputPassword)
-    .digest('hex');
-  
-  return inputHash === storedHash;
+async function verifyPassword(inputPassword, storedHash) {
+  // bcrypt로 검증 (회원가입 시 사용한 방식과 동일)
+  return await bcrypt.compare(inputPassword, storedHash);
 }
 
 // ====================================
@@ -160,7 +156,7 @@ exports.handler = async (event, context) => {
 
     // 6. 비밀번호 검증
     console.log('6단계: 비밀번호 검증');
-    const isPasswordValid = verifyPassword(password, user.password_hash);
+    const isPasswordValid = await verifyPassword(password, user.password_hash);
 
     if (!isPasswordValid) {
       console.log('비밀번호 불일치');
