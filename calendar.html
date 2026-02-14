@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StaffManager - 근태관리</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * {
       margin: 0;
@@ -488,6 +487,21 @@
   </style>
 </head>
 <body>
+    <nav class="navbar" style="background:white;box-shadow:0 2px 4px rgba(0,0,0,0.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;">
+        <div style="display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;">
+            <span>🎯</span><span>StaffManager</span>
+        </div>
+        <div style="display:flex;gap:30px;align-items:center;">
+            <a href="/dashboard" style="text-decoration:none;color:#666;font-weight:500;">대시보드</a>
+            <a href="/employees" style="text-decoration:none;color:#666;font-weight:500;">직원 관리</a>
+            <a href="/attendances" style="text-decoration:none;color:#666;font-weight:500;">출퇴근 관리</a>
+            <a href="/calendar" style="text-decoration:none;color:#667eea;font-weight:600;">휴가 관리</a>
+            <a href="/salary" style="text-decoration:none;color:#666;font-weight:500;">급여 관리</a>
+            <a href="/settings" style="text-decoration:none;color:#666;font-weight:500;">설정</a>
+            <a href="/contracts" style="text-decoration:none;color:#666;font-weight:500;">계약 관리</a>
+        </div>
+        <div><button onclick="handleLogout()" style="padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;">로그아웃</button></div>
+    </nav>
   <div class="container">
     <div class="header">
       <div class="header-left">
@@ -619,11 +633,17 @@
 
   <script>
     (function() {
-      const supabaseUrl = 'https://mlkumikpcfuopqlleszc.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1sa3VtaWtwY2Z1b3BxbGxlc3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NzU3MzUsImV4cCI6MjA4NjM1MTczNX0.K56zqmAMZmz2PS79IpkkUCwFDVQibeCW8Zxh4QSqqHE';
-      const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-      const COMPANY_ID = 'b5327195-a4de-42d5-adaf-0d906ab49a6e';
+      // localStorage에서 인증 정보 가져오기
+      const authToken = localStorage.getItem('authToken');
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const COMPANY_ID = userInfo?.companyId;
+      
+      if (!COMPANY_ID) {
+        alert('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+        window.location.href = '/login.html';
+      }
+      
       let currentDate = new Date();
       let calendarData = {};
       let employees = [];
@@ -638,29 +658,41 @@
         await loadAnnualLeaves();
         await renderCalendar();
       }
-
       async function loadEmployees() {
-        const { data } = await supabaseClient
-          .from('employees')
-          .select('*')
-          .eq('company_id', COMPANY_ID)
-          .order('name');
-        
-        employees = data || [];
-        
+        try {
+          const response = await fetch('/.netlify/functions/employees-list', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          const result = await response.json();
+          if (result.success) {
+            employees = result.data?.employees || [];
+          } else {
+            console.error('직원 목록 조회 오류:', result.error);
+            employees = [];
+          }
+        } catch (error) {
+          console.error('직원 목록 로드 실패:', error);
+          employees = [];
+        }
         const select = document.getElementById('employee-select');
         select.innerHTML = '<option value="">선택하세요</option>';
         employees.forEach(emp => {
           const option = document.createElement('option');
           option.value = emp.id;
-          option.textContent = emp.name;
+          option.textContent = emp.name || '이름 없음';
           select.appendChild(option);
         });
       }
 
       async function loadAnnualLeaves() {
         const year = currentDate.getFullYear();
-        const response = await fetch(`/.netlify/functions/annual-leave-calculate?company_id=${COMPANY_ID}&year=${year}`);
+        const response = await fetch(`/.netlify/functions/annual-leave-calculate?company_id=${COMPANY_ID}&year=${year}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
         const result = await response.json();
 
         const listEl = document.getElementById('annual-leave-list');
@@ -668,7 +700,7 @@
         if (result.annual_leaves && result.annual_leaves.length > 0) {
           listEl.innerHTML = result.annual_leaves.map(al => `
             <div class="leave-item">
-              <div class="leave-name">${al.employee?.name || '직원'}</div>
+              <div class="leave-name">${al.employee?.user?.name || '직원'}</div>
               <div class="leave-stats">
                 <span class="leave-used">${al.used_days}일 사용</span>
                 <span class="leave-remaining">${al.remaining_days}일 남음</span>
@@ -726,7 +758,9 @@
       }
 
       async function loadCalendarData(year, month) {
-        const response = await fetch(`/.netlify/functions/vacations-list?company_id=${COMPANY_ID}&year=${year}&month=${month}`);
+        const response = await fetch(`/.netlify/functions/vacations-list?company_id=${COMPANY_ID}&year=${year}&month=${month}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
         const result = await response.json();
         calendarData = result.calendar || {};
       }
@@ -809,7 +843,10 @@
         try {
           const response = await fetch('/.netlify/functions/vacations-create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
             body: JSON.stringify({
               employee_id: employeeId,
               company_id: COMPANY_ID,
@@ -817,7 +854,7 @@
               start_date: startDate,
               end_date: endDate,
               reason: reason || null,
-              created_by: '0e572764-dc4d-4c5d-b97a-bb845bd7ac2a'
+              created_by: userInfo?.id
             })
           });
 
@@ -839,6 +876,11 @@
 
       init();
     })();
+
+    function handleLogout() {
+        localStorage.removeItem('session');
+        window.location.href = '/login.html';
+    }
   </script>
 </body>
 </html>
