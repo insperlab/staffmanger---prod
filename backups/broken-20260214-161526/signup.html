@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - StaffManager</title>
+    <style>
+        /* 기본 스타일 설정 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input::placeholder {
+            color: #999;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e0e0e0;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            color: #999;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .password-strength {
+            margin-top: 5px;
+            font-size: 13px;
+        }
+
+        .strength-weak { color: #e74c3c; }
+        .strength-medium { color: #f39c12; }
+        .strength-strong { color: #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 로고 영역 -->
+        <div class="logo">
+            <h1>🎯 StaffManager</h1>
+            <p>카카오톡으로 간편하게 관리하는 인사시스템</p>
+        </div>
+
+        <!-- 성공 메시지 -->
+        <div id="successMessage" class="success-message">
+            회원가입이 완료되었습니다! 로그인 페이지로 이동합니다...
+        </div>
+
+        <!-- 회원가입 폼 -->
+        <form id="signupForm">
+            <!-- 개인 정보 -->
+            <div class="form-group">
+                <label for="name">이름 *</label>
+                <input type="text" id="name" placeholder="홍길동" required>
+                <div class="error-message" id="nameError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">이메일 *</label>
+                <input type="email" id="email" placeholder="example@company.com" required>
+                <div class="error-message" id="emailError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">비밀번호 *</label>
+                <input type="password" id="password" placeholder="8자 이상, 영문+숫자 포함" required>
+                <div class="password-strength" id="passwordStrength"></div>
+                <div class="error-message" id="passwordError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">전화번호 *</label>
+                <input type="tel" id="phone" placeholder="010-1234-5678" required>
+                <div class="error-message" id="phoneError"></div>
+            </div>
+
+            <div class="divider">
+                <span>회사 정보</span>
+            </div>
+
+            <!-- 회사 정보 -->
+            <div class="form-group">
+                <label for="companyName">회사명 *</label>
+                <input type="text" id="companyName" placeholder="주식회사 인스퍼랩" required>
+                <div class="error-message" id="companyNameError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="businessNumber">사업자등록번호 *</label>
+                <input type="text" id="businessNumber" placeholder="123-45-67890" maxlength="12" required>
+                <div class="error-message" id="businessNumberError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="ceoName">대표자명 *</label>
+                <input type="text" id="ceoName" placeholder="김진호" required>
+                <div class="error-message" id="ceoNameError"></div>
+            </div>
+
+            <!-- 제출 버튼 -->
+            <button type="submit" class="btn" id="submitBtn">
+                회원가입 하기
+            </button>
+        </form>
+
+        <!-- 로딩 인디케이터 -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">가입 처리 중...</p>
+        </div>
+
+        <!-- 로그인 링크 -->
+        <div class="login-link">
+            이미 계정이 있으신가요? <a href="/login.html">로그인</a>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        // 전역 변수 및 DOM 요소 선택
+        // ====================================
+        
+        const form = document.getElementById('signupForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const successMessage = document.getElementById('successMessage');
+
+        // 입력 필드들
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const phoneInput = document.getElementById('phone');
+        const companyNameInput = document.getElementById('companyName');
+        const businessNumberInput = document.getElementById('businessNumber');
+        const ceoNameInput = document.getElementById('ceoName');
+
+        // 에러 메시지 요소들
+        const nameError = document.getElementById('nameError');
+        const emailError = document.getElementById('emailError');
+        const passwordError = document.getElementById('passwordError');
+        const phoneError = document.getElementById('phoneError');
+        const companyNameError = document.getElementById('companyNameError');
+        const businessNumberError = document.getElementById('businessNumberError');
+        const ceoNameError = document.getElementById('ceoNameError');
+
+        // 비밀번호 강도 표시 요소
+        const passwordStrength = document.getElementById('passwordStrength');
+
+        // ====================================
+        // 유효성 검증 함수들
+        // ====================================
+
+        // 이메일 형식 검증
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // 비밀번호 강도 체크 (8자 이상, 영문+숫자 포함)
+        function checkPasswordStrength(password) {
+            if (password.length < 8) {
+                return { strength: 'weak', message: '비밀번호가 너무 짧습니다 (최소 8자)' };
+            }
+            
+            const hasLetter = /[a-zA-Z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[!@#$%^&*]/.test(password);
+
+            if (hasLetter && hasNumber && hasSpecial) {
+                return { strength: 'strong', message: '✓ 강력한 비밀번호입니다' };
+            } else if (hasLetter && hasNumber) {
+                return { strength: 'medium', message: '보통 강도의 비밀번호입니다' };
+            } else {
+                return { strength: 'weak', message: '영문과 숫자를 모두 포함해주세요' };
+            }
+        }
+
+        // 전화번호 형식 자동 변환 (01012345678 -> 010-1234-5678)
+        function formatPhoneNumber(value) {
+            const numbers = value.replace(/[^\d]/g, '');
+            if (numbers.length <= 3) return numbers;
+            if (numbers.length <= 7) return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
+        }
+
+        // 사업자등록번호 형식 자동 변환 (1234567890 -> 123-45-67890)
+        function formatBusinessNumber(value) {
+            const numbers = value.replace(/[^\d]/g, '');
+            if (numbers.length <= 3) return numbers;
+            if (numbers.length <= 5) return numbers.slice(0, 3) + '-' + numbers.slice(3);
+            return numbers.slice(0, 3) + '-' + numbers.slice(3, 5) + '-' + numbers.slice(5, 10);
+        }
+
+        // 에러 메시지 표시
+        function showError(element, message) {
+            element.textContent = message;
+            element.classList.add('show');
+        }
+
+        // 에러 메시지 숨기기
+        function hideError(element) {
+            element.classList.remove('show');
+        }
+
+        // 모든 에러 메시지 초기화
+        function clearAllErrors() {
+            hideError(nameError);
+            hideError(emailError);
+            hideError(passwordError);
+            hideError(phoneError);
+            hideError(companyNameError);
+            hideError(businessNumberError);
+            hideError(ceoNameError);
+        }
+
+        // ====================================
+        // 실시간 입력 검증 이벤트
+        // ====================================
+
+        // 비밀번호 입력 시 강도 체크
+        passwordInput.addEventListener('input', () => {
+            const password = passwordInput.value;
+            if (password.length === 0) {
+                passwordStrength.textContent = '';
+                return;
+            }
+
+            const result = checkPasswordStrength(password);
+            passwordStrength.textContent = result.message;
+            passwordStrength.className = 'password-strength strength-' + result.strength;
+        });
+
+        // 전화번호 자동 포맷팅
+        phoneInput.addEventListener('input', (e) => {
+            e.target.value = formatPhoneNumber(e.target.value);
+        });
+
+        // 사업자등록번호 자동 포맷팅
+        businessNumberInput.addEventListener('input', (e) => {
+            e.target.value = formatBusinessNumber(e.target.value);
+        });
+
+        // ====================================
+        // 폼 제출 처리
+        // ====================================
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // 기본 폼 제출 동작 방지
+            
+            // 모든 에러 메시지 초기화
+            clearAllErrors();
+
+            // 입력값 가져오기
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const phone = phoneInput.value.trim();
+            const companyName = companyNameInput.value.trim();
+            const businessNumber = businessNumberInput.value.trim();
+            const ceoName = ceoNameInput.value.trim();
+
+            // 유효성 검증
+            let isValid = true;
+
+            // 이름 검증
+            if (name.length < 2) {
+                showError(nameError, '이름은 2자 이상 입력해주세요');
+                isValid = false;
+            }
+
+            // 이메일 검증
+            if (!isValidEmail(email)) {
+                showError(emailError, '올바른 이메일 형식이 아닙니다');
+                isValid = false;
+            }
+
+            // 비밀번호 검증
+            const passwordCheck = checkPasswordStrength(password);
+            if (passwordCheck.strength === 'weak') {
+                showError(passwordError, passwordCheck.message);
+                isValid = false;
+            }
+
+            // 전화번호 검증 (010-1234-5678 형식)
+            const phoneRegex = /^\d{3}-\d{4}-\d{4}$/;
+            if (!phoneRegex.test(phone)) {
+                showError(phoneError, '올바른 전화번호 형식이 아닙니다 (예: 010-1234-5678)');
+                isValid = false;
+            }
+
+            // 회사명 검증
+            if (companyName.length < 2) {
+                showError(companyNameError, '회사명은 2자 이상 입력해주세요');
+                isValid = false;
+            }
+
+            // 사업자등록번호 검증 (123-45-67890 형식)
+            const businessRegex = /^\d{3}-\d{2}-\d{5}$/;
+            if (!businessRegex.test(businessNumber)) {
+                showError(businessNumberError, '올바른 사업자등록번호 형식이 아닙니다 (예: 123-45-67890)');
+                isValid = false;
+            }
+
+            // 대표자명 검증
+            if (ceoName.length < 2) {
+                showError(ceoNameError, '대표자명은 2자 이상 입력해주세요');
+                isValid = false;
+            }
+
+            // 유효성 검증 실패 시 중단
+            if (!isValid) {
+                return;
+            }
+
+            // ====================================
+            // API 호출 (회원가입 처리)
+            // ====================================
+
+            try {
+                // 버튼 비활성화 및 로딩 표시
+                submitBtn.disabled = true;
+                form.style.display = 'none';
+                loading.classList.add('show');
+
+                // API 엔드포인트로 POST 요청
+                const response = await fetch('/.netlify/functions/auth-register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        name: name,
+                        phone: phone,
+                        companyName: companyName,
+                        businessNumber: businessNumber,
+                        ceoName: ceoName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 회원가입 성공
+                    loading.classList.remove('show');
+                    successMessage.classList.add('show');
+
+                    // 2초 후 로그인 페이지로 이동
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+
+                } else {
+                    // 회원가입 실패 (서버 에러 메시지 표시)
+                    loading.classList.remove('show');
+                    form.style.display = 'block';
+                    submitBtn.disabled = false;
+
+                    // 에러 메시지에 따라 적절한 필드에 표시
+                    if (data.error.includes('이메일')) {
+                        showError(emailError, data.error);
+                    } else if (data.error.includes('사업자')) {
+                        showError(businessNumberError, data.error);
+                    } else {
+                        alert('회원가입 중 오류가 발생했습니다: ' + data.error);
+                    }
+                }
+
+            } catch (error) {
+                // 네트워크 오류 또는 예상치 못한 오류
+                console.error('회원가입 오류:', error);
+                loading.classList.remove('show');
+                form.style.display = 'block';
+                submitBtn.disabled = false;
+                alert('서버와 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            }
+        });
+    </script>
+</body>
+</html>

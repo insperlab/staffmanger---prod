@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출퇴근 기록 - StaffManager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 
+         * 메인 컨테이너
+         * 모바일에서 보기 좋도록 최대 너비를 제한하고
+         * 그림자 효과로 입체감을 줍니다
+         */
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 100%;
+            padding: 40px 30px;
+        }
+
+        /* 로고 및 헤더 */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: #999;
+            font-size: 15px;
+        }
+
+        /* 
+         * 현재 시각 표시
+         * 직원이 정확히 몇 시에 찍었는지 바로 확인할 수 있게
+         * 큰 글씨로 눈에 잘 띄게 표시합니다
+         */
+        .current-time {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 30px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .time-label {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .time-display {
+            font-size: 36px;
+            font-weight: 700;
+            color: #667eea;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .date-display {
+            font-size: 16px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* 폼 요소 */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        /*
+         * 전화번호 입력 필드
+         * 모바일에서 숫자 키패드가 자동으로 나타나도록
+         * type="tel"을 사용합니다
+         * 터치하기 쉽도록 padding을 넉넉하게 줍니다
+         */
+        input[type="tel"] {
+            width: 100%;
+            padding: 16px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 17px;
+            transition: all 0.3s;
+        }
+
+        input[type="tel"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="tel"]::placeholder {
+            color: #bbb;
+        }
+
+        /* 
+         * 출근/퇴근 버튼
+         * 손가락으로 쉽게 누를 수 있도록 최소 높이 56px 이상
+         * (iOS Human Interface Guidelines 권장사항)
+         */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            padding: 18px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 60px;
+        }
+
+        .btn-check-in {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-check-in:active {
+            transform: scale(0.98);
+        }
+
+        .btn-check-out {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-check-out:active {
+            transform: scale(0.98);
+            background: #f5f7fa;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 상태 메시지 */
+        .status-message {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* 로딩 상태 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 안내 정보 */
+        .info-box {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-box p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* 푸터 */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer p {
+            color: #999;
+            font-size: 13px;
+        }
+
+        /* 반응형: 작은 화면에서는 버튼을 세로로 배치 */
+        @media (max-width: 400px) {
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <div class="logo">🎯</div>
+            <h1 class="company-name" id="companyName">StaffManager</h1>
+            <p class="page-subtitle">출퇴근 기록 시스템</p>
+        </div>
+
+        <!-- 현재 시각 표시 -->
+        <div class="current-time">
+            <div class="time-label">현재 시각</div>
+            <div class="time-display" id="currentTime">--:--</div>
+            <div class="date-display" id="currentDate">----년 --월 --일</div>
+        </div>
+
+        <!-- 상태 메시지 -->
+        <div id="statusMessage" class="status-message"></div>
+
+        <!-- 로딩 상태 -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p style="color: #666;">처리 중...</p>
+        </div>
+
+        <!-- 출퇴근 폼 -->
+        <div id="attendanceForm">
+            <form id="checkInOutForm">
+                <div class="form-group">
+                    <label for="phoneNumber">휴대전화번호</label>
+                    <input 
+                        type="tel" 
+                        id="phoneNumber" 
+                        name="phoneNumber"
+                        placeholder="010-1234-5678" 
+                        required
+                        autocomplete="tel"
+                        pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
+                    >
+                </div>
+
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-check-in" onclick="handleCheckIn()">
+                        <span>🌅</span>
+                        <span>출근</span>
+                    </button>
+                    <button type="button" class="btn btn-check-out" onclick="handleCheckOut()">
+                        <span>🌆</span>
+                        <span>퇴근</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="info-box">
+                <p>
+                    📱 전화번호를 입력하고 출근 또는 퇴근 버튼을 눌러주세요. 
+                    출퇴근 기록은 자동으로 저장되며, 카카오톡으로 확인 알림을 받으실 수 있습니다.
+                </p>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="footer">
+            <p>Powered by <strong>StaffManager</strong></p>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        // 전역 변수
+        // ====================================
+        
+        /*
+         * URL에서 받은 출퇴근 토큰
+         * 예: https://staffmanager.io/attendance-checkin.html?token=ATT_abc123
+         * 이 토큰으로 어느 회사의 QR코드인지 식별합니다
+         */
+        let attendanceToken = null;
+        let companyInfo = null;
+        let currentLocation = { latitude: null, longitude: null };
+
+        // ====================================
+        // 페이지 로드 시 실행
+        // ====================================
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            // URL 파라미터에서 토큰 추출
+            const urlParams = new URLSearchParams(window.location.search);
+            attendanceToken = urlParams.get('token');
+
+            // 토큰이 없으면 에러 표시
+            if (!attendanceToken) {
+                showStatus('유효하지 않은 QR코드입니다. 다시 촬영해주세요.', 'error');
+                disableForm();
+                return;
+            }
+
+            // 현재 시각 표시 시작
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);  // 1초마다 갱신
+
+            // GPS 위치 정보 가져오기 (비동기, 에러 무시)
+            try {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            currentLocation.latitude = position.coords.latitude;
+                            currentLocation.longitude = position.coords.longitude;
+                            console.log('위치 정보 획득 성공:', currentLocation);
+                        },
+                        (error) => {
+                            console.warn('위치 정보 획득 실패:', error.message);
+                            // 위치 정보는 선택사항이므로 실패해도 계속 진행
+                        }
+                    );
+                }
+            } catch (error) {
+                console.warn('위치 정보 접근 불가:', error);
+            }
+
+            // 전화번호 입력 필드에 자동 포맷팅 적용
+            setupPhoneNumberFormatting();
+        });
+
+        // ====================================
+        // 현재 시각 업데이트
+        // ====================================
+
+        function updateCurrentTime() {
+            const now = new Date();
+            
+            // 시각 표시 (HH:MM:SS 형식)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+
+            // 날짜 표시
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayName = dayNames[now.getDay()];
+            document.getElementById('currentDate').textContent = 
+                `${year}년 ${month}월 ${date}일 (${dayName})`;
+        }
+
+        // ====================================
+        // 전화번호 자동 포맷팅
+        // ====================================
+
+        function setupPhoneNumberFormatting() {
+            const phoneInput = document.getElementById('phoneNumber');
+            
+            phoneInput.addEventListener('input', (e) => {
+                // 숫자만 추출
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                
+                // 11자리로 제한
+                if (value.length > 11) {
+                    value = value.slice(0, 11);
+                }
+                
+                // 자동으로 하이픈 추가
+                // 예: 01012345678 → 010-1234-5678
+                if (value.length <= 3) {
+                    e.target.value = value;
+                } else if (value.length <= 7) {
+                    e.target.value = `${value.slice(0, 3)}-${value.slice(3)}`;
+                } else {
+                    e.target.value = `${value.slice(0, 3)}-${value.slice(3, 7)}-${value.slice(7)}`;
+                }
+            });
+        }
+
+        // ====================================
+        // 출근 처리
+        // ====================================
+
+        async function handleCheckIn() {
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            
+            // 전화번호 유효성 검사
+            if (!phoneNumber) {
+                showStatus('전화번호를 입력해주세요.', 'error');
+                return;
+            }
+
+            // 전화번호 형식 검증 (010-1234-5678)
+            const phoneRegex = /^010-\d{4}-\d{4}$/;
+            if (!phoneRegex.test(phoneNumber)) {
+                showStatus('전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)', 'error');
+                return;
+            }
+
+            // 출근 API 호출
+            await submitAttendance('check-in', phoneNumber);
+        }
+
+        // ====================================
+        // 퇴근 처리
+        // ====================================
+
+        async function handleCheckOut() {
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            
+            // 전화번호 유효성 검사
+            if (!phoneNumber) {
+                showStatus('전화번호를 입력해주세요.', 'error');
+                return;
+            }
+
+            // 전화번호 형식 검증
+            const phoneRegex = /^010-\d{4}-\d{4}$/;
+            if (!phoneRegex.test(phoneNumber)) {
+                showStatus('전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)', 'error');
+                return;
+            }
+
+            // 퇴근 API 호출
+            await submitAttendance('check-out', phoneNumber);
+        }
+
+        // ====================================
+        // 출퇴근 API 호출
+        // ====================================
+
+        async function submitAttendance(type, phoneNumber) {
+            try {
+                // 로딩 상태 표시
+                showLoading(true);
+                hideStatus();
+
+                // 현재 시각 캡처
+                const now = new Date();
+
+                /*
+                 * API 엔드포인트로 POST 요청
+                 * 실제 구현에서는 Netlify Functions를 호출합니다
+                 * 
+                 * 전송 데이터:
+                 * - token: QR코드에서 받은 회사 식별 토큰
+                 * - phoneNumber: 직원 전화번호 (직원 식별용)
+                 * - type: 'check-in' 또는 'check-out'
+                 * - timestamp: 출퇴근 기록 시각
+                 * - location: GPS 좌표 (선택사항)
+                 */
+                const response = await fetch('/.netlify/functions/attendance-checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        token: attendanceToken,
+                        phoneNumber: phoneNumber,
+                        type: type,  // 'check-in' or 'check-out'
+                        timestamp: now.toISOString(),
+                        location: currentLocation.latitude ? {
+                            latitude: currentLocation.latitude,
+                            longitude: currentLocation.longitude
+                        } : null
+                    })
+                });
+
+                const data = await response.json();
+
+                // 로딩 상태 숨김
+                showLoading(false);
+
+                if (data.success) {
+                    // 성공 메시지
+                    const actionName = type === 'check-in' ? '출근' : '퇴근';
+                    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    
+                    showStatus(
+                        `${actionName}이 기록되었습니다. (${timeStr}) 카카오톡으로 확인 알림이 전송됩니다.`,
+                        'success'
+                    );
+
+                    // 전화번호 입력 필드 초기화
+                    document.getElementById('phoneNumber').value = '';
+
+                } else {
+                    // 에러 메시지 표시
+                    showStatus(data.error || `${type === 'check-in' ? '출근' : '퇴근'} 기록에 실패했습니다.`, 'error');
+                }
+
+            } catch (error) {
+                console.error('출퇴근 기록 오류:', error);
+                showLoading(false);
+                showStatus('서버와 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error');
+            }
+        }
+
+        // ====================================
+        // 상태 메시지 표시
+        // ====================================
+
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${type} show`;
+
+            // 성공 메시지는 5초 후 자동으로 숨김
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        function hideStatus() {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.classList.remove('show');
+        }
+
+        // ====================================
+        // 로딩 상태 표시
+        // ====================================
+
+        function showLoading(show) {
+            const loadingEl = document.getElementById('loading');
+            const formEl = document.getElementById('attendanceForm');
+            
+            if (show) {
+                loadingEl.classList.add('show');
+                formEl.style.display = 'none';
+            } else {
+                loadingEl.classList.remove('show');
+                formEl.style.display = 'block';
+            }
+        }
+
+        // ====================================
+        // 폼 비활성화
+        // ====================================
+
+        function disableForm() {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+    </script>
+</body>
+</html>

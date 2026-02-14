@@ -1,5 +1,7 @@
+const { verifyToken, getCorsHeaders } = require('./lib/auth');
 // netlify/functions/vacations-create.js
 // 휴가 등록 + 연차 차감 + 카톡 알림 (Phase 5 이후)
+// ✅ 보안 패치: Bearer 토큰 인증 추가
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -8,20 +10,20 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// [보안패치] getUserFromToken → verifyToken으로 대체됨
+
 exports.handler = async (event) => {
-  // CORS 헤더
+  // CORS 헤더 (Authorization 포함)
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': 'https://staffmanager.io',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
-  // Preflight 요청 처리
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
   }
 
-  // POST 요청만 허용
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -31,24 +33,38 @@ exports.handler = async (event) => {
   }
 
   try {
+    // ✅ 인증 확인
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    let userInfo;
+    try {
+      userInfo = verifyToken(authHeader);
+    } catch (error) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: '인증에 실패했습니다. 다시 로그인해주세요.' }),
+      };
+    }
+
     const {
       employee_id,
-      company_id,
-      vacation_type, // '연차', '반차', '병가', '경조사'
+      vacation_type,
       start_date,
       end_date,
       reason,
-      created_by, // 점장 user_id
+      created_by,
     } = JSON.parse(event.body);
 
-    // 필수 필드 검증
-    if (!employee_id || !company_id || !vacation_type || !start_date || !end_date) {
+    // ✅ company_id는 토큰에서 추출
+    const company_id = userInfo.companyId;
+
+    if (!employee_id || !vacation_type || !start_date || !end_date) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
           error: 'Missing required fields',
-          required: ['employee_id', 'company_id', 'vacation_type', 'start_date', 'end_date'],
+          required: ['employee_id', 'vacation_type', 'start_date', 'end_date'],
         }),
       };
     }
@@ -57,9 +73,8 @@ exports.handler = async (event) => {
     const start = new Date(start_date);
     const end = new Date(end_date);
     const timeDiff = end.getTime() - start.getTime();
-    let days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1; // 시작일 포함
+    let days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
-    // 반차 처리
     if (vacation_type === '반차') {
       days = 0.5;
     }
@@ -100,7 +115,6 @@ exports.handler = async (event) => {
         };
       }
 
-      // 잔여 연차 부족 체크
       if (annualLeave.remaining_days < days) {
         return {
           statusCode: 400,
@@ -125,7 +139,7 @@ exports.handler = async (event) => {
         end_date,
         days,
         reason,
-        created_by,
+        created_by: created_by || userInfo.userId,
       })
       .select()
       .single();
@@ -156,62 +170,7 @@ exports.handler = async (event) => {
       updatedAnnualLeave = al;
     }
 
-    // 5. 점장 정보 조회 (카톡 발송용)
-    const { data: owner } = await supabase
-      .from('users')
-      .select('phone')
-      .eq('id', created_by)
-      .single();
-
-    // 6. 회사 정보 조회 (카톡 발송용)
-    const { data: company } = await supabase
-      .from('companies')
-      .select('name')
-      .eq('id', company_id)
-      .single();
-
-    // 7. 카카오톡 알림 발송 (TODO: Phase 5 완료 후 활성화)
-    // if (process.env.SOLAPI_API_KEY) {
-    //   try {
-    //     // 점장에게 알림
-    //     if (owner && owner.phone) {
-    //       await sendKakaoNotification({
-    //         to: owner.phone,
-    //         templateCode: 'vacation_registered_owner',
-    //         variables: {
-    //           직원명: employee.name,
-    //           시작일: start_date,
-    //           종료일: end_date,
-    //           휴가종류: vacation_type,
-    //           잔여일수: updatedAnnualLeave?.remaining_days || 0,
-    //           총일수: updatedAnnualLeave?.total_days || 0,
-    //         },
-    //       });
-    //     }
-    //
-    //     // 직원에게 알림
-    //     if (employee.phone) {
-    //       await sendKakaoNotification({
-    //         to: employee.phone,
-    //         templateCode: 'vacation_registered_employee',
-    //         variables: {
-    //           매장명: company?.name || 'StaffManager',
-    //           직원명: employee.name,
-    //           시작일: start_date,
-    //           종료일: end_date,
-    //           휴가종류: vacation_type,
-    //           잔여일수: updatedAnnualLeave?.remaining_days || 0,
-    //           총일수: updatedAnnualLeave?.total_days || 0,
-    //         },
-    //       });
-    //     }
-    //   } catch (kakaoError) {
-    //     console.error('Kakao notification error:', kakaoError);
-    //     // 알림 실패해도 휴가 등록은 성공으로 처리
-    //   }
-    // }
-
-    // 성공 응답
+    // 5. 성공 응답
     return {
       statusCode: 200,
       headers,
@@ -234,9 +193,3 @@ exports.handler = async (event) => {
     };
   }
 };
-
-// 카카오톡 알림 발송 함수 (Phase 5 이후 구현)
-// async function sendKakaoNotification({ to, templateCode, variables }) {
-//   // TODO: 솔라피 API 연동
-//   console.log('Kakao notification:', { to, templateCode, variables });
-// }

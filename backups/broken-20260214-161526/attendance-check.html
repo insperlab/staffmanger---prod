@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출퇴근 체크 - StaffManager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .user-name {
+            font-size: 18px;
+            color: #718096;
+            margin-bottom: 30px;
+        }
+
+        .current-time {
+            font-size: 48px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .current-date {
+            font-size: 16px;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+
+        .status-card {
+            background: #f7fafc;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .status-card h3 {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-info {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .status-badge.working {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-badge.not-working {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .check-button {
+            width: 100%;
+            padding: 24px;
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        }
+
+        .check-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .check-button:active {
+            transform: translateY(0);
+        }
+
+        .check-button.check-in {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .check-button.check-out {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .check-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .work-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .info-box {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            display: block;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">👤</div>
+        <h1>출퇴근 체크</h1>
+        <div class="user-name" id="userName">로딩 중...</div>
+
+        <div class="current-time" id="currentTime">00:00:00</div>
+        <div class="current-date" id="currentDate">0000년 00월 00일</div>
+
+        <div class="status-card" id="statusCard">
+            <h3>오늘의 근무 상태</h3>
+            <div class="status-info" id="statusInfo">-</div>
+        </div>
+
+        <button class="check-button check-in" id="checkButton" onclick="handleCheck()">
+            출근하기
+        </button>
+
+        <div class="work-info" id="workInfo" style="display: none;">
+            <div class="info-box">
+                <div class="info-label">출근 시각</div>
+                <div class="info-value" id="checkInTime">-</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">근무 시간</div>
+                <div class="info-value" id="workHours">-</div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        // 인증 토큰 가져오기
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            alert('로그인이 필요합니다');
+            window.location.href = '/login.html';
+        }
+
+        let todayRecord = null;
+
+        // 현재 시간 업데이트
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ko-KR', { hour12: false });
+            const dateStr = now.toLocaleDateString('ko-KR', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            document.getElementById('currentTime').textContent = timeStr;
+            document.getElementById('currentDate').textContent = dateStr;
+        }
+
+        // 1초마다 시간 업데이트
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // 사용자 정보 로드
+        async function loadUserInfo() {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1] || token));
+                document.getElementById('userName').textContent = payload.email || '직원';
+            } catch (error) {
+                console.error('사용자 정보 로드 실패:', error);
+            }
+        }
+
+        // 오늘의 출퇴근 기록 조회
+        async function loadTodayRecord() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const response = await fetch(`/.netlify/functions/attendances-list?startDate=${today}&endDate=${today}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data.attendances.length > 0) {
+                    todayRecord = result.data.attendances[0];
+                    updateUI();
+                } else {
+                    // 오늘 기록 없음
+                    document.getElementById('statusInfo').textContent = '아직 출근하지 않았습니다';
+                    document.getElementById('checkButton').textContent = '출근하기';
+                    document.getElementById('checkButton').className = 'check-button check-in';
+                }
+            } catch (error) {
+                console.error('기록 조회 실패:', error);
+            }
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            if (!todayRecord) return;
+
+            const checkInTime = todayRecord.checkInTime ? new Date(todayRecord.checkInTime).toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '-';
+            const checkOutTime = todayRecord.checkOutTime ? new Date(todayRecord.checkOutTime).toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }) : null;
+
+            if (checkOutTime) {
+                // 이미 퇴근함
+                document.getElementById('statusInfo').innerHTML = `
+                    퇴근 완료
+                    <div class="status-badge not-working">업무 종료</div>
+                `;
+                document.getElementById('checkButton').textContent = '오늘 업무 완료';
+                document.getElementById('checkButton').disabled = true;
+                
+                document.getElementById('workInfo').style.display = 'grid';
+                document.getElementById('checkInTime').textContent = checkInTime;
+                document.getElementById('workHours').textContent = `${todayRecord.workHours || 0}시간`;
+            } else {
+                // 출근만 함
+                document.getElementById('statusInfo').innerHTML = `
+                    근무 중
+                    <div class="status-badge working">출근 완료</div>
+                `;
+                document.getElementById('checkButton').textContent = '퇴근하기';
+                document.getElementById('checkButton').className = 'check-button check-out';
+                
+                document.getElementById('workInfo').style.display = 'grid';
+                document.getElementById('checkInTime').textContent = checkInTime;
+                
+                // 현재까지 근무 시간 계산
+                const checkIn = new Date(todayRecord.checkInTime);
+                const now = new Date();
+                const diffHours = Math.floor((now - checkIn) / (1000 * 60 * 60));
+                const diffMinutes = Math.floor(((now - checkIn) % (1000 * 60 * 60)) / (1000 * 60));
+                document.getElementById('workHours').textContent = `${diffHours}시간 ${diffMinutes}분`;
+            }
+        }
+
+        // 출퇴근 체크
+        async function handleCheck() {
+            const button = document.getElementById('checkButton');
+            const loading = document.getElementById('loading');
+            const message = document.getElementById('message');
+
+            // 이미 퇴근한 경우
+            if (button.disabled) return;
+
+            // 출근 또는 퇴근 타입 결정
+            const type = todayRecord && !todayRecord.checkOutTime ? 'check_out' : 'check_in';
+
+            button.disabled = true;
+            loading.classList.add('active');
+            message.style.display = 'none';
+
+            try {
+                const response = await fetch('/.netlify/functions/attendances-checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ type })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    message.textContent = result.data.message;
+                    message.className = 'message success';
+                    
+                    // 2초 후 페이지 새로고침
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('체크 실패:', error);
+                message.textContent = error.message || '처리 중 오류가 발생했습니다';
+                message.className = 'message error';
+                button.disabled = false;
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 페이지 로드 시 실행
+        loadUserInfo();
+        loadTodayRecord();
+
+        // 근무 시간 실시간 업데이트 (출근 상태일 때만)
+        setInterval(() => {
+            if (todayRecord && todayRecord.checkInTime && !todayRecord.checkOutTime) {
+                const checkIn = new Date(todayRecord.checkInTime);
+                const now = new Date();
+                const diffHours = Math.floor((now - checkIn) / (1000 * 60 * 60));
+                const diffMinutes = Math.floor(((now - checkIn) % (1000 * 60 * 60)) / (1000 * 60));
+                document.getElementById('workHours').textContent = `${diffHours}시간 ${diffMinutes}분`;
+            }
+        }, 60000); // 1분마다 업데이트
+    </script>
+</body>
+</html>

@@ -212,8 +212,30 @@
             letter-spacing: -1px;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* PDF 생성시 깔끔한 출력을 위한 스타일 */
+        #result .result-header { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+        #result .result-header h2 { color: #333; }
+        #result .result-header p { color: #666; margin-top: 5px; }
+    </style>
 </head>
 <body>
+    <nav class="navbar" style="background:white;box-shadow:0 2px 4px rgba(0,0,0,0.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;">
+        <div style="display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;">
+            <span>🎯</span><span>StaffManager</span>
+        </div>
+        <div style="display:flex;gap:30px;align-items:center;">
+            <a href="/dashboard" style="text-decoration:none;color:#666;font-weight:500;">대시보드</a>
+            <a href="/employees" style="text-decoration:none;color:#666;font-weight:500;">직원 관리</a>
+            <a href="/attendances" style="text-decoration:none;color:#666;font-weight:500;">출퇴근 관리</a>
+            <a href="/calendar" style="text-decoration:none;color:#666;font-weight:500;">휴가 관리</a>
+            <a href="/salary" style="text-decoration:none;color:#667eea;font-weight:600;">급여 관리</a>
+            <a href="/settings" style="text-decoration:none;color:#666;font-weight:500;">설정</a>
+            <a href="/contracts" style="text-decoration:none;color:#666;font-weight:500;">계약 관리</a>
+        </div>
+        <div><button onclick="handleLogout()" style="padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;">로그아웃</button></div>
+    </nav>
     <div class="container">
         <h1>💰 급여 조회</h1>
         
@@ -270,10 +292,11 @@
                 showLoading(true);
                 hideError();
                 
-                // localStorage에서 회사 ID 가져오기
+                // localStorage에서 인증 정보 가져오기
+                const authToken = localStorage.getItem('authToken');
                 const userInfo = JSON.parse(localStorage.getItem('userInfo'));
                 
-                if (!userInfo || !userInfo.companyId) {
+                if (!authToken || !userInfo || !userInfo.companyId) {
                     showError('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
                     showLoading(false);
                     return;
@@ -304,15 +327,15 @@
                 const employeeSelect = document.getElementById('employee');
                 employeeSelect.innerHTML = '<option value="">직원을 선택하세요</option>';
 
-                if (data.employees && data.employees.length > 0) {
-                    data.employees.forEach(emp => {
+                if (data.data.employees && data.data.employees.length > 0) {
+                    data.data.employees.forEach(emp => {
                         const option = document.createElement('option');
                         option.value = emp.id;
                         option.textContent = `${emp.name} (${emp.phone})`;
                         option.dataset.employee = JSON.stringify(emp);
                         employeeSelect.appendChild(option);
                     });
-                    console.log(`✅ ${data.employees.length}명의 직원 로드 완료`);
+                    console.log(`✅ ${data.data.employees.length}명의 직원 로드 완료`);
                 } else {
                     showError('등록된 직원이 없습니다. 먼저 직원을 등록해주세요.');
                 }
@@ -328,6 +351,7 @@
 
         // 급여 계산 함수
         async function calculatePayroll() {
+            const authToken = localStorage.getItem('authToken');
             const employeeSelect = document.getElementById('employee');
             const selectedOption = employeeSelect.options[employeeSelect.selectedIndex];
             
@@ -351,7 +375,10 @@
                 // calculate-payroll API 함수 호출
                 const response = await fetch('/.netlify/functions/calculate-payroll', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
                     body: JSON.stringify({
                         employeeId: employee.id,
                         year: year,
@@ -503,6 +530,18 @@
                         <h3>실수령액</h3>
                         <div class="total-amount">${formatCurrency(data.net_payment || 0)}</div>
                     </div>
+                    
+                    <div class="action-buttons" style="margin-top: 30px; display: flex; gap: 10px; justify-content: center;">
+                        <button onclick="downloadPDF('${data.id}', '${employeeName}', ${year}, ${month})" style="padding: 12px 24px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            📄 PDF 다운로드
+                        </button>
+                        <button onclick="sendEmail('${data.id}', '${data.employee_id}', '${employeeName}')" style="padding: 12px 24px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            📧 이메일 발송
+                        </button>
+                        <button onclick="alert('카카오톡 발송 기능은 준비중입니다')" style="padding: 12px 24px; background: #FFC107; color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            💬 카톡 전송
+                        </button>
+                    </div>
                 </div>
             `;
 
@@ -510,6 +549,86 @@
             
             // 결과가 나타나면 해당 위치로 스크롤
             resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // PDF 다운로드 함수 (클라이언트 사이드 생성)
+        async function downloadPDF(payrollId, employeeName, year, month) {
+            try {
+                const resultDiv = document.getElementById('result');
+                // 버튼 영역 일시 숨기기
+                const actionButtons = resultDiv.querySelector('.action-buttons');
+                if (actionButtons) actionButtons.style.display = 'none';
+
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     `급여명세서_${employeeName}_${year}년${month}월.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                await html2pdf().set(opt).from(resultDiv).save();
+
+                // 버튼 영역 복원
+                if (actionButtons) actionButtons.style.display = 'flex';
+                alert('PDF 다운로드가 완료되었습니다!');
+            } catch (error) {
+                console.error('PDF 다운로드 오류:', error);
+                // 버튼 영역 복원
+                const actionButtons = document.querySelector('.action-buttons');
+                if (actionButtons) actionButtons.style.display = 'flex';
+                alert('PDF 다운로드에 실패했습니다.');
+            }
+        }
+
+        // 이메일 발송 함수 (PDF 다운로드 + 이메일 앱 열기)
+        async function sendEmail(payrollId, employeeId, employeeName) {
+            const email = prompt(`${employeeName}님의 이메일 주소를 입력하세요:`);
+            if (!email || !email.includes('@')) {
+                if (email !== null) alert('올바른 이메일 주소를 입력해주세요.');
+                return;
+            }
+
+            if (!confirm(`${email} 주소로 급여명세서를 발송하시겠습니까?\n\n1. PDF가 자동 다운로드됩니다\n2. 이메일 앱이 열립니다\n3. PDF를 첨부하여 발송해주세요`)) {
+                return;
+            }
+
+            try {
+                // 1. PDF 자동 다운로드
+                const resultDiv = document.getElementById('result');
+                const actionButtons = resultDiv.querySelector('.action-buttons');
+                if (actionButtons) actionButtons.style.display = 'none';
+
+                const now = new Date();
+                const year = document.getElementById('year').value;
+                const month = document.getElementById('month').value;
+                const filename = `급여명세서_${employeeName}_${year}년${month}월.pdf`;
+
+                const opt = {
+                    margin: [10, 10, 10, 10],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                await html2pdf().set(opt).from(resultDiv).save();
+                if (actionButtons) actionButtons.style.display = 'flex';
+
+                // 2. mailto로 이메일 앱 열기
+                const subject = encodeURIComponent(`[StaffManager] ${year}년 ${month}월 급여명세서 - ${employeeName}님`);
+                const body = encodeURIComponent(
+                    `${employeeName}님 안녕하세요.\n\n${year}년 ${month}월 급여명세서를 첨부하여 보내드립니다.\n확인 부탁드립니다.\n\n감사합니다.\nStaffManager`
+                );
+                window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+
+                alert('PDF가 다운로드되었습니다.\n이메일 앱에서 PDF 파일을 첨부하여 발송해주세요.');
+            } catch (error) {
+                console.error('이메일 발송 오류:', error);
+                const actionButtons = document.querySelector('.action-buttons');
+                if (actionButtons) actionButtons.style.display = 'flex';
+                alert('처리에 실패했습니다.');
+            }
         }
 
         // 금액을 원화 형식으로 포맷하는 함수
@@ -546,6 +665,11 @@
 
         function disableButton(disabled) {
             document.getElementById('calculateBtn').disabled = disabled;
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('session');
+            window.location.href = '/login.html';
         }
     </script>
 </body>

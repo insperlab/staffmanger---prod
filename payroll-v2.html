@@ -83,6 +83,7 @@
                 showLoading(true);
                 hideError();
                 
+                const authToken = localStorage.getItem('authToken');
                 const userInfo = JSON.parse(localStorage.getItem('userInfo'));
                 
                 if (!userInfo || !userInfo.companyId) {
@@ -94,9 +95,11 @@
                 console.log('Company ID:', userInfo.companyId);
 
                 const response = await fetch('/.netlify/functions/employees-list', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companyId: userInfo.companyId })
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
                 });
 
                 console.log('Response status:', response.status);

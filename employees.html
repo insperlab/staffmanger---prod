@@ -372,7 +372,7 @@
                 <input 
                     type="text" 
                     id="searchInput" 
-                    placeholder="🔍 이름, 이메일, 부서로 검색..."
+                    placeholder="🔍 이름, 전화번호, 부서로 검색..."
                 >
             </div>
             <select class="filter-select" id="statusFilter">
@@ -402,7 +402,7 @@
                 <thead>
                     <tr>
                         <th>이름</th>
-                        <th>이메일</th>
+                        <th>전화번호</th>
                         <th>부서</th>
                         <th>직급</th>
                         <th>입사일</th>
@@ -557,7 +557,7 @@
 
                 row.innerHTML = `
                     <td class="employee-name">${employee.name}</td>
-                    <td>${employee.email}</td>
+                    <td>${employee.phone || '-'}</td>
                     <td>${employee.department || '-'}</td>
                     <td>${employee.position || '-'}</td>
                     <td>${hireDate}</td>
@@ -582,7 +582,7 @@
                 // 검색어 필터
                 const matchesSearch = 
                     employee.name.toLowerCase().includes(searchTerm) ||
-                    employee.email.toLowerCase().includes(searchTerm) ||
+                    (employee.phone && employee.phone.toLowerCase().includes(searchTerm)) ||
                     (employee.department && employee.department.toLowerCase().includes(searchTerm));
 
                 // 상태 필터
@@ -618,7 +618,7 @@
             // 현재는 간단한 알림으로 대체
             const employee = allEmployees.find(emp => emp.id === employeeId);
             if (employee) {
-                alert(`${employee.name} 직원의 상세 정보\n\n이메일: ${employee.email}\n부서: ${employee.department || '-'}\n직급: ${employee.position || '-'}\n\n상세 페이지는 다음 단계에서 구현됩니다.`);
+                alert(`${employee.name} 직원의 상세 정보\n\n전화번호: ${employee.phone || '-'}\n부서: ${employee.department || '-'}\n직급: ${employee.position || '-'}\n\n상세 페이지는 다음 단계에서 구현됩니다.`);
             }
         }
 

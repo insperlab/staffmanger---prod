@@ -1,3 +1,4 @@
+const { verifyToken, getCorsHeaders } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
 
 // ====================================
@@ -14,35 +15,7 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// ====================================
-// JWT 토큰에서 사용자 정보 추출
-// ====================================
-function getUserFromToken(authHeader) {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('인증 토큰이 없습니다');
-  }
-
-  const token = authHeader.substring(7);
-  
-  try {
-    const payload = JSON.parse(
-      Buffer.from(token, 'base64').toString('utf-8')
-    );
-
-    if (!payload.userId || !payload.companyId) {
-      throw new Error('토큰에 필요한 정보가 없습니다');
-    }
-
-    return {
-      userId: payload.userId,
-      companyId: payload.companyId,
-      email: payload.email || null,
-      role: payload.role || null
-    };
-  } catch (error) {
-    throw new Error('토큰 파싱에 실패했습니다: ' + error.message);
-  }
-}
+// [보안패치] getUserFromToken → verifyToken으로 대체됨
 
 // ====================================
 // 메인 핸들러
@@ -51,7 +24,7 @@ exports.handler = async (event, context) => {
   console.log('=== attendances-list 함수 시작 ===');
 
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': 'https://staffmanager.io',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Content-Type': 'application/json'
@@ -73,7 +46,7 @@ exports.handler = async (event, context) => {
     // 1. 인증 확인
     console.log('1단계: 인증 확인');
     const authHeader = event.headers.authorization || event.headers.Authorization;
-    const userInfo = getUserFromToken(authHeader);
+    const userInfo = verifyToken(authHeader);
     console.log('사용자 정보:', userInfo);
 
     // 2. URL 파라미터 파싱

@@ -141,6 +141,21 @@
   </style>
 </head>
 <body>
+    <nav class="navbar" style="background:white;box-shadow:0 2px 4px rgba(0,0,0,0.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;">
+        <div style="display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;">
+            <span>🎯</span><span>StaffManager</span>
+        </div>
+        <div style="display:flex;gap:30px;align-items:center;">
+            <a href="/dashboard" style="text-decoration:none;color:#666;font-weight:500;">대시보드</a>
+            <a href="/employees" style="text-decoration:none;color:#666;font-weight:500;">직원 관리</a>
+            <a href="/attendances" style="text-decoration:none;color:#666;font-weight:500;">출퇴근 관리</a>
+            <a href="/calendar" style="text-decoration:none;color:#666;font-weight:500;">휴가 관리</a>
+            <a href="/salary" style="text-decoration:none;color:#666;font-weight:500;">급여 관리</a>
+            <a href="/settings" style="text-decoration:none;color:#666;font-weight:500;">설정</a>
+            <a href="/contracts" style="text-decoration:none;color:#667eea;font-weight:600;">계약 관리</a>
+        </div>
+        <div><button onclick="handleLogout()" style="padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;">로그아웃</button></div>
+    </nav>
   <div class="container">
     <div class="header">
       <h1>📄 계약관리</h1>
@@ -178,6 +193,11 @@
     const today = new Date();
     const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
     document.getElementById('current-date').textContent = today.toLocaleDateString('ko-KR', options);
+
+    function handleLogout() {
+        localStorage.removeItem('session');
+        window.location.href = '/login.html';
+    }
   </script>
 </body>
 </html>

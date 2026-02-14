@@ -358,8 +358,8 @@
         });
 
         const result = await response.json();
-        if (result.success && result.data) {
-          employees = result.data;
+        if (result.success && result.data && result.data.employees) {
+          employees = result.data.employees;
           const select = document.getElementById('employeeSelect');
           employees.forEach(emp => {
             const option = document.createElement('option');

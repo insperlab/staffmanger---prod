@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>환불정책 - StaffManager</title>
+    <meta name="description" content="StaffManager 환불 정책. 플랜별 환불 조건, 환불 계산 방법, 자동 갱신 취소 방법 등을 상세히 안내합니다">
+    <meta property="og:title" content="환불정책 - StaffManager">
+    <meta property="og:url" content="https://staffmanager.io/refund.html">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif; line-height: 1.8; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+        header { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; }
+        .logo { font-size: 1.5rem; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; }
+        .page-hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3rem 2rem; text-align: center; }
+        .page-hero h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .legal-content { padding: 4rem 2rem; }
+        .legal-content h2 { color: #667eea; margin-top: 3rem; margin-bottom: 1rem; font-size: 1.8rem; }
+        .legal-content h3 { margin-top: 2rem; margin-bottom: 0.8rem; font-size: 1.3rem; color: #333; }
+        .legal-content p, .legal-content li { margin-bottom: 0.8rem; }
+        .legal-content ul, .legal-content ol { margin-left: 2rem; margin-bottom: 1.5rem; }
+        .legal-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        .legal-content table th, .legal-content table td { border: 1px solid #ddd; padding: 1rem; text-align: left; }
+        .legal-content table th { background: #f8f9fa; font-weight: 600; }
+        .notice-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1.5rem; margin: 2rem 0; border-radius: 5px; }
+        .info-box { background: #d1ecf1; border-left: 4px solid #0dcaf0; padding: 1.5rem; margin: 2rem 0; border-radius: 5px; }
+        .last-updated { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+        footer { background: #2c3e50; color: white; padding: 2rem; text-align: center; margin-top: 4rem; }
+        footer a { color: white; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="/" class="logo">StaffManager</a>
+        </nav>
+    </header>
+
+    <section class="page-hero">
+        <div class="container">
+            <h1>환불 정책</h1>
+            <p>StaffManager 서비스 환불 규정</p>
+        </div>
+    </section>
+
+    <section class="legal-content">
+        <div class="container">
+            <p class="last-updated">최종 수정일: 2025년 2월 10일</p>
+
+            <div class="notice-box">
+                <strong>⚠️ 중요 안내</strong><br>
+                환불을 요청하기 전에 본 정책을 주의 깊게 읽어주시기 바랍니다. 환불 신청 시 아래 정책이 적용됩니다.
+            </div>
+
+            <h2>1. 환불 원칙</h2>
+            <p>주식회사 인스퍼랩(이하 "회사")는 고객의 만족을 최우선으로 하며, 다음과 같은 원칙에 따라 환불을 처리합니다:</p>
+            <ul>
+                <li>공정하고 투명한 환불 처리</li>
+                <li>법령에 따른 소비자 권리 보호</li>
+                <li>신속한 환불 처리 (접수일로부터 영업일 기준 7일 이내)</li>
+            </ul>
+
+            <h2>2. 플랜별 환불 정책</h2>
+            
+            <h3>2.1 FREE 플랜</h3>
+            <p>무료 플랜으로 환불 대상이 아닙니다.</p>
+
+            <h3>2.2 유료 플랜 (BASIC, PRO, ENTERPRISE)</h3>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>구분</th>
+                        <th>환불 조건</th>
+                        <th>환불 금액</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>최초 결제 후 7일 이내</strong></td>
+                        <td>서비스를 거의 사용하지 않은 경우<br>(데이터 입력 10건 미만)</td>
+                        <td>100% 전액 환불</td>
+                    </tr>
+                    <tr>
+                        <td><strong>최초 결제 후 8~30일</strong></td>
+                        <td>서비스 이용 중 중대한 오류 발생<br>(회사의 귀책사유)</td>
+                        <td>일할 계산 환불</td>
+                    </tr>
+                    <tr>
+                        <td><strong>결제 후 30일 이후</strong></td>
+                        <td>회사의 명백한 귀책사유</td>
+                        <td>잔여 기간 일할 계산</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>3. 환불이 불가능한 경우</h2>
+            <p>다음의 경우에는 환불이 제한됩니다:</p>
+            <ol>
+                <li>고객의 단순 변심으로 인한 환불 요청 (결제 후 7일 경과)</li>
+                <li>서비스를 정상적으로 이용한 경우 (데이터 입력 10건 이상)</li>
+                <li>무료 체험 기간 종료 후 유료 전환된 경우</li>
+                <li>프로모션, 할인 등을 적용받아 결제한 경우</li>
+                <li>이용약관 위반으로 인한 서비스 이용 정지 또는 해지</li>
+                <li>연 단위 결제 후 6개월 경과</li>
+            </ol>
+
+            <div class="info-box">
+                <strong>💡 프로모션 적용 시 환불 제한</strong><br>
+                할인 프로모션을 적용받아 결제한 경우, 환불 시 정가 기준으로 사용 기간을 계산하여 차액만 환불됩니다.
+                <br><br>
+                <strong>예시:</strong> 50% 할인(24,950원 결제) → 정가 49,900원 기준 사용일수 계산
+            </div>
+
+            <h2>4. 환불 계산 방법</h2>
+            
+            <h3>4.1 일할 계산 방식</h3>
+            <p>환불 금액은 다음과 같이 계산됩니다:</p>
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 5px; margin: 1rem 0;">
+                <strong>환불 금액 = 결제 금액 - (결제 금액 × 사용 일수 / 전체 일수)</strong>
+            </div>
+
+            <h3>4.2 계산 예시</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>플랜</th>
+                        <th>결제 금액</th>
+                        <th>사용 일수</th>
+                        <th>환불 금액</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>PRO (월)</td>
+                        <td>49,900원</td>
+                        <td>10일</td>
+                        <td>33,267원<br>(49,900 - 49,900×10/30)</td>
+                    </tr>
+                    <tr>
+                        <td>BASIC (월)</td>
+                        <td>29,900원</td>
+                        <td>15일</td>
+                        <td>14,950원<br>(29,900 - 29,900×15/30)</td>
+                    </tr>
+                    <tr>
+                        <td>PRO (연)</td>
+                        <td>598,800원</td>
+                        <td>60일</td>
+                        <td>500,652원<br>(598,800 - 598,800×60/365)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>5. 환불 신청 방법</h2>
+            
+            <h3>5.1 신청 절차</h3>
+            <ol>
+                <li>고객센터로 환불 요청 이메일 발송<br>
+                    <strong>이메일:</strong> support@staffmanager.io</li>
+                <li>다음 정보 포함 필수:
+                    <ul>
+                        <li>회사명 및 사업자등록번호</li>
+                        <li>가입 이메일</li>
+                        <li>결제일 및 결제 금액</li>
+                        <li>환불 사유</li>
+                        <li>환불 받을 계좌 정보</li>
+                    </ul>
+                </li>
+                <li>회사의 환불 승인 검토 (영업일 기준 3일 이내)</li>
+                <li>환불 처리 (승인 후 영업일 기준 3~5일)</li>
+            </ol>
+
+            <h3>5.2 환불 소요 시간</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>결제 수단</th>
+                        <th>환불 소요 시간</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>신용카드</td>
+                        <td>승인 후 3~5영업일<br>(카드사 정책에 따라 상이)</td>
+                    </tr>
+                    <tr>
+                        <td>계좌이체</td>
+                        <td>승인 후 3영업일</td>
+                    </tr>
+                    <tr>
+                        <td>가상계좌</td>
+                        <td>승인 후 3영업일</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>6. 자동 갱신 및 취소</h2>
+            
+            <h3>6.1 자동 갱신</h3>
+            <p>월간 또는 연간 구독의 경우, 만료일 전에 별도의 취소 요청이 없는 한 자동으로 갱신됩니다.</p>
+
+            <h3>6.2 자동 갱신 취소</h3>
+            <ul>
+                <li>만료일 최소 3일 전까지 취소 요청 필요</li>
+                <li>취소 방법: 계정 설정에서 직접 취소 또는 고객센터 문의</li>
+                <li>취소 시 현재 구독 기간 종료일까지 서비스 이용 가능</li>
+            </ul>
+
+            <div class="notice-box">
+                <strong>⚠️ 중요</strong><br>
+                만료일 3일 이내에 취소 요청 시, 다음 결제가 진행될 수 있습니다. 이 경우 결제 후 7일 이내 환불 정책이 적용됩니다.
+            </div>
+
+            <h2>7. 플랜 변경 시 환불</h2>
+            
+            <h3>7.1 업그레이드</h3>
+            <p>상위 플랜으로 변경 시, 기존 플랜의 잔여 금액은 새 플랜 비용에서 차감됩니다.</p>
+
+            <h3>7.2 다운그레이드</h3>
+            <p>하위 플랜으로 변경 시, 차액은 환불되지 않으며 다음 갱신 시점에 하위 플랜으로 적용됩니다.</p>
+
+            <h2>8. 특별 환불 사유</h2>
+            <p>다음의 경우 전액 또는 부분 환불이 가능합니다:</p>
+            <ol>
+                <li><strong>서비스 중대 오류:</strong> 회사의 귀책사유로 서비스를 정상적으로 이용할 수 없는 경우</li>
+                <li><strong>사업 폐업:</strong> 고객사의 폐업으로 서비스 이용이 불가능한 경우 (증빙 서류 제출 필요)</li>
+                <li><strong>천재지변:</strong> 불가항력적 사유로 서비스 이용이 불가능한 경우</li>
+            </ol>
+
+            <h2>9. 분쟁 해결</h2>
+            <p>환불 관련 분쟁 발생 시:</p>
+            <ol>
+                <li>1차: 고객센터를 통한 협의</li>
+                <li>2차: 한국소비자원 또는 공정거래위원회 중재</li>
+                <li>3차: 법원 소송</li>
+            </ol>
+
+            <div class="info-box">
+                <strong>📞 환불 문의</strong><br>
+                이메일: support@staffmanager.io<br>
+                운영시간: 평일 09:00 - 18:00 (주말 및 공휴일 제외)<br>
+                응답시간: 영업일 기준 24시간 이내
+            </div>
+
+            <h2>10. 정책 변경</h2>
+            <p>본 환불 정책은 관련 법령 및 회사 정책에 따라 변경될 수 있으며, 변경 시 최소 7일 전에 공지합니다.</p>
+
+            <p style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #eee; font-weight: bold;">
+                이 환불 정책은 2025년 2월 10일부터 시행됩니다.
+            </p>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 주식회사 인스퍼랩. All rights reserved.</p>
+            <p>사업자등록번호: 501-88-00966 | 대표: 김진호</p>
+            <p>주소: 서울특별시 송파구 올림픽로 300, 제월드타워동제7003호(신천동, 롯데월드타워앤드롯데월드몰)</p>
+            <p>이메일: support@staffmanager.io</p>
+            <p style="margin-top: 1rem;">
+                <a href="/">홈</a> · 
+                <a href="/terms.html">이용약관</a> · 
+                <a href="/privacy.html">개인정보처리방침</a> · 
+                <a href="/refund.html">환불정책</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,25 +1,29 @@
+const { verifyToken, getCorsHeaders } = require('./lib/auth');
+// netlify/functions/calculate-payroll.js
+// 급여 계산 API
+// ✅ 보안 패치: Bearer 토큰 인증 추가
+
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase 클라이언트 생성
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// [보안패치] getUserFromToken → verifyToken으로 대체됨
+
 exports.handler = async (event, context) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': 'https://staffmanager.io',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   };
 
-  // CORS preflight 처리
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
-  // POST 메서드만 허용
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -29,14 +33,26 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // ✅ 인증 확인
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    let userInfo;
+    try {
+      userInfo = verifyToken(authHeader);
+    } catch (error) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ success: false, error: '인증에 실패했습니다. 다시 로그인해주세요.' }),
+      };
+    }
+
     const { employeeId, year, month, recalculate } = JSON.parse(event.body || '{}');
 
-    // 필수 필드 검증
     if (!employeeId || !year || !month) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ success: false, error: '필수 정보가 누락되었습니다.' })
+        body: JSON.stringify({ success: false, error: '필수 정보가 누락되었습니다. (employeeId, year, month)' })
       };
     }
 
@@ -139,7 +155,7 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // 휴일근무 (일요일 또는 공휴일)
+      // 휴일근무 (일요일)
       if (checkIn.getDay() === 0) {
         holidayWorkHours += workHours;
       }
@@ -154,9 +170,9 @@ exports.handler = async (event, context) => {
     let effectiveHourlyRate = baseSalary;
     if (salaryType === 'monthly' || salaryType === 'annual') {
       const monthlyBase = salaryType === 'annual' ? baseSalary / 12 : baseSalary;
-      effectiveHourlyRate = monthlyBase / 209; // 월 209시간 기준
+      effectiveHourlyRate = monthlyBase / 209;
     } else if (salaryType === 'daily') {
-      effectiveHourlyRate = baseSalary / 8; // 일당을 8시간으로 나눔
+      effectiveHourlyRate = baseSalary / 8;
     }
 
     // 최저시급 검증
@@ -175,7 +191,7 @@ exports.handler = async (event, context) => {
     } else if (salaryType === 'annual') {
       basicPay = baseSalary / 12;
     } else {
-      basicPay = baseSalary; // other
+      basicPay = baseSalary;
     }
 
     // 주휴수당 계산 (시급제, 일당제만 해당)

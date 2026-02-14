@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>급여 조회 - StaffManager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px; margin: 0 auto; background: white;
+            border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #333; margin-bottom: 30px; text-align: center; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+        select, input {
+            width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;
+            font-size: 16px; transition: border-color 0.3s;
+        }
+        select:focus, input:focus { outline: none; border-color: #667eea; }
+        button {
+            width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 600;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        button:hover { transform: translateY(-2px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error, .loading { padding: 15px; border-radius: 8px; margin-top: 20px; display: none; }
+        .error { background: #fee; color: #c33; }
+        .loading { background: #e3f2fd; color: #1976d2; text-align: center; }
+        .error.show, .loading.show { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 급여 조회</h1>
+        <div class="form-group">
+            <label for="employee">직원 선택</label>
+            <select id="employee">
+                <option value="">직원을 선택하세요</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="year">년도</label>
+            <input type="number" id="year" min="2020" max="2030" value="2024">
+        </div>
+        <div class="form-group">
+            <label for="month">월</label>
+            <select id="month">
+                <option value="1">1월</option>
+                <option value="2">2월</option>
+                <option value="3">3월</option>
+                <option value="4">4월</option>
+                <option value="5">5월</option>
+                <option value="6">6월</option>
+                <option value="7">7월</option>
+                <option value="8">8월</option>
+                <option value="9">9월</option>
+                <option value="10">10월</option>
+                <option value="11">11월</option>
+                <option value="12">12월</option>
+            </select>
+        </div>
+        <button onclick="testAPI()">API 테스트 (직원 목록 조회)</button>
+        <div class="loading" id="loading">처리 중...</div>
+        <div class="error" id="error"></div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('페이지 로드 완료');
+            await loadEmployees();
+        });
+
+        async function loadEmployees() {
+            try {
+                showLoading(true);
+                hideError();
+                
+                const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+                
+                if (!userInfo || !userInfo.companyId) {
+                    showError('로그인 정보를 찾을 수 없습니다.');
+                    showLoading(false);
+                    return;
+                }
+
+                console.log('Company ID:', userInfo.companyId);
+
+                const response = await fetch('/.netlify/functions/employees-list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ companyId: userInfo.companyId })
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response OK:', response.ok);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('받은 데이터:', data);
+
+                const employeeSelect = document.getElementById('employee');
+                employeeSelect.innerHTML = '<option value="">직원을 선택하세요</option>';
+
+                if (data.employees && data.employees.length > 0) {
+                    data.employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id;
+                        option.textContent = `${emp.name} (${emp.phone})`;
+                        employeeSelect.appendChild(option);
+                    });
+                    console.log(`✅ ${data.employees.length}명 로드 완료`);
+                } else {
+                    showError('등록된 직원이 없습니다.');
+                }
+
+                showLoading(false);
+
+            } catch (error) {
+                console.error('❌ 오류:', error);
+                showError(`오류: ${error.message}`);
+                showLoading(false);
+            }
+        }
+
+        async function testAPI() {
+            console.log('🧪 API 테스트 시작');
+            await loadEmployees();
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('show');
+        }
+
+        function showLoading(show) {
+            const loadingDiv = document.getElementById('loading');
+            if (show) loadingDiv.classList.add('show');
+            else loadingDiv.classList.remove('show');
+        }
+    </script>
+</body>
+</html>

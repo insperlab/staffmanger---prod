@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StaffManager 구독 결제</title>
+    <script src="https://js.tosspayments.com/v2/standard"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            background: #f8f9fa;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+        
+        .plan-info {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .plan-price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .plan-features {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .plan-features li {
+            padding: 0.5rem 0;
+            color: #666;
+        }
+        
+        .plan-features li:before {
+            content: "✓ ";
+            color: #2ecc71;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .payment-widget {
+            margin: 2rem 0;
+        }
+        
+        .submit-button {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .submit-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .notice {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>StaffManager 구독</h1>
+        
+        <div class="plan-info" id="planInfo">
+            <div class="plan-name" id="planName">PRO 플랜</div>
+            <div class="plan-price" id="planPrice">49,900원 / 월</div>
+            <ul class="plan-features">
+                <li>직원 30명까지 관리</li>
+                <li>AI 세무/회계 자동화</li>
+                <li>POS 연동</li>
+                <li>정부 지원금 추천</li>
+            </ul>
+        </div>
+        
+        <form id="billingForm">
+            <div class="form-group">
+                <label for="customerName">이름 *</label>
+                <input type="text" id="customerName" name="customerName" required placeholder="홍길동">
+            </div>
+            
+            <div class="form-group">
+                <label for="customerEmail">이메일 *</label>
+                <input type="email" id="customerEmail" name="customerEmail" required placeholder="example@company.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="companyName">회사명</label>
+                <input type="text" id="companyName" name="companyName" placeholder="주식회사 인스퍼랩">
+            </div>
+            
+            <div class="notice">
+                ⚠️ <strong>자동결제 안내</strong><br>
+                • 첫 결제 후 매월 자동으로 결제됩니다.<br>
+                • 언제든지 구독을 취소할 수 있습니다.<br>
+                • 환불 정책은 <a href="/refund.html" target="_blank">여기</a>를 참고하세요.
+            </div>
+            
+            <!-- 토스 페이먼츠 결제 위젯 -->
+            <div class="payment-widget" id="payment-method"></div>
+            
+            <button type="submit" class="submit-button" id="submitButton">
+                구독 시작하기
+            </button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 1rem;">결제 처리 중...</p>
+        </div>
+        
+        <div class="success-message" id="successMessage">
+            <h3>✅ 구독이 완료되었습니다!</h3>
+            <p>환영합니다! StaffManager PRO 플랜을 사용하실 수 있습니다.</p>
+            <p style="margin-top: 1rem;">
+                <a href="/" style="color: #667eea; font-weight: bold;">대시보드로 이동 →</a>
+            </p>
+        </div>
+        
+        <div class="error-message" id="errorMessage">
+            <h3>❌ 결제 실패</h3>
+            <p id="errorText">결제 처리 중 오류가 발생했습니다.</p>
+        </div>
+    </div>
+
+    <script>
+        // URL에서 플랜 정보 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedPlan = urlParams.get('plan') || 'pro';
+        
+        // 플랜 정보
+        const plans = {
+            basic: {
+                name: 'BASIC 플랜',
+                price: 29900,
+                priceText: '29,900원 / 월',
+                features: [
+                    '직원 10명까지 관리',
+                    'AI 계정과목 추천',
+                    '영수증 AI 분류',
+                    '세무 경고'
+                ]
+            },
+            pro: {
+                name: 'PRO 플랜',
+                price: 49900,
+                priceText: '49,900원 / 월',
+                features: [
+                    '직원 30명까지 관리',
+                    'AI 세무/회계 자동화',
+                    'POS 연동',
+                    '정부 지원금 추천'
+                ]
+            },
+            enterprise: {
+                name: 'ENTERPRISE 플랜',
+                price: 99900,
+                priceText: '99,900원 / 월',
+                features: [
+                    '직원 무제한',
+                    '전담 매니저',
+                    '우선 지원',
+                    'API 연동'
+                ]
+            }
+        };
+        
+        // 선택된 플랜 정보 표시
+        const plan = plans[selectedPlan];
+        document.getElementById('planName').textContent = plan.name;
+        document.getElementById('planPrice').textContent = plan.priceText;
+        
+        const featuresList = document.querySelector('.plan-features');
+        featuresList.innerHTML = plan.features.map(f => `<li>${f}</li>`).join('');
+        
+        // 토스 페이먼츠 초기화
+        const clientKey = 'test_ck_Z61JOxRQVEBzXa0b2m7grW0X9bAq';
+        const customerKey = 'customer_' + Date.now(); // 실제로는 DB에서 가져오거나 UUID 사용
+        
+        // 토스 페이먼츠 객체 생성
+        const tossPayments = TossPayments(clientKey);
+        
+        // 빌링키 발급을 위한 결제위젯 렌더링
+        const paymentWidget = tossPayments.widgets({
+            customerKey: customerKey
+        });
+        
+        // 결제 수단 위젯 렌더링
+        paymentWidget.renderPaymentMethods({
+            selector: '#payment-method',
+            variantKey: 'DEFAULT'
+        }).catch(error => {
+            console.error('결제 위젯 렌더링 실패:', error);
+        });
+        
+        // 폼 제출 처리
+        document.getElementById('billingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitButton = document.getElementById('submitButton');
+            const loading = document.getElementById('loading');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // 입력값 가져오기
+            const customerName = document.getElementById('customerName').value;
+            const customerEmail = document.getElementById('customerEmail').value;
+            const companyName = document.getElementById('companyName').value;
+            
+            if (!customerName || !customerEmail) {
+                alert('이름과 이메일을 입력해주세요.');
+                return;
+            }
+            
+            // UI 업데이트
+            submitButton.disabled = true;
+            submitButton.textContent = '처리 중...';
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            try {
+                // 빌링키 발급 요청
+                await paymentWidget.requestBillingAuth({
+                    method: 'CARD', // 카드 자동결제
+                    successUrl: window.location.origin + '/billing-success.html?plan=' + selectedPlan,
+                    failUrl: window.location.origin + '/billing-fail.html',
+                    customerEmail: customerEmail,
+                    customerName: customerName,
+                    metadata: {
+                        plan: selectedPlan,
+                        companyName: companyName,
+                        amount: plan.price
+                    }
+                });
+            } catch (error) {
+                console.error('빌링키 발급 실패:', error);
+                
+                loading.style.display = 'none';
+                errorMessage.style.display = 'block';
+                document.getElementById('errorText').textContent = 
+                    error.message || '결제 처리 중 오류가 발생했습니다.';
+                
+                submitButton.disabled = false;
+                submitButton.textContent = '다시 시도하기';
+            }
+        });
+    </script>
+</body>
+</html>

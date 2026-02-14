@@ -338,13 +338,13 @@
         </div>
         
         <div class="navbar-menu">
-            <a href="/dashboard.html">대시보드</a>
-            <a href="/employees.html">직원 관리</a>
-            <a href="/attendances.html" class="active">출퇴근 관리</a>
-            <a href="/calendar.html">휴가 관리</a>
-            <a href="/salary.html">급여 관리</a>
-            <a href="/settings.html">설정</a>
-            <a href="/contracts.html">계약 관리</a>
+            <a href='/dashboard'>대시보드</a>
+            <a href='/employees'>직원 관리</a>
+            <a class='active' href='/attendances'>출퇴근 관리</a>
+            <a href='/calendar'>휴가 관리</a>
+            <a href='/salary'>급여 관리</a>
+            <a href='/settings'>설정</a>
+            <a href='/contracts'>계약 관리</a>
         </div>
 
         <div class="user-menu">
@@ -522,8 +522,8 @@
                         return `
                             <tr>
                                 <td>${date}</td>
-                                <td>${record.employee.name || '-'}</td>
-                                <td>${record.employee.department || '-'}</td>
+                                <td>${(employeeMap[record.employee?.id] || record.employee || {}).name || '-'}</td>
+                                <td>${(employeeMap[record.employee?.id] || record.employee || {}).department || '-'}</td>
                                 <td>${checkIn}</td>
                                 <td>${checkOut}</td>
                                 <td>${workHours}</td>
@@ -543,8 +543,11 @@
             }
         }
 
-        // 부서 목록 로드
-        async function loadDepartments() {
+        // 직원 맵 (employees-list에서 가져온 정확한 데이터)
+        let employeeMap = {};
+
+        // 부서 목록 및 직원 맵 로드
+        async function loadEmployeesAndDepartments() {
             try {
                 const response = await fetch('/.netlify/functions/employees-list', {
                     headers: {
@@ -554,7 +557,18 @@
 
                 const result = await response.json();
 
-                if (result.success && result.data.employees) {
+                if (result.success && result.data && result.data.employees) {
+                    // 직원 맵 생성 (id → employee info)
+                    result.data.employees.forEach(emp => {
+                        employeeMap[emp.id] = {
+                            name: emp.name || '-',
+                            department: emp.department || '-',
+                            position: emp.position || '-',
+                            phone: emp.phone || '-'
+                        };
+                    });
+
+                    // 부서 목록 로드
                     const departments = [...new Set(result.data.employees.map(e => e.department).filter(Boolean))];
                     const select = document.getElementById('department');
                     
@@ -566,13 +580,12 @@
                     });
                 }
             } catch (error) {
-                console.error('부서 목록 로드 실패:', error);
+                console.error('직원 목록 로드 실패:', error);
             }
         }
 
         // 페이지 로드 시 실행
-        loadDepartments();
-        loadAttendances();
+        loadEmployeesAndDepartments().then(() => loadAttendances());
 
         // 로그아웃
         function logout() {

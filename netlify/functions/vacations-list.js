@@ -1,5 +1,7 @@
+const { verifyToken, getCorsHeaders } = require('./lib/auth');
 // netlify/functions/vacations-list.js
 // 휴가 목록 조회 (캘린더용)
+// ✅ 보안 패치: Bearer 토큰 인증 추가
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -8,20 +10,20 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// [보안패치] getUserFromToken → verifyToken으로 대체됨
+
 exports.handler = async (event) => {
-  // CORS 헤더
+  // CORS 헤더 (Authorization 포함)
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': 'https://staffmanager.io',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
   };
 
-  // Preflight 요청 처리
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
   }
 
-  // GET 요청만 허용
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
@@ -31,9 +33,21 @@ exports.handler = async (event) => {
   }
 
   try {
+    // ✅ 인증 확인
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    let userInfo;
+    try {
+      userInfo = verifyToken(authHeader);
+    } catch (error) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: '인증에 실패했습니다. 다시 로그인해주세요.' }),
+      };
+    }
+
     const params = event.queryStringParameters || {};
     const {
-      company_id,
       employee_id,
       start_date,
       end_date,
@@ -42,16 +56,8 @@ exports.handler = async (event) => {
       month,
     } = params;
 
-    // company_id 필수
-    if (!company_id) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Missing required parameter: company_id',
-        }),
-      };
-    }
+    // ✅ company_id는 토큰에서 추출
+    const company_id = userInfo.companyId;
 
     // 쿼리 빌더
     let query = supabase
@@ -80,23 +86,21 @@ exports.handler = async (event) => {
 
     // 날짜 범위 필터
     if (start_date && end_date) {
-      // 지정된 기간과 겹치는 휴가 조회
       query = query.or(`start_date.gte.${start_date},end_date.lte.${end_date}`);
     } else if (year && month) {
-      // 특정 년월의 휴가 조회
       const monthStr = month.toString().padStart(2, '0');
-      const firstDay = `${year}-${monthStr}-01`;
-      const lastDay = new Date(year, month, 0).toISOString().split('T')[0];
-      query = query.gte('start_date', firstDay).lte('end_date', lastDay);
+      const monthStart = `${year}-${monthStr}-01`;
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const monthEnd = `${year}-${monthStr}-${lastDay}`;
+      query = query.gte('start_date', monthStart).lte('start_date', monthEnd);
     } else if (year) {
-      // 특정 년도의 휴가 조회
-      query = query.gte('start_date', `${year}-01-01`).lte('end_date', `${year}-12-31`);
+      query = query.gte('start_date', `${year}-01-01`).lte('start_date', `${year}-12-31`);
     }
 
     const { data: vacations, error: vacError } = await query;
 
     if (vacError) {
-      console.error('Vacations query error:', vacError);
+      console.error('Vacation query error:', vacError);
       return {
         statusCode: 500,
         headers,
@@ -109,59 +113,38 @@ exports.handler = async (event) => {
 
     // 캘린더용 데이터 가공
     const calendarData = {};
-    
-    vacations.forEach((vacation) => {
-      const start = new Date(vacation.start_date);
-      const end = new Date(vacation.end_date);
+    vacations.forEach((v) => {
+      const start = new Date(v.start_date);
+      const end = new Date(v.end_date);
 
-      // 휴가 기간의 모든 날짜를 순회
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dateKey = d.toISOString().split('T')[0];
-
         if (!calendarData[dateKey]) {
-          calendarData[dateKey] = {
-            date: dateKey,
-            vacations: [],
-            count: 0,
-          };
+          calendarData[dateKey] = [];
         }
-
-        calendarData[dateKey].vacations.push({
-          id: vacation.id,
-          employee_id: vacation.employee_id,
-          employee_name: vacation.employee?.name || '',
-          vacation_type: vacation.vacation_type,
-          days: vacation.days,
-          reason: vacation.reason,
+        calendarData[dateKey].push({
+          id: v.id,
+          employee_id: v.employee_id,
+          employee_name: v.employee?.name || '알 수 없음',
+          vacation_type: v.vacation_type,
+          reason: v.reason,
         });
-
-        calendarData[dateKey].count++;
       }
     });
 
-    // 통계 계산
+    // 통계
     const stats = {
       total: vacations.length,
-      by_type: {},
-      by_month: {},
+      byType: {},
+      byMonth: {},
     };
 
-    vacations.forEach((vacation) => {
-      // 타입별 통계
-      if (!stats.by_type[vacation.vacation_type]) {
-        stats.by_type[vacation.vacation_type] = 0;
-      }
-      stats.by_type[vacation.vacation_type]++;
-
-      // 월별 통계
-      const month = vacation.start_date.substring(0, 7); // YYYY-MM
-      if (!stats.by_month[month]) {
-        stats.by_month[month] = 0;
-      }
-      stats.by_month[month]++;
+    vacations.forEach((v) => {
+      stats.byType[v.vacation_type] = (stats.byType[v.vacation_type] || 0) + 1;
+      const m = v.start_date.substring(0, 7);
+      stats.byMonth[m] = (stats.byMonth[m] || 0) + 1;
     });
 
-    // 성공 응답
     return {
       statusCode: 200,
       headers,
