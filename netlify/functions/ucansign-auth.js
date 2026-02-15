@@ -81,15 +81,21 @@ async function ucansignRequest(method, endpoint, body, retried) {
     'Content-Type': 'application/json',
     'User-Agent': 'StaffManager/1.0'
   };
-  if (isTestMode) headers['x-ucansign-test'] = 'true';
+
+  if (isTestMode) {
+    headers['x-ucansign-test'] = 'true';
+  }
 
   const options = { method, headers };
-  if (body && (method === 'POST' || method === 'PUT')) options.body = JSON.stringify(body);
+  if (body && (method === 'POST' || method === 'PUT')) {
+    options.body = JSON.stringify(body);
+  }
 
   const url = endpoint.startsWith('http') ? endpoint : UCANSIGN_BASE_URL + endpoint;
   const response = await fetch(url, options);
 
   if ((response.status === 401 || response.status === 403) && !retried) {
+    console.log('[UCanSign API] 토큰 만료 감지, 재발급 후 재시도...');
     cachedToken = null;
     tokenExpiresAt = null;
     return ucansignRequest(method, endpoint, body, true);
@@ -99,12 +105,12 @@ async function ucansignRequest(method, endpoint, body, retried) {
   if (!response.ok || result.code !== 0) {
     throw new Error('UCanSign API 오류: ' + (result.msg || response.statusText));
   }
+
   return result;
 }
 
-module.exports = { getValidToken, ucansignRequest, UCANSIGN_BASE_URL };
-
-exports.handler = async (event, context) => {
+// Netlify Function 핸들러
+const handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' }, body: '' };
   }
@@ -125,7 +131,12 @@ exports.handler = async (event, context) => {
     }
 
     return errorResponse('GET 또는 POST 메서드만 허용됩니다', 405);
+
   } catch (error) {
+    console.error('[UCanSign Auth] 오류:', error);
     return errorResponse('토큰 관리 오류: ' + error.message, 500);
   }
 };
+
+// 핸들러 + 다른 함수에서 import용 통합 내보내기
+module.exports = { handler, getValidToken, ucansignRequest, UCANSIGN_BASE_URL };
