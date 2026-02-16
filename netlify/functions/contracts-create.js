@@ -295,7 +295,6 @@ async function sendContract(supabase, contractId, companyId) {
 
   try {
     // UCanSign API - 템플릿 기반 서명문서 생성
-    // 엔드포인트: POST /openapi/templates/:documentId
     const templateId = contract.ucansign_template_id;
     if (!templateId) {
       return {
@@ -305,24 +304,27 @@ async function sendContract(supabase, contractId, companyId) {
       };
     }
 
-    // 서명자 연락처 결정 (카카오톡 우선, 없으면 이메일)
+    // === 전화번호 정규화 헬퍼 ===
+    function normalizePhone(raw) {
+      if (!raw) return null;
+      let phone = raw.replace(/[^0-9]/g, '');
+      // +82 국제번호 → 0으로 변환
+      if (phone.startsWith('82') && phone.length >= 11) {
+        phone = '0' + phone.slice(2);
+      }
+      // 한국 휴대폰 번호 형식 체크
+      return /^01[0-9]{8,9}$/.test(phone) ? phone : null;
+    }
+
+    // === 참여자1: 직원(서명자) ===
     const rawPhone = contract.signer_phone || contract.employees?.users?.phone;
     const signerEmail = contract.signer_email || contract.employees?.users?.email;
-    
-    // 전화번호 정규화: 하이픈, 공백, 괄호 등 제거 → 숫자만
-    let signerPhone = rawPhone ? rawPhone.replace(/[^0-9]/g, '') : null;
-    
-    // +82 국제번호 → 0으로 변환 (821012345678 → 01012345678)
-    if (signerPhone && signerPhone.startsWith('82') && signerPhone.length >= 11) {
-      signerPhone = '0' + signerPhone.slice(2);
-    }
-    
-    const signingMethod = signerPhone ? 'kakao' : 'email';
-    const signingContact = signerPhone || signerEmail;
+    const signerPhone = normalizePhone(rawPhone);
 
-    console.log('[contracts-create] 서명방식:', signingMethod, '연락처:', signingContact);
+    let empMethod = signerPhone ? 'kakao' : 'email';
+    let empContact = signerPhone || signerEmail;
 
-    if (!signingContact) {
+    if (!empContact) {
       return {
         statusCode: 400,
         headers: CORS_HEADERS,
@@ -330,19 +332,55 @@ async function sendContract(supabase, contractId, companyId) {
       };
     }
 
-    // 카카오 서명인데 전화번호가 유효하지 않으면 이메일로 fallback
-    let finalMethod = signingMethod;
-    let finalContact = signingContact;
-    if (finalMethod === 'kakao' && signerPhone) {
-      // 한국 휴대폰 번호 형식 체크 (010으로 시작, 10~11자리)
-      if (!/^01[0-9]{8,9}$/.test(signerPhone)) {
-        console.warn('[contracts-create] 전화번호 형식 이상:', signerPhone, '→ 이메일로 전환');
-        if (signerEmail) {
-          finalMethod = 'email';
-          finalContact = signerEmail;
+    // === 참여자2: 사업주(회사 대표) ===
+    const { data: ownerData } = await supabase
+      .from('users')
+      .select('name, email, phone')
+      .eq('company_id', companyId)
+      .eq('role', 'owner')
+      .single();
+
+    let ownerMethod, ownerContact, ownerName;
+    if (ownerData) {
+      ownerName = ownerData.name || '대표자';
+      const ownerPhone = normalizePhone(ownerData.phone);
+      ownerMethod = ownerPhone ? 'kakao' : 'email';
+      ownerContact = ownerPhone || ownerData.email;
+    } else {
+      // owner 못 찾으면 companies 테이블에서 created_by로 조회
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('created_by')
+        .eq('id', companyId)
+        .single();
+      
+      if (companyData?.created_by) {
+        const { data: creatorData } = await supabase
+          .from('users')
+          .select('name, email, phone')
+          .eq('id', companyData.created_by)
+          .single();
+        
+        if (creatorData) {
+          ownerName = creatorData.name || '대표자';
+          const ownerPhone = normalizePhone(creatorData.phone);
+          ownerMethod = ownerPhone ? 'kakao' : 'email';
+          ownerContact = ownerPhone || creatorData.email;
         }
       }
     }
+
+    // 사업주 정보 없으면 에러
+    if (!ownerContact) {
+      return {
+        statusCode: 400,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ success: false, error: '사업주(대표자) 연락처를 찾을 수 없습니다. 설정에서 대표자 정보를 확인해주세요.' })
+      };
+    }
+
+    console.log('[contracts-create] 참여자1(직원):', empMethod, empContact);
+    console.log('[contracts-create] 참여자2(사업주):', ownerMethod, ownerContact);
 
     const signRequestBody = {
       documentName: contract.title,
@@ -352,9 +390,15 @@ async function sendContract(supabase, contractId, companyId) {
       participants: [
         {
           name: contract.signer_name,
-          signingMethodType: finalMethod,
-          signingContactInfo: finalContact,
+          signingMethodType: empMethod,
+          signingContactInfo: empContact,
           signingOrder: 1
+        },
+        {
+          name: ownerName,
+          signingMethodType: ownerMethod,
+          signingContactInfo: ownerContact,
+          signingOrder: 2
         }
       ],
       callbackUrl: 'https://staffmanager.io/.netlify/functions/contracts-webhook',
