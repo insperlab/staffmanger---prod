@@ -306,10 +306,21 @@ async function sendContract(supabase, contractId, companyId) {
     }
 
     // 서명자 연락처 결정 (카카오톡 우선, 없으면 이메일)
-    const signerPhone = contract.signer_phone || contract.employees?.users?.phone;
+    const rawPhone = contract.signer_phone || contract.employees?.users?.phone;
     const signerEmail = contract.signer_email || contract.employees?.users?.email;
+    
+    // 전화번호 정규화: 하이픈, 공백, 괄호 등 제거 → 숫자만
+    let signerPhone = rawPhone ? rawPhone.replace(/[^0-9]/g, '') : null;
+    
+    // +82 국제번호 → 0으로 변환 (821012345678 → 01012345678)
+    if (signerPhone && signerPhone.startsWith('82') && signerPhone.length >= 11) {
+      signerPhone = '0' + signerPhone.slice(2);
+    }
+    
     const signingMethod = signerPhone ? 'kakao' : 'email';
     const signingContact = signerPhone || signerEmail;
+
+    console.log('[contracts-create] 서명방식:', signingMethod, '연락처:', signingContact);
 
     if (!signingContact) {
       return {
@@ -317,6 +328,20 @@ async function sendContract(supabase, contractId, companyId) {
         headers: CORS_HEADERS,
         body: JSON.stringify({ success: false, error: '서명자 연락처(전화번호 또는 이메일)가 필요합니다.' })
       };
+    }
+
+    // 카카오 서명인데 전화번호가 유효하지 않으면 이메일로 fallback
+    let finalMethod = signingMethod;
+    let finalContact = signingContact;
+    if (finalMethod === 'kakao' && signerPhone) {
+      // 한국 휴대폰 번호 형식 체크 (010으로 시작, 10~11자리)
+      if (!/^01[0-9]{8,9}$/.test(signerPhone)) {
+        console.warn('[contracts-create] 전화번호 형식 이상:', signerPhone, '→ 이메일로 전환');
+        if (signerEmail) {
+          finalMethod = 'email';
+          finalContact = signerEmail;
+        }
+      }
     }
 
     const signRequestBody = {
@@ -327,8 +352,8 @@ async function sendContract(supabase, contractId, companyId) {
       participants: [
         {
           name: contract.signer_name,
-          signingMethodType: signingMethod,
-          signingContactInfo: signingContact,
+          signingMethodType: finalMethod,
+          signingContactInfo: finalContact,
           signingOrder: 1
         }
       ],
