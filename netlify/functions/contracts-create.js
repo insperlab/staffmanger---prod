@@ -294,49 +294,74 @@ async function sendContract(supabase, contractId, companyId) {
   }
 
   try {
-    // UCanSign API로 서명 요청 생성
-    const signRequestBody = {
-      title: contract.title,
-      message: `${contract.signer_name}님, ${contract.title} 서명을 요청드립니다.`,
-      signers: [
-        {
-          name: contract.signer_name,
-          email: contract.signer_email || undefined,
-          phone: contract.signer_phone || undefined,
-          order: 1
-        }
-      ],
-      options: {
-        expirationDays: 7,
-        reminderDays: 3
-      }
-    };
-
-    // 템플릿 기반이면 templateId 추가
-    if (contract.ucansign_template_id) {
-      signRequestBody.templateId = contract.ucansign_template_id;
-      // 템플릿 변수 매핑
-      if (contract.contract_data && Object.keys(contract.contract_data).length > 0) {
-        signRequestBody.fields = contract.contract_data;
-      }
+    // UCanSign API - 템플릿 기반 서명문서 생성
+    // 엔드포인트: POST /openapi/templates/:documentId
+    const templateId = contract.ucansign_template_id;
+    if (!templateId) {
+      return {
+        statusCode: 400,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ success: false, error: '템플릿 ID가 없습니다. 템플릿을 먼저 지정해주세요.' })
+      };
     }
 
-    // 콜백 URL 설정
-    const webhookUrl = 'https://staffmanager.io/.netlify/functions/contracts-webhook';
-    signRequestBody.callbackUrl = webhookUrl;
+    // 서명자 연락처 결정 (카카오톡 우선, 없으면 이메일)
+    const signerPhone = contract.signer_phone || contract.employees?.users?.phone;
+    const signerEmail = contract.signer_email || contract.employees?.users?.email;
+    const signingMethod = signerPhone ? 'kakao' : 'email';
+    const signingContact = signerPhone || signerEmail;
 
-    console.log('[contracts-create] UCanSign 서명 요청 발송:', JSON.stringify(signRequestBody));
+    if (!signingContact) {
+      return {
+        statusCode: 400,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ success: false, error: '서명자 연락처(전화번호 또는 이메일)가 필요합니다.' })
+      };
+    }
 
-    const ucansignResult = await ucansignRequest('POST', '/sign-request/create', signRequestBody);
+    const signRequestBody = {
+      documentName: contract.title,
+      processType: 'PROCEDURE',
+      isSequential: true,
+      isSendMessage: true,
+      participants: [
+        {
+          name: contract.signer_name,
+          signingMethodType: signingMethod,
+          signingContactInfo: signingContact,
+          signingOrder: 1
+        }
+      ],
+      callbackUrl: 'https://staffmanager.io/.netlify/functions/contracts-webhook',
+      customValue: String(companyId),
+      customValue1: String(contract.employee_id || ''),
+      customValue2: contract.contract_type || 'employment'
+    };
+
+    // 템플릿 변수 매핑
+    if (contract.contract_data && Object.keys(contract.contract_data).length > 0) {
+      signRequestBody.fields = Object.entries(contract.contract_data).map(([key, value]) => ({
+        fieldName: key,
+        value: String(value)
+      }));
+    }
+
+    console.log('[contracts-create] UCanSign 템플릿 서명문서 생성:', templateId);
+    console.log('[contracts-create] 요청 body:', JSON.stringify(signRequestBody));
+
+    // ✅ 수정: /sign-request/create → /templates/:documentId
+    const ucansignResult = await ucansignRequest('POST', `/templates/${templateId}`, signRequestBody);
 
     console.log('[contracts-create] UCanSign 응답:', JSON.stringify(ucansignResult));
 
-    // DB 업데이트
+    // DB 업데이트 - UCanSign 응답 필드 매핑
+    const ucDoc = ucansignResult.result || {};
     const updateData = {
       status: 'sent',
       sent_at: new Date().toISOString(),
-      ucansign_request_id: ucansignResult.result?.requestId || ucansignResult.result?.id || null,
-      ucansign_status: 'sent'
+      ucansign_document_id: String(ucDoc.documentId || ucDoc.id || ''),
+      ucansign_request_id: String(ucDoc.documentId || ucDoc.requestId || ucDoc.id || ''),
+      ucansign_status: ucDoc.status || 'sent'
     };
 
     const { data: updated, error: updateErr } = await supabase
