@@ -9,7 +9,7 @@ const TOKEN_BUFFER_MS = 5 * 60 * 1000;
 
 const UCANSIGN_BASE_URL = 'https://app.ucansign.com/openapi';
 
-function successResponse(data, statusCode = 200) {
+function successResponse(data, statusCde = 200) {
   return {
     statusCode,
     headers: {
@@ -52,7 +52,7 @@ async function fetchNewToken() {
   }
 
   const result = await response.json();
-  if (result.code !== 0 || result.msg !== 'success') {
+  if (result.code !== 0 || result.msg !== 'Success') {
     throw new Error('토큰 발급 API 오류: ' + (result.msg || 'unknown error'));
   }
 
