@@ -313,6 +313,11 @@
                 <label>서명자 전화번호</label>
                 <input type="tel" id="createPhone" placeholder="직원 전화번호 자동 입력">
             </div>
+            <div class="form-group">
+                <label>UCanSign 템플릿 ID *</label>
+                <input type="text" id="createTemplateId" placeholder="UCanSign 템플릿 문서 ID" value="2023470348238950402">
+                <small style="color:#888;font-size:11px;">UCanSign에서 생성한 템플릿의 문서 ID</small>
+            </div>
             <div class="form-group" style="display:flex;align-items:center;gap:8px;">
                 <input type="checkbox" id="createAutoSend" style="width:auto;">
                 <label for="createAutoSend" style="margin:0;cursor:pointer;">생성 후 바로 발송</label>
@@ -493,6 +498,8 @@
         async function createContract() {
             var empId = document.getElementById('createEmployee').value;
             if (!empId) { showToast('직원을 선택해주세요', 'error'); return; }
+            var templateId = document.getElementById('createTemplateId').value;
+            if (!templateId) { showToast('UCanSign 템플릿 ID를 입력해주세요', 'error'); return; }
             var btn = document.getElementById('createBtn');
             btn.disabled = true; btn.textContent = '생성 중...';
             try {
@@ -500,6 +507,7 @@
                     employee_id: empId,
                     contract_type: document.getElementById('createType').value,
                     title: document.getElementById('createTitle').value || undefined,
+                    template_id: templateId,
                     signer_email: document.getElementById('createEmail').value || undefined,
                     signer_phone: document.getElementById('createPhone').value || undefined,
                     auto_send: document.getElementById('createAutoSend').checked
