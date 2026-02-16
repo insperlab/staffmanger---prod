@@ -9,7 +9,7 @@ const TOKEN_BUFFER_MS = 5 * 60 * 1000;
 
 const UCANSIGN_BASE_URL = 'https://app.ucansign.com/openapi';
 
-function successResponse(data, statusCde = 200) {
+function successResponse(data, statusCode = 200) {
   return {
     statusCode,
     headers: {
