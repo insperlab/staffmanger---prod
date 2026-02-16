@@ -366,7 +366,7 @@
             try {
                 const result = await apiCall('/.netlify/functions/employees-list');
                 if (result.success) {
-                    employees = result.data || [];
+                    employees = (result.data && result.data.employees) ? result.data.employees : (Array.isArray(result.data) ? result.data : []);
                     populateEmployeeSelect();
                 }
             } catch (err) { console.error('직원 목록 로드 실패:', err); }
