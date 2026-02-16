@@ -185,21 +185,31 @@ exports.handler = async (event) => {
       };
     }
 
-    // 직원 정보 조회
-    const { data: employee } = await supabase
+    // 직원 정보 조회 (users 테이블 JOIN)
+    const { data: empData } = await supabase
       .from('employees')
-      .select('id, name, email, phone, position, department')
+      .select('id, position, department, users:user_id(name, email, phone)')
       .eq('id', employee_id)
       .eq('company_id', userInfo.companyId)
       .single();
 
-    if (!employee) {
+    if (!empData) {
       return {
         statusCode: 404,
         headers: CORS_HEADERS,
         body: JSON.stringify({ success: false, error: '직원 정보를 찾을 수 없습니다' })
       };
     }
+
+    const empUser = Array.isArray(empData.users) ? empData.users[0] : empData.users;
+    const employee = {
+      id: empData.id,
+      name: empUser?.name || '이름없음',
+      email: empUser?.email || '',
+      phone: empUser?.phone || '',
+      position: empData.position,
+      department: empData.department
+    };
 
     const typeConfig = CONTRACT_TYPES[contract_type] || CONTRACT_TYPES['기타'];
     const expiresAt = new Date();
@@ -262,7 +272,7 @@ async function sendContract(supabase, contractId, companyId) {
   // 계약서 조회
   const { data: contract, error: fetchErr } = await supabase
     .from('contracts')
-    .select('*, employees(name, email, phone)')
+    .select('*, employees(position, department, users:user_id(name, email, phone))')
     .eq('id', contractId)
     .eq('company_id', companyId)
     .single();

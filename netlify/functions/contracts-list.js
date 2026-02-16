@@ -56,7 +56,7 @@ exports.handler = async (event) => {
     if (params.id) {
       const { data, error } = await supabase
         .from('contracts')
-        .select('*, employees(name, email, phone, position, department)')
+        .select('*, employees(position, department, users:user_id(name, email, phone))')
         .eq('id', params.id)
         .eq('company_id', userInfo.companyId)
         .single();
@@ -69,6 +69,12 @@ exports.handler = async (event) => {
         };
       }
 
+      // Flatten employees → users
+      if (data.employees) {
+        const u = Array.isArray(data.employees.users) ? data.employees.users[0] : data.employees.users;
+        data.employees = { name: u?.name, email: u?.email, phone: u?.phone, position: data.employees.position, department: data.employees.department };
+      }
+
       return {
         statusCode: 200,
         headers: CORS_HEADERS,
@@ -79,7 +85,7 @@ exports.handler = async (event) => {
     // 목록 조회
     let query = supabase
       .from('contracts')
-      .select('*, employees(name, email, phone, position, department)')
+      .select('*, employees(position, department, users:user_id(name, email, phone))')
       .eq('company_id', userInfo.companyId)
       .order('created_at', { ascending: false });
 
@@ -110,6 +116,15 @@ exports.handler = async (event) => {
       };
     }
 
+    // Flatten employees → users for each contract
+    const flatData = (data || []).map(c => {
+      if (c.employees) {
+        const u = Array.isArray(c.employees.users) ? c.employees.users[0] : c.employees.users;
+        c.employees = { name: u?.name, email: u?.email, phone: u?.phone, position: c.employees.position, department: c.employees.department };
+      }
+      return c;
+    });
+
     // 상태별 통계
     const { data: stats } = await supabase
       .from('contracts')
@@ -129,7 +144,7 @@ exports.handler = async (event) => {
       headers: CORS_HEADERS,
       body: JSON.stringify({
         success: true,
-        data: data || [],
+        data: flatData,
         stats: statusCounts,
         pagination: { limit, offset, total: statusCounts.total }
       })
