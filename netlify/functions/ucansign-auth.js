@@ -101,9 +101,18 @@ async function ucansignRequest(method, endpoint, body, retried) {
     return ucansignRequest(method, endpoint, body, true);
   }
 
-  const result = await response.json();
-  if (!response.ok || result.code !== 0) {
-    throw new Error('UCanSign API 오류: ' + (result.msg || response.statusText));
+  const responseText = await response.text();
+  console.log('[UCanSign API] 응답 status:', response.status, '응답 body:', responseText);
+  
+  let result;
+  try {
+    result = JSON.parse(responseText);
+  } catch (e) {
+    throw new Error('UCanSign API 응답 파싱 실패: ' + responseText.substring(0, 200));
+  }
+
+  if (!response.ok || (result.code !== undefined && result.code !== 0)) {
+    throw new Error('UCanSign API 오류 [' + response.status + ']: ' + JSON.stringify(result).substring(0, 300));
   }
 
   return result;
