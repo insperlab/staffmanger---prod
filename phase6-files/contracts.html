@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약관리 - StaffManager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0 30px;
+            height: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .navbar-menu { display: flex; gap: 30px; align-items: center; }
+        .navbar-menu a {
+            text-decoration: none; color: #666; font-weight: 500;
+            padding: 8px 0; transition: color 0.2s;
+        }
+        .navbar-menu a:hover { color: #667eea; }
+        .navbar-menu a.active { color: #667eea; font-weight: 700; border-bottom: 3px solid #667eea; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px; margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 20px;
+            text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.2s; cursor: pointer;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .stat-number { font-size: 32px; font-weight: 700; color: #333; }
+        .stat-card .stat-label { font-size: 13px; color: #888; margin-top: 4px; }
+        .stat-card.active { border: 2px solid #667eea; background: #f8f9ff; }
+
+        .page-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 20px;
+        }
+        .page-header h1 { font-size: 28px; color: #1a1a1a; }
+
+        .btn-primary {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-sm {
+            padding: 6px 14px; font-size: 13px; border-radius: 6px;
+            border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-send { background: #4CAF50; color: white; }
+        .btn-send:hover { background: #43A047; }
+        .btn-resend { background: #FF9800; color: white; }
+        .btn-resend:hover { background: #F57C00; }
+        .btn-cancel { background: #f44336; color: white; }
+        .btn-cancel:hover { background: #D32F2F; }
+        .btn-view { background: #2196F3; color: white; }
+        .btn-view:hover { background: #1976D2; }
+        .btn-delete { background: #9E9E9E; color: white; }
+        .btn-delete:hover { background: #757575; }
+
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-bar select, .filter-bar input {
+            padding: 10px 14px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 14px; background: white;
+        }
+
+        .table-card {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8f9fa; padding: 14px 16px; text-align: left;
+            font-size: 13px; color: #666; font-weight: 600; border-bottom: 2px solid #e9ecef;
+        }
+        td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        tr:hover { background: #f8f9ff; }
+
+        .status-badge {
+            display: inline-block; padding: 4px 12px;
+            border-radius: 20px; font-size: 12px; font-weight: 600;
+        }
+        .status-draft { background: #E0E0E0; color: #616161; }
+        .status-sent { background: #E3F2FD; color: #1565C0; }
+        .status-viewed { background: #FFF3E0; color: #E65100; }
+        .status-signed { background: #E8F5E9; color: #2E7D32; }
+        .status-completed { background: #E8F5E9; color: #1B5E20; }
+        .status-rejected { background: #FFEBEE; color: #C62828; }
+        .status-expired { background: #F3E5F5; color: #6A1B9A; }
+
+        .employee-info { display: flex; align-items: center; gap: 8px; }
+        .employee-avatar {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; color: white; font-weight: 700; font-size: 14px;
+        }
+        .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 200;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white; border-radius: 16px; padding: 36px;
+            width: 560px; max-width: 95vw; max-height: 90vh;
+            overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal h2 { font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block; margin-bottom: 6px;
+            font-size: 14px; font-weight: 600; color: #555;
+        }
+        .form-group select, .form-group input, .form-group textarea {
+            width: 100%; padding: 11px 14px; border: 2px solid #e0e0e0;
+            border-radius: 8px; font-size: 15px; transition: border-color 0.2s;
+        }
+        .form-group select:focus, .form-group input:focus { outline: none; border-color: #667eea; }
+
+        .modal-buttons { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
+        .btn-outline {
+            padding: 12px 24px; background: white; border: 2px solid #ddd;
+            border-radius: 8px; font-size: 15px; cursor: pointer; color: #666;
+        }
+        .btn-outline:hover { border-color: #999; }
+
+        .empty-state { text-align: center; padding: 80px 20px; color: #999; }
+        .empty-state .icon { font-size: 64px; margin-bottom: 16px; }
+        .empty-state p { font-size: 16px; margin-bottom: 20px; }
+
+        .toast {
+            position: fixed; top: 80px; right: 20px; padding: 14px 24px;
+            border-radius: 10px; color: white; font-weight: 500; z-index: 300;
+            transform: translateX(120%); transition: transform 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: #4CAF50; }
+        .toast.error { background: #f44336; }
+        .toast.info { background: #2196F3; }
+
+        .loading-spinner { text-align: center; padding: 60px; color: #999; }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #e0e0e0;
+            border-top-color: #667eea; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        .detail-label { width: 120px; color: #888; font-size: 14px; flex-shrink: 0; }
+        .detail-value { font-size: 14px; color: #333; }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 16px; }
+            .navbar-menu { gap: 16px; font-size: 13px; }
+            .container { padding: 16px; }
+            .stats-row { grid-template-columns: repeat(3, 1fr); }
+            .page-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+            .modal { padding: 24px; }
+            th, td { padding: 10px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
+        <div class="navbar-menu">
+            <a href="/dashboard.html">대시보드</a>
+            <a href="/employees.html">직원 관리</a>
+            <a href="/attendances.html">출퇴근</a>
+            <a href="/calendar.html">휴가</a>
+            <a href="/salary.html">급여</a>
+            <a href="/contracts.html" class="active">계약</a>
+            <a href="/settings.html">설정</a>
+        </div>
+        <div><button onclick="handleLogout()" style="padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">로그아웃</button></div>
+    </nav>
+
+    <div class="container">
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card active" onclick="filterByStatus('', this)">
+                <div class="stat-number" id="stat-total">-</div>
+                <div class="stat-label">전체</div>
+            </div>
+            <div class="stat-card" onclick="filterByStatus('draft', this)">
+                <div class="stat-number" id="stat-draft">-</div>
+                <div class="stat-label">작성중</div>
+            </div>
+            <div class="stat-card" onclick="filterByStatus('sent', this)">
+                <div class="stat-number" id="stat-sent">-</div>
+                <div class="stat-label">발송됨</div>
+            </div>
+            <div class="stat-card" onclick="filterByStatus('viewed', this)">
+                <div class="stat-number" id="stat-viewed">-</div>
+                <div class="stat-label">열람됨</div>
+            </div>
+            <div class="stat-card" onclick="filterByStatus('completed', this)">
+                <div class="stat-number" id="stat-completed">-</div>
+                <div class="stat-label">완료</div>
+            </div>
+            <div class="stat-card" onclick="filterByStatus('rejected', this)">
+                <div class="stat-number" id="stat-rejected">-</div>
+                <div class="stat-label">거절/취소</div>
+            </div>
+        </div>
+
+        <div class="page-header">
+            <h1>📄 전자계약 관리</h1>
+            <button class="btn-primary" onclick="openCreateModal()">+ 새 계약서</button>
+        </div>
+
+        <div class="filter-bar">
+            <select id="filterType" onchange="loadContracts()">
+                <option value="">계약 유형 전체</option>
+                <option value="근로계약서">근로계약서</option>
+                <option value="연봉계약서">연봉계약서</option>
+                <option value="비밀유지계약서">비밀유지계약서</option>
+                <option value="겸업금지계약서">겸업금지계약서</option>
+                <option value="퇴직합의서">퇴직합의서</option>
+                <option value="기타">기타</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="직원 이름 검색..." oninput="filterTable()" style="width:200px;">
+        </div>
+
+        <div class="table-card">
+            <div id="loadingArea" class="loading-spinner">
+                <div class="spinner"></div>
+                <p>계약서 목록을 불러오는 중...</p>
+            </div>
+            <div id="emptyState" class="empty-state" style="display:none;">
+                <div class="icon">📄</div>
+                <p>등록된 계약서가 없습니다</p>
+                <button class="btn-primary" onclick="openCreateModal()">첫 계약서 만들기</button>
+            </div>
+            <table id="contractsTable" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>직원</th>
+                        <th>계약 유형</th>
+                        <th>제목</th>
+                        <th>상태</th>
+                        <th>생성일</th>
+                        <th>작업</th>
+                    </tr>
+                </thead>
+                <tbody id="contractsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 생성 모달 -->
+    <div class="modal-overlay" id="createModal">
+        <div class="modal">
+            <h2>📝 새 계약서 만들기</h2>
+            <div class="form-group">
+                <label>직원 선택 *</label>
+                <select id="createEmployee" required><option value="">직원을 선택하세요</option></select>
+            </div>
+            <div class="form-group">
+                <label>계약 유형</label>
+                <select id="createType">
+                    <option value="근로계약서">근로계약서</option>
+                    <option value="연봉계약서">연봉계약서</option>
+                    <option value="비밀유지계약서">비밀유지계약서 (NDA)</option>
+                    <option value="겸업금지계약서">겸업금지계약서</option>
+                    <option value="퇴직합의서">퇴직합의서</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>계약서 제목</label>
+                <input type="text" id="createTitle" placeholder="자동 생성됩니다 (빈칸 가능)">
+            </div>
+            <div class="form-group">
+                <label>서명자 이메일</label>
+                <input type="email" id="createEmail" placeholder="직원 이메일 자동 입력">
+            </div>
+            <div class="form-group">
+                <label>서명자 전화번호</label>
+                <input type="tel" id="createPhone" placeholder="직원 전화번호 자동 입력">
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="createAutoSend" style="width:auto;">
+                <label for="createAutoSend" style="margin:0;cursor:pointer;">생성 후 바로 발송</label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-outline" onclick="closeCreateModal()">취소</button>
+                <button class="btn-primary" onclick="createContract()" id="createBtn">계약서 생성</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 모달 -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <h2>📋 계약서 상세</h2>
+            <div id="detailContent"></div>
+            <div class="modal-buttons">
+                <button class="btn-outline" onclick="closeDetailModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let authToken = null;
+        let employees = [];
+        let contracts = [];
+        let currentFilter = '';
+
+        async function init() {
+            authToken = localStorage.getItem('authToken');
+            if (!authToken) { window.location.href = '/login.html'; return; }
+            await loadEmployees();
+            await loadContracts();
+        }
+
+        async function apiCall(url, options = {}) {
+            const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken };
+            const response = await fetch(url, { ...options, headers });
+            const data = await response.json();
+            if (response.status === 401) {
+                showToast('세션 만료. 다시 로그인해주세요.', 'error');
+                setTimeout(function() { window.location.href = '/login.html'; }, 1500);
+                throw new Error('Unauthorized');
+            }
+            return data;
+        }
+
+        async function loadEmployees() {
+            try {
+                const result = await apiCall('/.netlify/functions/employees-list');
+                if (result.success) {
+                    employees = result.data || [];
+                    populateEmployeeSelect();
+                }
+            } catch (err) { console.error('직원 목록 로드 실패:', err); }
+        }
+
+        function populateEmployeeSelect() {
+            var select = document.getElementById('createEmployee');
+            select.innerHTML = '<option value="">직원을 선택하세요</option>';
+            employees.forEach(function(emp) {
+                var opt = document.createElement('option');
+                opt.value = emp.id;
+                opt.textContent = emp.name + ' (' + (emp.position || '') + ' ' + (emp.department || '') + ')';
+                opt.dataset.email = emp.email || '';
+                opt.dataset.phone = emp.phone || '';
+                select.appendChild(opt);
+            });
+            select.addEventListener('change', function() {
+                var selected = this.options[this.selectedIndex];
+                if (selected.value) {
+                    document.getElementById('createEmail').value = selected.dataset.email || '';
+                    document.getElementById('createPhone').value = selected.dataset.phone || '';
+                }
+            });
+        }
+
+        async function loadContracts() {
+            var loadingEl = document.getElementById('loadingArea');
+            var tableEl = document.getElementById('contractsTable');
+            var emptyEl = document.getElementById('emptyState');
+            loadingEl.style.display = 'block'; tableEl.style.display = 'none'; emptyEl.style.display = 'none';
+
+            try {
+                var url = '/.netlify/functions/contracts-list';
+                var params = [];
+                if (currentFilter) params.push('status=' + currentFilter);
+                var typeFilter = document.getElementById('filterType').value;
+                if (typeFilter) params.push('contract_type=' + encodeURIComponent(typeFilter));
+                if (params.length > 0) url += '?' + params.join('&');
+
+                var result = await apiCall(url);
+                if (result.success) {
+                    contracts = result.data || [];
+                    updateStats(result.stats || {});
+                    renderContracts();
+                } else { showToast(result.error || '목록 로드 실패', 'error'); }
+            } catch (err) {
+                if (err.message !== 'Unauthorized') showToast('계약서 목록 로드 실패', 'error');
+            } finally { loadingEl.style.display = 'none'; }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('stat-total').textContent = stats.total || 0;
+            document.getElementById('stat-draft').textContent = stats.draft || 0;
+            document.getElementById('stat-sent').textContent = stats.sent || 0;
+            document.getElementById('stat-viewed').textContent = stats.viewed || 0;
+            document.getElementById('stat-completed').textContent = (stats.signed || 0) + (stats.completed || 0);
+            document.getElementById('stat-rejected').textContent = (stats.rejected || 0) + (stats.expired || 0);
+        }
+
+        function filterByStatus(status, el) {
+            currentFilter = status;
+            document.querySelectorAll('.stat-card').forEach(function(c) { c.classList.remove('active'); });
+            if (el) el.classList.add('active');
+            loadContracts();
+        }
+
+        function renderContracts() {
+            var tableEl = document.getElementById('contractsTable');
+            var emptyEl = document.getElementById('emptyState');
+            var tbody = document.getElementById('contractsBody');
+            if (contracts.length === 0) { tableEl.style.display = 'none'; emptyEl.style.display = 'block'; return; }
+            tableEl.style.display = 'table'; emptyEl.style.display = 'none';
+
+            tbody.innerHTML = contracts.map(function(c) {
+                var empName = (c.employees && c.employees.name) || c.signer_name || '-';
+                var initial = empName.charAt(0);
+                var statusLabel = getStatusLabel(c.status);
+                var createdDate = c.created_at ? new Date(c.created_at).toLocaleDateString('ko-KR') : '-';
+                var empPos = (c.employees && c.employees.position) || '';
+                var empDept = (c.employees && c.employees.department) || '';
+
+                return '<tr data-name="' + empName + '">' +
+                    '<td><div class="employee-info"><div class="employee-avatar">' + initial + '</div><div><div style="font-weight:600;">' + empName + '</div><div style="font-size:12px;color:#999;">' + empPos + ' ' + empDept + '</div></div></div></td>' +
+                    '<td>' + c.contract_type + '</td>' +
+                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.title + '</td>' +
+                    '<td><span class="status-badge status-' + c.status + '">' + statusLabel + '</span></td>' +
+                    '<td>' + createdDate + '</td>' +
+                    '<td class="actions">' + getActionButtons(c) + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function getStatusLabel(status) {
+            var labels = { draft:'작성중', sent:'발송됨', viewed:'열람됨', signed:'서명완료', completed:'완료', rejected:'거절/취소', expired:'만료' };
+            return labels[status] || status;
+        }
+
+        function getActionButtons(c) {
+            var btns = ['<button class="btn-sm btn-view" onclick="viewDetail(\'' + c.id + '\')">상세</button>'];
+            if (c.status === 'draft') {
+                btns.push('<button class="btn-sm btn-send" onclick="sendContract(\'' + c.id + '\')">발송</button>');
+                btns.push('<button class="btn-sm btn-delete" onclick="deleteContract(\'' + c.id + '\')">삭제</button>');
+            }
+            if (c.status === 'sent' || c.status === 'viewed') {
+                btns.push('<button class="btn-sm btn-resend" onclick="resendContract(\'' + c.id + '\')">재발송</button>');
+                btns.push('<button class="btn-sm btn-cancel" onclick="cancelContract(\'' + c.id + '\')">취소</button>');
+            }
+            if (c.signed_pdf_url) {
+                btns.push('<button class="btn-sm btn-view" onclick="window.open(\'' + c.signed_pdf_url + '\')">PDF</button>');
+            }
+            return btns.join('');
+        }
+
+        function filterTable() {
+            var search = document.getElementById('searchInput').value.toLowerCase();
+            document.querySelectorAll('#contractsBody tr').forEach(function(row) {
+                row.style.display = row.dataset.name.toLowerCase().indexOf(search) >= 0 ? '' : 'none';
+            });
+        }
+
+        function openCreateModal() { document.getElementById('createModal').classList.add('show'); }
+        function closeCreateModal() { document.getElementById('createModal').classList.remove('show'); }
+
+        async function createContract() {
+            var empId = document.getElementById('createEmployee').value;
+            if (!empId) { showToast('직원을 선택해주세요', 'error'); return; }
+            var btn = document.getElementById('createBtn');
+            btn.disabled = true; btn.textContent = '생성 중...';
+            try {
+                var payload = {
+                    employee_id: empId,
+                    contract_type: document.getElementById('createType').value,
+                    title: document.getElementById('createTitle').value || undefined,
+                    signer_email: document.getElementById('createEmail').value || undefined,
+                    signer_phone: document.getElementById('createPhone').value || undefined,
+                    auto_send: document.getElementById('createAutoSend').checked
+                };
+                var result = await apiCall('/.netlify/functions/contracts-create', { method: 'POST', body: JSON.stringify(payload) });
+                if (result.success) {
+                    showToast(payload.auto_send ? '계약서 발송 완료!' : '계약서 생성 완료!', 'success');
+                    closeCreateModal(); await loadContracts();
+                } else { showToast(result.error || '생성 실패', 'error'); }
+            } catch (err) { showToast('생성 실패: ' + err.message, 'error');
+            } finally { btn.disabled = false; btn.textContent = '계약서 생성'; }
+        }
+
+        async function sendContract(id) {
+            if (!confirm('UCanSign으로 발송하시겠습니까?')) return;
+            try {
+                var result = await apiCall('/.netlify/functions/contracts-create', { method: 'PUT', body: JSON.stringify({ id: id, action: 'send' }) });
+                if (result.success) { showToast('발송 완료!', 'success'); await loadContracts(); }
+                else { showToast(result.error || '발송 실패', 'error'); }
+            } catch (err) { showToast('발송 실패', 'error'); }
+        }
+
+        async function resendContract(id) {
+            if (!confirm('재발송하시겠습니까?')) return;
+            try {
+                var result = await apiCall('/.netlify/functions/contracts-create', { method: 'PUT', body: JSON.stringify({ id: id, action: 'resend' }) });
+                if (result.success) { showToast('재발송 완료!', 'success'); await loadContracts(); }
+                else { showToast(result.error || '재발송 실패', 'error'); }
+            } catch (err) { showToast('재발송 실패', 'error'); }
+        }
+
+        async function cancelContract(id) {
+            if (!confirm('정말 취소하시겠습니까?')) return;
+            try {
+                var result = await apiCall('/.netlify/functions/contracts-create', { method: 'PUT', body: JSON.stringify({ id: id, action: 'cancel' }) });
+                if (result.success) { showToast('계약 취소됨', 'info'); await loadContracts(); }
+                else { showToast(result.error || '취소 실패', 'error'); }
+            } catch (err) { showToast('취소 실패', 'error'); }
+        }
+
+        async function deleteContract(id) {
+            if (!confirm('삭제하시겠습니까?')) return;
+            try {
+                var result = await apiCall('/.netlify/functions/contracts-create', { method: 'DELETE', body: JSON.stringify({ id: id }) });
+                if (result.success) { showToast('삭제 완료', 'info'); await loadContracts(); }
+                else { showToast(result.error || '삭제 실패', 'error'); }
+            } catch (err) { showToast('삭제 실패', 'error'); }
+        }
+
+        async function viewDetail(id) {
+            try {
+                var result = await apiCall('/.netlify/functions/contracts-list?id=' + id);
+                if (result.success && result.data) {
+                    var c = result.data;
+                    var empName = (c.employees && c.employees.name) || c.signer_name || '-';
+                    var html = '<div class="detail-row"><div class="detail-label">제목</div><div class="detail-value">' + c.title + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">유형</div><div class="detail-value">' + c.contract_type + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">직원</div><div class="detail-value">' + empName + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value">' + (c.signer_email || '-') + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">전화번호</div><div class="detail-value">' + (c.signer_phone || '-') + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">상태</div><div class="detail-value"><span class="status-badge status-' + c.status + '">' + getStatusLabel(c.status) + '</span></div></div>' +
+                        '<div class="detail-row"><div class="detail-label">생성일</div><div class="detail-value">' + (c.created_at ? new Date(c.created_at).toLocaleString('ko-KR') : '-') + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">발송일</div><div class="detail-value">' + (c.sent_at ? new Date(c.sent_at).toLocaleString('ko-KR') : '-') + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">서명일</div><div class="detail-value">' + (c.signed_at ? new Date(c.signed_at).toLocaleString('ko-KR') : '-') + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">만료일</div><div class="detail-value">' + (c.expires_at ? new Date(c.expires_at).toLocaleDateString('ko-KR') : '-') + '</div></div>';
+                    if (c.ucansign_request_id) {
+                        html += '<div class="detail-row"><div class="detail-label">UCanSign ID</div><div class="detail-value" style="font-size:12px;color:#999;">' + c.ucansign_request_id + '</div></div>';
+                    }
+                    if (c.signed_pdf_url) {
+                        html += '<div style="margin-top:16px;"><a href="' + c.signed_pdf_url + '" target="_blank" class="btn-primary" style="display:inline-block;text-decoration:none;padding:10px 20px;font-size:14px;">📥 서명 PDF 다운로드</a></div>';
+                    }
+                    document.getElementById('detailContent').innerHTML = html;
+                    document.getElementById('detailModal').classList.add('show');
+                }
+            } catch (err) { showToast('상세 조회 실패', 'error'); }
+        }
+
+        function closeDetailModal() { document.getElementById('detailModal').classList.remove('show'); }
+
+        function showToast(message, type) {
+            var t = document.getElementById('toast');
+            t.textContent = message; t.className = 'toast ' + (type || 'info') + ' show';
+            setTimeout(function() { t.classList.remove('show'); }, 3000);
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
+            window.location.href = '/login.html';
+        }
+
+        document.getElementById('createModal').addEventListener('click', function(e) { if (e.target === this) closeCreateModal(); });
+        document.getElementById('detailModal').addEventListener('click', function(e) { if (e.target === this) closeDetailModal(); });
+
+        init();
+    </script>
+</body>
+</html>
