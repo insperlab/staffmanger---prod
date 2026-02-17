@@ -123,25 +123,16 @@ exports.handler = async (event) => {
     }
 
     // 6. 급여 필드 매핑
-    let hourlyWage = null;
     let monthlyWageVal = null;
     let annualSalaryVal = null;
 
     switch (salaryType) {
-      case 'hourly':
-        hourlyWage = baseSalary;
-        break;
-      case 'daily':
-        hourlyWage = baseSalary; // daily를 hourly_wage에 저장 (기존 호환)
-        break;
       case 'monthly':
         monthlyWageVal = monthlyWage || baseSalary;
         break;
       case 'annual':
         annualSalaryVal = annualSalary || baseSalary;
         break;
-      default:
-        hourlyWage = baseSalary;
     }
 
     // 7. employees 테이블에 직원 정보 생성
@@ -155,7 +146,6 @@ exports.handler = async (event) => {
       status: status,
       salary_type: salaryType,
       base_salary: baseSalary,
-      hourly_wage: hourlyWage,
       monthly_wage: monthlyWageVal,
       annual_salary: annualSalaryVal,
       work_start_time: workStartTime,
