@@ -436,50 +436,135 @@
                                 required
                             >
                             <div class="error-message" id="baseSalaryError"></div>
-                            <div class="helper-text" id="salaryHelper">2024년 최저시급: 9,860원</div>
+                            <div class="helper-text" id="salaryHelper">2026년 최저시급: 10,030원</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 근무 시간 정보 섹션 -->
+                <!-- 근무 조건 섹션 -->
                 <div class="form-section">
-                    <h2 class="section-title">⏰ 근무 시간</h2>
+                    <h2 class="section-title">⏰ 근무 조건</h2>
                     
                     <div class="form-row">
                         <div class="form-group">
                             <label for="workStartTime">출근 시각</label>
-                            <input 
-                                type="time" 
-                                id="workStartTime" 
-                                value="09:00"
-                            >
-                            <div class="helper-text">기본 출근 시각 (변경 가능)</div>
+                            <input type="time" id="workStartTime" value="09:00">
                         </div>
-
                         <div class="form-group">
                             <label for="workEndTime">퇴근 시각</label>
-                            <input 
-                                type="time" 
-                                id="workEndTime" 
-                                value="18:00"
-                            >
-                            <div class="helper-text">기본 퇴근 시각 (변경 가능)</div>
+                            <input type="time" id="workEndTime" value="18:00">
                         </div>
                     </div>
 
-                    <div class="form-row single">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="breakTimeMinutes">휴게시간 (분)</label>
+                            <input type="number" id="breakTimeMinutes" value="60" min="0" step="10">
+                            <div class="helper-text">기본 60분 (점심시간 포함)</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="weeklyHoliday">주휴일</label>
+                            <select id="weeklyHoliday">
+                                <option value="일요일" selected>일요일</option>
+                                <option value="토요일">토요일</option>
+                                <option value="월요일">월요일</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="workLocation">근무장소</label>
+                            <input type="text" id="workLocation" placeholder="본사 / 지점명">
+                            <div class="helper-text">비워두면 사업장 주소로 자동 설정</div>
+                        </div>
                         <div class="form-group">
                             <label for="workDays">근무 요일</label>
-                            <select id="workDays" multiple size="7" style="height: auto; padding: 10px;">
-                                <option value="월" selected>월요일</option>
-                                <option value="화" selected>화요일</option>
-                                <option value="수" selected>수요일</option>
-                                <option value="목" selected>목요일</option>
-                                <option value="금" selected>금요일</option>
-                                <option value="토">토요일</option>
-                                <option value="일">일요일</option>
+                            <select id="workDays" multiple size="4" style="height: auto; padding: 8px;">
+                                <option value="월" selected>월</option>
+                                <option value="화" selected>화</option>
+                                <option value="수" selected>수</option>
+                                <option value="목" selected>목</option>
+                                <option value="금" selected>금</option>
+                                <option value="토">토</option>
+                                <option value="일">일</option>
                             </select>
-                            <div class="helper-text">Ctrl 또는 Cmd 키를 누르고 클릭하면 여러 요일을 선택할 수 있습니다</div>
+                            <div class="helper-text">Ctrl/Cmd + 클릭으로 복수 선택</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 계약 정보 섹션 -->
+                <div class="form-section">
+                    <h2 class="section-title">📝 계약 정보</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contractStartDate">계약기간 시작</label>
+                            <input type="date" id="contractStartDate">
+                            <div class="helper-text">비워두면 입사일로 자동 설정</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="contractEndDate">계약기간 종료</label>
+                            <input type="date" id="contractEndDate">
+                            <div class="helper-text">비워두면 무기한 (정규직)</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="probationMonths">수습기간 (개월)</label>
+                            <input type="number" id="probationMonths" value="0" min="0" max="12">
+                            <div class="helper-text">0 = 수습기간 없음</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 추가 정보 섹션 -->
+                <div class="form-section">
+                    <h2 class="section-title">📌 추가 정보</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birthDate">생년월일</label>
+                            <input type="date" id="birthDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="address">주소</label>
+                            <input type="text" id="address" placeholder="서울시 강남구...">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bankName">급여 입금 은행</label>
+                            <select id="bankName">
+                                <option value="">선택 (선택사항)</option>
+                                <option value="국민은행">국민은행</option>
+                                <option value="신한은행">신한은행</option>
+                                <option value="우리은행">우리은행</option>
+                                <option value="하나은행">하나은행</option>
+                                <option value="농협은행">농협은행</option>
+                                <option value="기업은행">기업은행</option>
+                                <option value="카카오뱅크">카카오뱅크</option>
+                                <option value="토스뱅크">토스뱅크</option>
+                                <option value="케이뱅크">케이뱅크</option>
+                                <option value="SC제일은행">SC제일은행</option>
+                                <option value="대구은행">대구은행</option>
+                                <option value="부산은행">부산은행</option>
+                                <option value="경남은행">경남은행</option>
+                                <option value="광주은행">광주은행</option>
+                                <option value="전북은행">전북은행</option>
+                                <option value="제주은행">제주은행</option>
+                                <option value="수협은행">수협은행</option>
+                                <option value="새마을금고">새마을금고</option>
+                                <option value="신협">신협</option>
+                                <option value="우체국">우체국</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="accountNumber">계좌번호</label>
+                            <input type="text" id="accountNumber" placeholder="- 없이 숫자만">
                         </div>
                     </div>
                 </div>
@@ -554,7 +639,7 @@
             
             if (e.target.value === 'hourly') {
                 salaryLabel.textContent = '시급';
-                salaryHelper.textContent = '2025년 최저시급: 10,030원';
+                salaryHelper.textContent = '2026년 최저시급: 10,030원';
             } else if (e.target.value === 'daily') {
                 salaryLabel.textContent = '일급';
                 salaryHelper.textContent = '일 단위 급여 금액을 입력하세요';
@@ -635,6 +720,16 @@
             const baseSalary = parseFloat(document.getElementById('baseSalary').value);
             const workStartTime = document.getElementById('workStartTime').value;
             const workEndTime = document.getElementById('workEndTime').value;
+            const breakTimeMinutes = parseInt(document.getElementById('breakTimeMinutes').value) || 60;
+            const weeklyHoliday = document.getElementById('weeklyHoliday').value;
+            const workLocation = document.getElementById('workLocation').value.trim();
+            const contractStartDate = document.getElementById('contractStartDate').value || null;
+            const contractEndDate = document.getElementById('contractEndDate').value || null;
+            const probationMonths = parseInt(document.getElementById('probationMonths').value) || 0;
+            const birthDate = document.getElementById('birthDate').value || null;
+            const address = document.getElementById('address').value.trim();
+            const bankName = document.getElementById('bankName').value;
+            const accountNumber = document.getElementById('accountNumber').value.trim();
             
             // 근무 요일 배열로 가져오기
             const workDaysSelect = document.getElementById('workDays');
@@ -671,8 +766,8 @@
             }
 
             // 최저시급 체크 (시급인 경우만)
-            if (salaryType === 'hourly' && baseSalary < 9860) {
-                if (!confirm('입력하신 시급이 최저시급(9,860원)보다 낮습니다. 계속하시겠습니까?')) {
+            if (salaryType === 'hourly' && baseSalary < 10030) {
+                if (!confirm('입력하신 시급이 2025년 최저시급(10,030원)보다 낮습니다. 계속하시겠습니까?')) {
                     return;
                 }
             }
@@ -703,9 +798,21 @@
                     status: status,
                     salaryType: salaryType,
                     baseSalary: baseSalary,
+                    monthlyWage: salaryType === 'monthly' ? baseSalary : null,
+                    annualSalary: salaryType === 'annual' ? baseSalary : null,
                     workStartTime: workStartTime,
                     workEndTime: workEndTime,
-                    workDays: workDays.join(',') // 배열을 쉼표로 구분된 문자열로 변환
+                    breakTimeMinutes: breakTimeMinutes,
+                    weeklyHoliday: weeklyHoliday,
+                    workLocation: workLocation || null,
+                    workDays: workDays.join(','),
+                    contractStartDate: contractStartDate,
+                    contractEndDate: contractEndDate,
+                    probationMonths: probationMonths,
+                    birthDate: birthDate,
+                    address: address || null,
+                    bankName: bankName || null,
+                    accountNumber: accountNumber || null
                 };
 
                 // API 엔드포인트로 POST 요청
