@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사업장 설정 - StaffManager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background: #f5f7fa; min-height: 100vh; }
+        .navbar { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 0 30px; height: 70px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar-brand { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 700; color: #667eea; text-decoration: none; }
+        .back-btn { padding: 8px 20px; background: #f5f7fa; border: none; border-radius: 6px; color: #666; cursor: pointer; font-weight: 600; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .back-btn:hover { background: #e0e0e0; }
+        .container { max-width: 800px; margin: 0 auto; padding: 40px 30px; }
+        .page-header { margin-bottom: 30px; }
+        .page-title { font-size: 32px; color: #333; margin-bottom: 8px; }
+        .page-subtitle { color: #999; font-size: 16px; }
+        .form-card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .form-section { margin-bottom: 40px; }
+        .form-section:last-child { margin-bottom: 0; }
+        .section-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .form-row.single { grid-template-columns: 1fr; }
+        .form-group { margin-bottom: 0; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 14px; }
+        label .required { color: #e74c3c; margin-left: 4px; }
+        input, select { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; transition: all 0.3s; }
+        input:focus, select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        input::placeholder { color: #999; }
+        input:read-only { background: #f9f9f9; color: #888; }
+        .helper-text { color: #999; font-size: 13px; margin-top: 5px; }
+        .input-row { display: flex; gap: 10px; }
+        .input-row input { flex: 1; }
+        .input-row .verify-btn { padding: 12px 20px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.3s; }
+        .input-row .verify-btn:hover { background: #5a6fd6; }
+        .input-row .verify-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .verify-result { font-size: 13px; margin-top: 5px; padding: 6px 10px; border-radius: 6px; display: none; }
+        .verify-result.success { display: block; background: #d4edda; color: #155724; }
+        .verify-result.error { display: block; background: #f8d7da; color: #721c24; }
+        .form-actions { display: flex; gap: 15px; justify-content: flex-end; margin-top: 40px; padding-top: 30px; border-top: 2px solid #f0f0f0; }
+        .btn { padding: 14px 32px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3); }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: white; color: #666; border: 2px solid #e0e0e0; }
+        .btn-secondary:hover { background: #f5f7fa; }
+        .toast { position: fixed; top: 90px; right: 30px; padding: 16px 24px; border-radius: 10px; color: white; font-weight: 600; z-index: 1000; transform: translateX(120%); transition: transform 0.3s; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: #28a745; }
+        .toast.error { background: #dc3545; }
+        .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 200; align-items: center; justify-content: center; }
+        .loading-overlay.show { display: flex; }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .status-badge.active { background: #d4edda; color: #155724; }
+        .status-badge.trial { background: #fff3cd; color: #856404; }
+        .status-badge.none { background: #f0f0f0; color: #666; }
+        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } .container { padding: 20px 15px; } .form-card { padding: 25px; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
+        <a href="/dashboard.html" class="back-btn"><span>←</span><span>대시보드</span></a>
+    </nav>
+
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+    <div class="toast" id="toast"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">🏢 사업장 설정</h1>
+            <p class="page-subtitle">전자계약서와 급여명세서에 자동으로 표시되는 사업장 정보입니다</p>
+        </div>
+
+        <div class="form-card">
+            <form id="companyForm">
+                <!-- 사업자 정보 -->
+                <div class="form-section">
+                    <h2 class="section-title">📋 사업자 정보</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>사업자등록번호<span class="required">*</span></label>
+                            <div class="input-row">
+                                <input type="text" id="businessNumber" placeholder="000-00-00000" maxlength="12">
+                                <button type="button" class="verify-btn" id="verifyBtn" onclick="verifyBusiness()">확인</button>
+                            </div>
+                            <div class="verify-result" id="verifyResult"></div>
+                            <div class="helper-text">국세청 사업자 상태를 자동 확인합니다</div>
+                        </div>
+                        <div class="form-group">
+                            <label>사업장명 (상호)<span class="required">*</span></label>
+                            <input type="text" id="companyName" placeholder="주식회사 OO">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>대표자명<span class="required">*</span></label>
+                            <input type="text" id="representativeName" placeholder="홍길동">
+                        </div>
+                        <div class="form-group">
+                            <label>대표 전화번호</label>
+                            <input type="tel" id="businessPhone" placeholder="02-1234-5678">
+                        </div>
+                    </div>
+                    <div class="form-row single">
+                        <div class="form-group">
+                            <label>사업장 주소<span class="required">*</span></label>
+                            <input type="text" id="address" placeholder="서울시 강남구 테헤란로 123, 4층">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>업종</label>
+                            <input type="text" id="businessType" placeholder="정보통신업">
+                        </div>
+                        <div class="form-group">
+                            <label>업태</label>
+                            <input type="text" id="businessCategory" placeholder="소프트웨어 개발">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 급여 설정 -->
+                <div class="form-section">
+                    <h2 class="section-title">💰 급여 설정</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>급여일</label>
+                            <select id="payDay">
+                                <option value="1">매월 1일</option>
+                                <option value="5">매월 5일</option>
+                                <option value="10" selected>매월 10일</option>
+                                <option value="15">매월 15일</option>
+                                <option value="20">매월 20일</option>
+                                <option value="25">매월 25일</option>
+                            </select>
+                            <div class="helper-text">직원 급여 지급일 (계약서에 자동 표시)</div>
+                        </div>
+                        <div class="form-group">
+                            <label>구독 상태</label>
+                            <div id="subscriptionInfo" style="padding:12px 16px; background:#f9f9f9; border-radius:8px; font-size:15px;">
+                                <span class="status-badge none">미가입</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 저장 -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">취소</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let authToken = localStorage.getItem('authToken');
+        const API = '/.netlify/functions/company-settings';
+
+        // 토스트 메시지
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show ' + type;
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function setLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('show', show);
+        }
+
+        // 사업자등록번호 자동 포맷팅
+        document.getElementById('businessNumber').addEventListener('input', (e) => {
+            const v = e.target.value.replace(/[^0-9]/g, '');
+            let f = '';
+            if (v.length <= 3) f = v;
+            else if (v.length <= 5) f = v.slice(0,3) + '-' + v.slice(3);
+            else f = v.slice(0,3) + '-' + v.slice(3,5) + '-' + v.slice(5,10);
+            e.target.value = f;
+        });
+
+        // 전화번호 자동 포맷팅
+        document.getElementById('businessPhone').addEventListener('input', (e) => {
+            const v = e.target.value.replace(/[^0-9]/g, '');
+            let f = '';
+            if (v.startsWith('02')) {
+                if (v.length <= 2) f = v;
+                else if (v.length <= 6) f = v.slice(0,2) + '-' + v.slice(2);
+                else f = v.slice(0,2) + '-' + v.slice(2,6) + '-' + v.slice(6,10);
+            } else {
+                if (v.length <= 3) f = v;
+                else if (v.length <= 7) f = v.slice(0,3) + '-' + v.slice(3);
+                else f = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+            }
+            e.target.value = f;
+        });
+
+        // 페이지 로드 시 데이터 불러오기
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!authToken) { window.location.href = '/login.html'; return; }
+            setLoading(true);
+            try {
+                const res = await fetch(API, { headers: { 'Authorization': 'Bearer ' + authToken } });
+                const data = await res.json();
+                if (data.success && data.data.company) {
+                    const c = data.data.company;
+                    if (c.companyName) document.getElementById('companyName').value = c.companyName;
+                    if (c.representativeName) document.getElementById('representativeName').value = c.representativeName;
+                    if (c.businessNumber) {
+                        const bn = c.businessNumber;
+                        document.getElementById('businessNumber').value = bn.length === 10
+                            ? bn.slice(0,3) + '-' + bn.slice(3,5) + '-' + bn.slice(5)
+                            : bn;
+                    }
+                    if (c.address) document.getElementById('address').value = c.address;
+                    if (c.businessPhone) document.getElementById('businessPhone').value = c.businessPhone;
+                    if (c.businessType) document.getElementById('businessType').value = c.businessType;
+                    if (c.businessCategory) document.getElementById('businessCategory').value = c.businessCategory;
+                    if (c.payDay) document.getElementById('payDay').value = c.payDay;
+
+                    // 구독 상태 표시
+                    const subInfo = document.getElementById('subscriptionInfo');
+                    if (c.subscriptionPlan) {
+                        const statusClass = c.subscriptionStatus === 'active' ? 'active' : 'trial';
+                        subInfo.innerHTML = `<span class="status-badge ${statusClass}">${c.subscriptionPlan} (${c.subscriptionStatus || '활성'})</span>`;
+                    }
+                }
+            } catch (e) {
+                console.error('Load error:', e);
+            }
+            setLoading(false);
+        });
+
+        // 국세청 사업자확인 (공공데이터 API)
+        async function verifyBusiness() {
+            const bn = document.getElementById('businessNumber').value.replace(/[^0-9]/g, '');
+            const result = document.getElementById('verifyResult');
+            const btn = document.getElementById('verifyBtn');
+
+            if (bn.length !== 10) {
+                result.className = 'verify-result error';
+                result.textContent = '사업자등록번호 10자리를 입력해주세요';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '확인 중...';
+            result.className = 'verify-result';
+            result.style.display = 'none';
+
+            try {
+                // 국세청 API 호출 (공공데이터 포털)
+                const res = await fetch('https://api.odcloud.kr/api/nts-businessman/v1/status?serviceKey=data_default_key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ b_no: [bn] })
+                });
+                const data = await res.json();
+
+                if (data.data && data.data[0]) {
+                    const biz = data.data[0];
+                    if (biz.b_stt === '계속사업자') {
+                        result.className = 'verify-result success';
+                        result.textContent = `✅ ${biz.b_stt} | ${biz.tax_type || '확인됨'}`;
+                    } else if (biz.b_stt) {
+                        result.className = 'verify-result error';
+                        result.textContent = `⚠️ ${biz.b_stt} ${biz.end_dt ? '(폐업일: '+biz.end_dt+')' : ''}`;
+                    } else {
+                        result.className = 'verify-result error';
+                        result.textContent = '❌ 등록되지 않은 사업자번호입니다';
+                    }
+                } else {
+                    result.className = 'verify-result error';
+                    result.textContent = '확인 실패 — 직접 입력을 진행해주세요';
+                }
+            } catch (e) {
+                console.error('Verify error:', e);
+                result.className = 'verify-result error';
+                result.textContent = '확인 실패 — 네트워크 오류 (입력은 계속 가능)';
+            }
+
+            btn.disabled = false;
+            btn.textContent = '확인';
+        }
+
+        // 폼 저장
+        document.getElementById('companyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const companyName = document.getElementById('companyName').value.trim();
+            const representativeName = document.getElementById('representativeName').value.trim();
+            const businessNumber = document.getElementById('businessNumber').value.trim();
+            const address = document.getElementById('address').value.trim();
+
+            if (!companyName) { showToast('사업장명을 입력해주세요', 'error'); return; }
+            if (!representativeName) { showToast('대표자명을 입력해주세요', 'error'); return; }
+
+            setLoading(true);
+            try {
+                const res = await fetch(API, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        companyName,
+                        representativeName,
+                        businessNumber,
+                        address,
+                        businessPhone: document.getElementById('businessPhone').value.trim(),
+                        businessType: document.getElementById('businessType').value.trim(),
+                        businessCategory: document.getElementById('businessCategory').value.trim(),
+                        payDay: parseInt(document.getElementById('payDay').value)
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('사업장 정보가 저장되었습니다');
+                } else {
+                    showToast(data.error || '저장 실패', 'error');
+                }
+            } catch (err) {
+                showToast('서버 통신 오류', 'error');
+            }
+            setLoading(false);
+        });
+    </script>
+</body>
+</html>
