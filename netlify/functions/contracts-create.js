@@ -185,10 +185,18 @@ exports.handler = async (event) => {
       };
     }
 
-    // 직원 정보 조회 (users 테이블 JOIN)
+    // 직원 정보 조회 (users 테이블 JOIN + 확장 필드)
     const { data: empData } = await supabase
       .from('employees')
-      .select('id, position, department, users:user_id(name, email, phone)')
+      .select(`
+        id, position, department, base_salary, salary_type,
+        monthly_wage, annual_salary,
+        work_start_time, work_end_time, break_time_minutes,
+        weekly_holiday, work_location, hire_date,
+        contract_start_date, contract_end_date, probation_months,
+        address, birth_date,
+        users:user_id(name, email, phone)
+      `)
       .eq('id', employee_id)
       .eq('company_id', userInfo.companyId)
       .single();
@@ -269,10 +277,21 @@ exports.handler = async (event) => {
 // UCanSign으로 계약서 발송
 // ============================
 async function sendContract(supabase, contractId, companyId) {
-  // 계약서 조회
+  // 계약서 조회 (직원 확장 필드 포함)
   const { data: contract, error: fetchErr } = await supabase
     .from('contracts')
-    .select('*, employees(position, department, users:user_id(name, email, phone))')
+    .select(`
+      *,
+      employees(
+        position, department, base_salary, salary_type,
+        monthly_wage, annual_salary,
+        work_start_time, work_end_time, break_time_minutes,
+        weekly_holiday, work_location, hire_date,
+        contract_start_date, contract_end_date, probation_months,
+        address, birth_date,
+        users:user_id(name, email, phone)
+      )
+    `)
     .eq('id', contractId)
     .eq('company_id', companyId)
     .single();
@@ -292,6 +311,13 @@ async function sendContract(supabase, contractId, companyId) {
       body: JSON.stringify({ success: false, error: '작성중인 계약서만 발송 가능합니다' })
     };
   }
+
+  // 사업장 정보 조회 (companies)
+  const { data: company } = await supabase
+    .from('companies')
+    .select('company_name, representative_name, business_number, address, pay_day, business_phone')
+    .eq('id', companyId)
+    .single();
 
   try {
     // UCanSign API - 템플릿 기반 서명문서 생성
@@ -407,13 +433,72 @@ async function sendContract(supabase, contractId, companyId) {
       customValue2: contract.contract_type || 'employment'
     };
 
-    // 템플릿 변수 매핑
-    if (contract.contract_data && Object.keys(contract.contract_data).length > 0) {
-      signRequestBody.fields = Object.entries(contract.contract_data).map(([key, value]) => ({
+    // 템플릿 변수 자동 매핑 (사업장 + 직원 정보 → 계약서 필드)
+    const emp = contract.employees || {};
+    const empUser = Array.isArray(emp.users) ? emp.users[0] : emp.users;
+
+    // 급여 포맷팅
+    function formatWage(emp) {
+      const fmt = (n) => n ? Number(n).toLocaleString('ko-KR') : '';
+      switch (emp.salary_type) {
+        case 'hourly': return `시급 ${fmt(emp.base_salary)}원`;
+        case 'monthly': return `월 ${fmt(emp.monthly_wage || emp.base_salary)}원`;
+        case 'annual': return `연봉 ${fmt(emp.annual_salary || emp.base_salary)}원`;
+        default: return `${fmt(emp.base_salary)}원`;
+      }
+    }
+
+    // 계약기간 포맷팅
+    function formatPeriod(emp) {
+      if (!emp.contract_start_date) return '';
+      if (!emp.contract_end_date) return `${emp.contract_start_date} ~ 무기한`;
+      return `${emp.contract_start_date} ~ ${emp.contract_end_date}`;
+    }
+
+    // 자동매핑 필드 구성
+    const autoFields = {};
+
+    // 갑 (사업장 정보)
+    if (company) {
+      if (company.company_name) autoFields.company_name = company.company_name;
+      if (company.representative_name) autoFields.representative = company.representative_name;
+      if (company.business_number) autoFields.business_number = company.business_number;
+      if (company.address) autoFields.company_address = company.address;
+      if (company.pay_day) autoFields.pay_day = `매월 ${company.pay_day}일`;
+      if (company.business_phone) autoFields.company_phone = company.business_phone;
+    }
+
+    // 을 (직원 정보)
+    if (empUser?.name) autoFields.employee_name = empUser.name;
+    if (empUser?.phone) autoFields.employee_phone = empUser.phone;
+    if (emp.address) autoFields.employee_address = emp.address;
+    if (emp.hire_date) autoFields.hire_date = emp.hire_date;
+    if (emp.position) autoFields.position = emp.position;
+    if (emp.department) autoFields.department = emp.department;
+
+    // 근로조건
+    if (emp.salary_type) autoFields.wage_type = emp.salary_type === 'hourly' ? '시급' : emp.salary_type === 'monthly' ? '월급' : '연봉';
+    autoFields.wage_amount = formatWage(emp);
+    if (emp.work_start_time && emp.work_end_time) autoFields.work_hours = `${emp.work_start_time} ~ ${emp.work_end_time}`;
+    if (emp.break_time_minutes) autoFields.break_time = `${emp.break_time_minutes}분`;
+    if (emp.weekly_holiday) autoFields.weekly_holiday = emp.weekly_holiday;
+    if (emp.contract_start_date) autoFields.contract_start = emp.contract_start_date;
+    if (emp.contract_end_date) autoFields.contract_end = emp.contract_end_date;
+    autoFields.contract_period = formatPeriod(emp);
+
+    // 사용자가 직접 지정한 contract_data로 오버라이드
+    const mergedFields = { ...autoFields, ...(contract.contract_data || {}) };
+
+    // fields 배열 생성
+    signRequestBody.fields = Object.entries(mergedFields)
+      .filter(([_, value]) => value !== null && value !== undefined && value !== '')
+      .map(([key, value]) => ({
         fieldName: key,
         value: String(value)
       }));
-    }
+
+    console.log('[contracts-create] 자동매핑 필드:', signRequestBody.fields.length, '개');
+    console.log('[contracts-create] 필드 목록:', signRequestBody.fields.map(f => f.fieldName).join(', '));
 
     console.log('[contracts-create] UCanSign 템플릿 서명문서 생성:', templateId);
     console.log('[contracts-create] 요청 body:', JSON.stringify(signRequestBody));
