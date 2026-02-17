@@ -1,24 +1,22 @@
 const { verifyToken, getCorsHeaders } = require('./lib/auth');
 // =====================================================
-// 직원 목록 조회 API
+// 직원 목록 조회 API - v2 (버그 수정)
 // GET /.netlify/functions/employees-list
+// [수정] SUPABASE_SERVICE_KEY 16SUPABASE_SERVICE_ROLE_KEY
+// [수정] 수동 base64 verifyToken 사용
 // =====================================================
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase 클라이언트 생성
 function getSupabaseClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-  
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('Supabase credentials not configured');
   }
-  
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// 에러 응답 헬퍼
 function errorResponse(message, statusCode = 400) {
   return {
     statusCode,
@@ -28,14 +26,10 @@ function errorResponse(message, statusCode = 400) {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
     },
-    body: JSON.stringify({
-      success: false,
-      error: message
-    })
+    body: JSON.stringify({ success: false, error: message })
   };
 }
 
-// 성공 응답 헬퍼
 function successResponse(data, statusCode = 200) {
   return {
     statusCode,
@@ -45,15 +39,11 @@ function successResponse(data, statusCode = 200) {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
     },
-    body: JSON.stringify({
-      success: true,
-      data
-    })
+    body: JSON.stringify({ success: true, data })
   };
 }
 
 exports.handler = async (event, context) => {
-  // CORS Preflight 처리
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -66,40 +56,29 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // GET 요청만 허용
   if (event.httpMethod !== 'GET') {
     return errorResponse('GET 메서드만 허용됩니다', 405);
   }
 
   try {
-    // 1. 인증 확인
     const authHeader = event.headers.authorization || event.headers.Authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return errorResponse('로그인이 필요합니다.', 401);
-    }
-
-    // 2. 토큰에서 사용자 정보 추출
-    const token = authHeader.substring(7);
     let tokenData;
     try {
-      tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
-    } catch {
-      return errorResponse('유효하지 않은 토큰입니다.', 401);
+      tokenData = verifyToken(authHeader);
+    } catch (error) {
+      return errorResponse('인증에 실패했습니다. 다시 로그인해주세요.', 401);
     }
 
     if (!tokenData.companyId) {
       return errorResponse('회사 정보가 없습니다.', 401);
     }
 
-    // 3. Supabase 클라이언트 생성
     const supabase = getSupabaseClient();
 
-    // 4. 쿼리 파라미터 추출
     const status = event.queryStringParameters?.status;
     const department = event.queryStringParameters?.department;
     const search = event.queryStringParameters?.search;
 
-    // 5. 직원 목록 조회
     let query = supabase
       .from('employees')
       .select(`
@@ -141,17 +120,13 @@ exports.handler = async (event, context) => {
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    // 상태 필터링
     if (status) {
       query = query.eq('status', status);
     }
-
-    // 부서 필터링
     if (department) {
       query = query.eq('department', department);
     }
 
-    // 쿼리 실행
     const { data: employees, error: employeesError } = await query;
 
     if (employeesError) {
@@ -159,23 +134,19 @@ exports.handler = async (event, context) => {
       return errorResponse('직원 목록 조회 중 오류가 발생했습니다.', 500);
     }
 
-    // 6. 검색어가 있으면 클라이언트 측에서 필터링
     let filteredEmployees = employees || [];
     if (search) {
       const searchLower = search.toLowerCase();
       filteredEmployees = employees.filter(emp => {
         const user = Array.isArray(emp.users) ? emp.users[0] : emp.users;
         if (!user) return false;
-        
         const nameMatch = user.name?.toLowerCase().includes(searchLower);
         const emailMatch = user.email?.toLowerCase().includes(searchLower);
         const empNumberMatch = emp.employee_number?.toLowerCase().includes(searchLower);
-        
         return nameMatch || emailMatch || empNumberMatch;
       });
     }
 
-    // 7. 응답 데이터 정리
     const result = filteredEmployees.map(emp => {
       const user = Array.isArray(emp.users) ? emp.users[0] : emp.users;
       return {
@@ -211,7 +182,6 @@ exports.handler = async (event, context) => {
       };
     });
 
-    // 8. 통계 정보 추가
     const stats = {
       total: result.length,
       active: result.filter(e => e.status === 'active').length,
@@ -219,7 +189,6 @@ exports.handler = async (event, context) => {
       resigned: result.filter(e => e.status === 'resigned').length
     };
 
-    // 9. 성공 응답
     return successResponse({
       employees: result,
       stats,
