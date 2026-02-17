@@ -479,8 +479,8 @@
                 btns.push('<button class="btn-sm btn-resend" onclick="resendContract(\'' + c.id + '\')">재발송</button>');
                 btns.push('<button class="btn-sm btn-cancel" onclick="cancelContract(\'' + c.id + '\')">취소</button>');
             }
-            if (c.signed_pdf_url) {
-                btns.push('<button class="btn-sm btn-view" onclick="window.open(\'' + c.signed_pdf_url + '\')">PDF</button>');
+            if (c.status === 'signed' || c.status === 'completed') {
+                btns.push('<button class="btn-sm btn-view" onclick="downloadPdf(\'' + c.id + '\',\'pdf\')" style="background:#E8F5E9;color:#2E7D32;">📥 PDF</button>');
             }
             return btns.join('');
         }
@@ -559,30 +559,90 @@
 
         async function viewDetail(id) {
             try {
-                var result = await apiCall('/.netlify/functions/contracts-list?id=' + id);
+                // contracts-detail 사용 → UCanSign 실시간 상태 동기화
+                var result = await apiCall('/.netlify/functions/contracts-detail?contract_id=' + id);
                 if (result.success && result.data) {
                     var c = result.data;
-                    var empName = (c.employees && c.employees.name) || c.signer_name || '-';
+                    var empInfo = c.employee_info || {};
+                    var empName = empInfo.name || c.signer_name || '-';
+                    var empEmail = empInfo.email || c.signer_email || '-';
+                    var empPhone = empInfo.phone || c.signer_phone || '-';
+                    var empPosition = empInfo.position ? ' (' + empInfo.position + ')' : '';
+
                     var html = '<div class="detail-row"><div class="detail-label">제목</div><div class="detail-value">' + c.title + '</div></div>' +
                         '<div class="detail-row"><div class="detail-label">유형</div><div class="detail-value">' + c.contract_type + '</div></div>' +
-                        '<div class="detail-row"><div class="detail-label">직원</div><div class="detail-value">' + empName + '</div></div>' +
-                        '<div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value">' + (c.signer_email || '-') + '</div></div>' +
-                        '<div class="detail-row"><div class="detail-label">전화번호</div><div class="detail-value">' + (c.signer_phone || '-') + '</div></div>' +
-                        '<div class="detail-row"><div class="detail-label">상태</div><div class="detail-value"><span class="status-badge status-' + c.status + '">' + getStatusLabel(c.status) + '</span></div></div>' +
+                        '<div class="detail-row"><div class="detail-label">직원</div><div class="detail-value">' + empName + empPosition + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value">' + empEmail + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">전화번호</div><div class="detail-value">' + empPhone + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">상태</div><div class="detail-value"><span class="status-badge status-' + c.status + '">' + getStatusLabel(c.status) + '</span>' +
+                        ' <button onclick="syncStatus(\'' + id + '\')" style="font-size:12px;padding:2px 8px;border:1px solid #ddd;border-radius:4px;cursor:pointer;background:#f5f5f5;" title="UCanSign에서 최신 상태 동기화">🔄 동기화</button></div></div>' +
                         '<div class="detail-row"><div class="detail-label">생성일</div><div class="detail-value">' + (c.created_at ? new Date(c.created_at).toLocaleString('ko-KR') : '-') + '</div></div>' +
                         '<div class="detail-row"><div class="detail-label">발송일</div><div class="detail-value">' + (c.sent_at ? new Date(c.sent_at).toLocaleString('ko-KR') : '-') + '</div></div>' +
                         '<div class="detail-row"><div class="detail-label">서명일</div><div class="detail-value">' + (c.signed_at ? new Date(c.signed_at).toLocaleString('ko-KR') : '-') + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">완료일</div><div class="detail-value">' + (c.completed_at ? new Date(c.completed_at).toLocaleString('ko-KR') : '-') + '</div></div>' +
                         '<div class="detail-row"><div class="detail-label">만료일</div><div class="detail-value">' + (c.expires_at ? new Date(c.expires_at).toLocaleDateString('ko-KR') : '-') + '</div></div>';
-                    if (c.ucansign_request_id) {
-                        html += '<div class="detail-row"><div class="detail-label">UCanSign ID</div><div class="detail-value" style="font-size:12px;color:#999;">' + c.ucansign_request_id + '</div></div>';
+
+                    // UCanSign 참여자 상태 표시
+                    if (result.ucansign && result.ucansign.participants) {
+                        html += '<div class="detail-row"><div class="detail-label">참여자 현황</div><div class="detail-value">';
+                        result.ucansign.participants.forEach(function(p) {
+                            var icon = p.status === 'completed' ? '✅' : p.status === 'viewed' ? '👁️' : '⏳';
+                            html += '<div style="margin-bottom:4px;">' + icon + ' ' + (p.name || '참여자') + ' — ' + (p.status || '대기중') + '</div>';
+                        });
+                        html += '</div></div>';
                     }
-                    if (c.signed_pdf_url) {
-                        html += '<div style="margin-top:16px;"><a href="' + c.signed_pdf_url + '" target="_blank" class="btn-primary" style="display:inline-block;text-decoration:none;padding:10px 20px;font-size:14px;">📥 서명 PDF 다운로드</a></div>';
+
+                    if (c.ucansign_document_id) {
+                        html += '<div class="detail-row"><div class="detail-label">문서 ID</div><div class="detail-value" style="font-size:12px;color:#999;">' + c.ucansign_document_id + '</div></div>';
                     }
+
+                    // 서명 완료 시 다운로드 버튼
+                    if (c.status === 'completed' || c.status === 'signed') {
+                        html += '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">';
+                        html += '<button onclick="downloadPdf(\'' + id + '\',\'pdf\')" style="padding:10px 20px;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;">📥 서명 PDF 다운로드</button>';
+                        html += '<button onclick="downloadPdf(\'' + id + '\',\'audit\')" style="padding:10px 20px;background:#764ba2;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;">📋 감사추적 인증서</button>';
+                        html += '</div>';
+                    }
+
                     document.getElementById('detailContent').innerHTML = html;
                     document.getElementById('detailModal').classList.add('show');
+                    // 목록도 새로고침 (상태 동기화 반영)
+                    await loadContracts();
                 }
-            } catch (err) { showToast('상세 조회 실패', 'error'); }
+            } catch (err) { showToast('상세 조회 실패: ' + err.message, 'error'); }
+        }
+
+        // PDF / 감사추적 다운로드
+        async function downloadPdf(contractId, type) {
+            try {
+                showToast('파일 URL 조회 중...', 'info');
+                var fileType = type || 'pdf';
+                var result = await apiCall('/.netlify/functions/contracts-file?contract_id=' + contractId + '&type=' + fileType);
+                if (result.success && result.data) {
+                    var url = fileType === 'audit' ? result.data.audit_trail_url : result.data.pdf_url;
+                    if (url) {
+                        window.open(url, '_blank');
+                        showToast('다운로드 URL 생성 완료 (3분간 유효)', 'success');
+                    } else {
+                        showToast('파일 URL을 아직 사용할 수 없습니다. 서명 완료 후 이용 가능합니다.', 'error');
+                    }
+                } else {
+                    showToast(result.error || '파일 조회 실패', 'error');
+                }
+            } catch (err) { showToast('파일 다운로드 실패: ' + err.message, 'error'); }
+        }
+
+        // 상태 동기화 (UCanSign에서 최신 상태 가져오기)
+        async function syncStatus(contractId) {
+            try {
+                showToast('UCanSign 상태 동기화 중...', 'info');
+                var result = await apiCall('/.netlify/functions/contracts-detail?contract_id=' + contractId);
+                if (result.success) {
+                    showToast('상태 동기화 완료: ' + getStatusLabel(result.data.status), 'success');
+                    await loadContracts();
+                    viewDetail(contractId); // 상세 모달 새로고침
+                }
+            } catch (err) { showToast('동기화 실패: ' + err.message, 'error'); }
         }
 
         function closeDetailModal() { document.getElementById('detailModal').classList.remove('show'); }
