@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Management</title>
+</head>
+<body>
+    
+    <input type="number" id="year" min="2020" max="2035">
+    <input type="number" id="month" min="1" max="12" value="1">
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('페이지 로드 완료');
+            const now = new Date();
+            document.getElementById('year').value = now.getFullYear();
+            document.getElementById('month').value = now.getMonth() + 1;
+            await loadEmployees();
+        });
+
+        async function loadEmployees() {
+            // Example function to simulate loading employees
+            console.log('Loading employees...');
+        }
+    </script>
+
+</body>
+</html>
