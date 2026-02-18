@@ -2,597 +2,174 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>출퇴근 관리 - StaffManager</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f7fafc;
-            min-height: 100vh;
-        }
-
-        /* 네비게이션 바 */
-        .navbar {
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 0 30px;
-            height: 70px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 24px;
-            font-weight: 700;
-            color: #667eea;
-        }
-
-        .navbar-menu {
-            display: flex;
-            gap: 30px;
-            align-items: center;
-        }
-
-        .navbar-menu a {
-            text-decoration: none;
-            color: #666;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .navbar-menu a:hover { color: #667eea; }
-        .navbar-menu a.active {
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        .logout-btn {
-            padding: 8px 20px;
-            background: #f5f7fa;
-            border: none;
-            border-radius: 6px;
-            color: #666;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 24px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            color: #2d3748;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: #718096;
-            font-size: 14px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #2d3748;
-        }
-
-        .stat-unit {
-            font-size: 14px;
-            color: #718096;
-            margin-left: 4px;
-        }
-
-        .filters {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 24px;
-        }
-
-        .filter-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .filter-group label {
-            font-size: 12px;
-            color: #718096;
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-
-        .filter-group input,
-        .filter-group select {
-            padding: 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .filter-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
-        }
-
-        .btn-secondary {
-            background: #edf2f7;
-            color: #2d3748;
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-
-        .table-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .table-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .table-header h2 {
-            font-size: 18px;
-            color: #2d3748;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead {
-            background: #f7fafc;
-        }
-
-        th {
-            padding: 12px 24px;
-            text-align: left;
-            font-size: 12px;
-            font-weight: 600;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        td {
-            padding: 16px 24px;
-            border-top: 1px solid #e2e8f0;
-            font-size: 14px;
-            color: #2d3748;
-        }
-
-        tbody tr:hover {
-            background: #f7fafc;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge.normal {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        .badge.late {
-            background: #feebc8;
-            color: #7c2d12;
-        }
-
-        .badge.early-leave {
-            background: #fed7e2;
-            color: #702459;
-        }
-
-        .badge.overtime {
-            background: #bee3f8;
-            color: #2c5282;
-        }
-
-        .badge.absent {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 24px;
-        }
-
-        .empty-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-        }
-
-        .empty-title {
-            font-size: 18px;
-            color: #2d3748;
-            margin-bottom: 8px;
-        }
-
-        .empty-desc {
-            color: #718096;
-            font-size: 14px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px 24px;
-            display: none;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <title>출퇴근 관리</title>
 </head>
 <body>
-    <!-- 네비게이션 바 -->
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <span>🎯</span>
-            <span>StaffManager</span>
-        </div>
-        
-        <div class="navbar-menu">
-            <a href='/dashboard'>대시보드</a>
-            <a href='/employees'>직원 관리</a>
-            <a class='active' href='/attendances'>출퇴근 관리</a>
-            <a href='/calendar'>휴가 관리</a>
-            <a href='/salary'>급여 관리</a>
-            <a href='/settings'>설정</a>
-            <a href='/contracts'>계약 관리</a>
-        </div>
 
-        <div class="user-menu">
-            <button class="logout-btn" onclick="logout()">로그아웃</button>
-        </div>
-    </nav>
-
-    <div class="container">
-    <div class="header">
-        <h1>📊 출퇴근 관리</h1>
-        <p>직원들의 출퇴근 기록을 조회하고 관리합니다</p>
+<!-- 필터 섹션 -->
+<div class="filters">
+    <div class="filter-group">
+        <label>사업장</label>
+        <select id="businessFilter">
+            <option value="">전체 사업장</option>
+        </select>
     </div>
-
-    <div class="stats-grid" id="statsGrid">
-        <div class="stat-card">
-            <div class="stat-label">총 기록 수</div>
-            <div class="stat-value" id="totalRecords">0<span class="stat-unit">건</span></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">총 근무 시간</div>
-            <div class="stat-value" id="totalWorkHours">0<span class="stat-unit">시간</span></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">평균 근무 시간</div>
-            <div class="stat-value" id="averageWorkHours">0<span class="stat-unit">시간</span></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">지각 건수</div>
-            <div class="stat-value" id="totalLate">0<span class="stat-unit">건</span></div>
-        </div>
+    <div class="filter-group">
+        <label>부서</label>
+        <select id="department">
+            <option value="">전체 부서</option>
+        </select>
     </div>
+</div>
 
-    <div class="filters">
-        <div class="filter-row">
-            <div class="filter-group">
-                <label>시작 날짜</label>
-                <input type="date" id="startDate">
-            </div>
-            <div class="filter-group">
-                <label>종료 날짜</label>
-                <input type="date" id="endDate">
-            </div>
-            <div class="filter-group">
-                <label>부서</label>
-                <select id="department">
-                    <option value="">전체 부서</option>
-                </select>
-            </div>
-        </div>
-        <div class="filter-buttons">
-            <button class="btn btn-primary" onclick="loadAttendances()">조회</button>
-            <button class="btn btn-secondary" onclick="resetFilters()">초기화</button>
-        </div>
-    </div>
+<!-- 출퇴근 테이블 -->
+<table>
+    <thead>
+        <tr>
+            <th>날짜</th>
+            <th>직원명</th>
+            <th>사업장</th>
+            <th>부서</th>
+            <th>출근 시각</th>
+            <th>퇴근 시각</th>
+            <th>근무 시간</th>
+            <th>상태</th>
+        </tr>
+    </thead>
+    <tbody id="attendanceBody">
+    </tbody>
+</table>
 
-    <div class="table-container">
-        <div class="table-header">
-            <h2>출퇴근 기록</h2>
-        </div>
+<script>
+    let employeeMap = {};
 
-        <div class="loading active" id="loading">
-            <div class="spinner"></div>
-            <p style="color: #718096;">데이터를 불러오는 중...</p>
-        </div>
+    // 사업장 목록 로드
+    async function loadBusinesses() {
+        try {
+            const response = await fetch('/.netlify/functions/businesses-manage', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (result.success && result.data) {
+                const select = document.getElementById('businessFilter');
+                // 미배정 옵션 추가
+                const unassignedOpt = document.createElement('option');
+                unassignedOpt.value = 'unassigned';
+                unassignedOpt.textContent = '미배정';
+                select.appendChild(unassignedOpt);
+                // 사업장 목록 추가
+                result.data.forEach(biz => {
+                    const option = document.createElement('option');
+                    option.value = biz.id;
+                    option.textContent = biz.name + (biz.is_headquarters ? ' (본사)' : '');
+                    select.appendChild(option);
+                });
+                return result.data;
+            }
+        } catch (error) {
+            console.error('사업장 목록 로드 실패:', error);
+        }
+        return [];
+    }
 
-        <div class="empty-state" id="emptyState" style="display: none;">
-            <div class="empty-icon">📭</div>
-            <div class="empty-title">출퇴근 기록이 없습니다</div>
-            <div class="empty-desc">조회 조건을 변경해보세요</div>
-        </div>
+    // 부서 목록 및 직원 맵 로드
+    async function loadEmployeesAndDepartments(businesses) {
+        try {
+            const response = await fetch('/.netlify/functions/employees-list', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-        <table id="attendanceTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>날짜</th>
-                    <th>직원명</th>
-                    <th>부서</th>
-                    <th>출근 시각</th>
-                    <th>퇴근 시각</th>
-                    <th>근무 시간</th>
-                    <th>상태</th>
-                </tr>
-            </thead>
-            <tbody id="attendanceBody">
-            </tbody>
-        </table>
-    </div>
+            const result = await response.json();
 
-    <script>
-        // 인증 토큰 확인
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            alert('로그인이 필요합니다');
-            window.location.href = '/login.html';
+            if (result.success && result.data && result.data.employees) {
+                // 사업장 맵 생성 (id  name)
+                const bizMap = {};
+                (businesses || []).forEach(b => { bizMap[b.id] = b.name; });
+
+                // 직원 맵 생성 (id  employee info)
+                result.data.employees.forEach(emp => {
+                    employeeMap[emp.id] = {
+                        name: emp.name || '-',
+                        department: emp.department || '-',
+                        position: emp.position || '-',
+                        phone: emp.phone || '-',
+                        businessName: emp.business_id ? (bizMap[emp.business_id] || '-') : '미배정'
+                    };
+                });
+
+                // 부서 목록 로드
+                const departments = [...new Set(result.data.employees.map(e => e.department).filter(Boolean))];
+                const select = document.getElementById('department');
+                
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('직원 목록 로드 실패:', error);
+        }
+    }
+
+    function loadAttendances() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const department = document.getElementById('department').value;
+        const businessId = document.getElementById('businessFilter').value;
+
+        let url = `/.netlify/functions/attendances-list?startDate=${startDate}&endDate=${endDate}`;
+        if (businessId) {
+            url += `&businessId=${encodeURIComponent(businessId)}`;
+        }
+        if (department) {
+            url += `&department=${encodeURIComponent(department)}`;
         }
 
-        // 오늘 날짜로 초기화
-        const today = new Date().toISOString().split('T')[0];
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('attendanceBody');
+                tbody.innerHTML = '';
+                data.forEach(record => {
+                    const date = record.date || '-';
+                    const checkIn = record.check_in || '-';
+                    const checkOut = record.check_out || '-';
+                    const workHours = record.work_hours || '-';
+                    let badge = record.status || '-';
+
+                    const empInfo = employeeMap[record.employee?.id] || record.employee || {};
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${empInfo.name || '-'}</td>
+                            <td>${empInfo.businessName || '-'}</td>
+                            <td>${empInfo.department || '-'}</td>
+                            <td>${checkIn}</td>
+                            <td>${checkOut}</td>
+                            <td>${workHours}</td>
+                            <td>${badge}</td>
+                        </tr>
+                    `;
+                });
+            });
+    }
+
+    function resetFilters() {
         document.getElementById('startDate').value = weekAgo;
         document.getElementById('endDate').value = today;
+        document.getElementById('businessFilter').value = '';
+        document.getElementById('department').value = '';
+        loadAttendances();
+    }
 
-        // 필터 초기화
-        function resetFilters() {
-            document.getElementById('startDate').value = weekAgo;
-            document.getElementById('endDate').value = today;
-            document.getElementById('department').value = '';
-            loadAttendances();
-        }
+    // 페이지 로드 시 실행
+    loadBusinesses().then(businesses => loadEmployeesAndDepartments(businesses)).then(() => loadAttendances());
+</script>
 
-        // 출퇴근 기록 조회
-        async function loadAttendances() {
-            const loading = document.getElementById('loading');
-            const emptyState = document.getElementById('emptyState');
-            const table = document.getElementById('attendanceTable');
-            const tbody = document.getElementById('attendanceBody');
-
-            loading.classList.add('active');
-            emptyState.style.display = 'none';
-            table.style.display = 'none';
-
-            try {
-                const startDate = document.getElementById('startDate').value;
-                const endDate = document.getElementById('endDate').value;
-                const department = document.getElementById('department').value;
-
-                let url = `/.netlify/functions/attendances-list?startDate=${startDate}&endDate=${endDate}`;
-                if (department) {
-                    url += `&department=${encodeURIComponent(department)}`;
-                }
-
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const result = await response.json();
-
-                if (!result.success) {
-                    throw new Error(result.error);
-                }
-
-                const { attendances, stats } = result.data;
-
-                // 통계 업데이트
-                document.getElementById('totalRecords').innerHTML = `${stats.totalRecords}<span class="stat-unit">건</span>`;
-                document.getElementById('totalWorkHours').innerHTML = `${Math.round(stats.totalWorkHours)}<span class="stat-unit">시간</span>`;
-                document.getElementById('averageWorkHours').innerHTML = `${stats.averageWorkHours}<span class="stat-unit">시간</span>`;
-                document.getElementById('totalLate').innerHTML = `${stats.totalLateCount}<span class="stat-unit">건</span>`;
-
-                // 테이블 업데이트
-                if (attendances.length === 0) {
-                    emptyState.style.display = 'block';
-                } else {
-                    tbody.innerHTML = attendances.map(record => {
-                        const date = new Date(record.workDate).toLocaleDateString('ko-KR');
-                        const checkIn = record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-';
-                        const checkOut = record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-';
-                        const workHours = record.workHours ? `${record.workHours}시간` : '-';
-
-                        let badge = '';
-                        if (!record.checkInTime) {
-                            badge = '<span class="badge absent">결근</span>';
-                        } else if (record.lateMinutes > 0) {
-                            badge = `<span class="badge late">지각 ${record.lateMinutes}분</span>`;
-                        } else if (record.earlyLeaveMinutes > 0) {
-                            badge = `<span class="badge early-leave">조퇴 ${record.earlyLeaveMinutes}분</span>`;
-                        } else if (record.overtimeHours > 0) {
-                            badge = `<span class="badge overtime">초과 ${record.overtimeHours}시간</span>`;
-                        } else {
-                            badge = '<span class="badge normal">정상</span>';
-                        }
-
-                        return `
-                            <tr>
-                                <td>${date}</td>
-                                <td>${(employeeMap[record.employee?.id] || record.employee || {}).name || '-'}</td>
-                                <td>${(employeeMap[record.employee?.id] || record.employee || {}).department || '-'}</td>
-                                <td>${checkIn}</td>
-                                <td>${checkOut}</td>
-                                <td>${workHours}</td>
-                                <td>${badge}</td>
-                            </tr>
-                        `;
-                    }).join('');
-
-                    table.style.display = 'table';
-                }
-
-            } catch (error) {
-                console.error('조회 실패:', error);
-                alert('데이터 조회 중 오류가 발생했습니다: ' + error.message);
-            } finally {
-                loading.classList.remove('active');
-            }
-        }
-
-        // 직원 맵 (employees-list에서 가져온 정확한 데이터)
-        let employeeMap = {};
-
-        // 부서 목록 및 직원 맵 로드
-        async function loadEmployeesAndDepartments() {
-            try {
-                const response = await fetch('/.netlify/functions/employees-list', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const result = await response.json();
-
-                if (result.success && result.data && result.data.employees) {
-                    // 직원 맵 생성 (id → employee info)
-                    result.data.employees.forEach(emp => {
-                        employeeMap[emp.id] = {
-                            name: emp.name || '-',
-                            department: emp.department || '-',
-                            position: emp.position || '-',
-                            phone: emp.phone || '-'
-                        };
-                    });
-
-                    // 부서 목록 로드
-                    const departments = [...new Set(result.data.employees.map(e => e.department).filter(Boolean))];
-                    const select = document.getElementById('department');
-                    
-                    departments.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept;
-                        option.textContent = dept;
-                        select.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('직원 목록 로드 실패:', error);
-            }
-        }
-
-        // 페이지 로드 시 실행
-        loadEmployeesAndDepartments().then(() => loadAttendances());
-
-        // 로그아웃
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login.html';
-        }
-    </script>
-    </div> <!-- container 닫기 -->
 </body>
 </html>
