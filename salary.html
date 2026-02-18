@@ -1,30 +1,549 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salary Management</title>
+    <title>급여 관리 - StaffManager</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Noto Sans KR',sans-serif;background:#f5f7fa;min-height:100vh}
+        .navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+        .navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}
+        .navbar-menu{display:flex;gap:30px;align-items:center}
+        .navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}
+        .navbar-menu a:hover,.navbar-menu a.active{color:#667eea;font-weight:600}
+        .user-menu{display:flex;align-items:center;gap:15px}
+        .user-info{text-align:right}
+        .user-name{font-weight:600;color:#333;font-size:14px}
+        .company-name{font-size:12px;color:#999}
+        .logout-btn{padding:8px 20px;background:#f5f7fa;border:none;border-radius:6px;color:#666;cursor:pointer;font-weight:600;transition:all .3s}
+        .logout-btn:hover{background:#667eea;color:#fff}
+        .container{max-width:1000px;margin:0 auto;padding:30px 20px}
+        .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;flex-wrap:wrap;gap:15px}
+        .page-title{font-size:28px;color:#333}
+        .header-actions{display:flex;gap:10px}
+        .header-actions a{padding:10px 20px;background:#fff;color:#667eea;border:2px solid #667eea;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;transition:all .3s}
+        .header-actions a:hover{background:#667eea;color:#fff}
+        .filter-bar{background:#fff;border-radius:12px;padding:20px 25px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:25px;display:flex;gap:15px;align-items:flex-end;flex-wrap:wrap}
+        .filter-group{display:flex;flex-direction:column;gap:6px}
+        .filter-group label{font-size:13px;font-weight:600;color:#666}
+        .filter-group select,.filter-group input{padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;min-width:140px}
+        .btn-primary{padding:10px 28px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .3s;white-space:nowrap}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(102,126,234,.4)}
+        .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .loading{text-align:center;padding:60px;color:#999;display:none}
+        .spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 15px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .empty-state{text-align:center;padding:80px 20px;color:#999;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+        .empty-state .icon{font-size:60px;margin-bottom:15px}
+        .empty-state p{font-size:16px}
+        .warning-banner{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:15px 20px;margin-bottom:20px;display:none}
+        .warning-banner.show{display:block}
+        .warning-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:14px}
+        .warning-item.critical{color:#dc3545;font-weight:600}
+        .warning-item.warning{color:#856404}
+        .payslip{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden;display:none}
+        .payslip.show{display:block}
+        .payslip-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:25px 30px;display:flex;justify-content:space-between;align-items:center}
+        .payslip-title{font-size:22px;font-weight:700}
+        .payslip-period{font-size:14px;opacity:.9}
+        .payslip-actions{display:flex;gap:10px}
+        .payslip-actions button{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;border:none}
+        .btn-pdf{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.5)!important}
+        .btn-pdf:hover{background:rgba(255,255,255,.3)}
+        .payslip-body{padding:25px 30px}
+        .payslip-info{display:flex;justify-content:space-between;margin-bottom:25px;padding-bottom:20px;border-bottom:2px solid #f0f0f0}
+        .info-item{text-align:center}
+        .info-label{font-size:12px;color:#999;margin-bottom:4px}
+        .info-value{font-size:16px;font-weight:700;color:#333}
+        .payslip-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:25px}
+        .payslip-section{border:1px solid #e8e8e8;border-radius:10px;overflow:hidden}
+        .section-header{padding:12px 18px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+        .section-header.payment{background:#e8f5e9;color:#2e7d32}
+        .section-header.nontax{background:#e3f2fd;color:#1565c0}
+        .section-header.deduction{background:#fce4ec;color:#c62828}
+        .section-header.employer{background:#f3e5f5;color:#7b1fa2}
+        .section-body{padding:12px 18px}
+        .section-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:14px}
+        .section-row:last-child{border-bottom:none}
+        .section-row .label{color:#666}
+        .section-row .value{font-weight:600;color:#333}
+        .section-row.section-total{font-weight:700;font-size:15px;color:#333;padding:10px 0;border-top:2px solid #e0e0e0;margin-top:5px}
+        .net-payment-box{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:12px;padding:30px;text-align:center;color:#fff}
+        .net-label{font-size:14px;opacity:.9;margin-bottom:8px}
+        .net-amount{font-size:42px;font-weight:800}
+        .net-sub{font-size:13px;opacity:.7;margin-top:8px}
+        @media(max-width:768px){
+            .container{padding:20px 10px}
+            .filter-bar{flex-direction:column;align-items:stretch}
+            .payslip-grid{grid-template-columns:1fr}
+            .payslip-header{flex-direction:column;gap:15px;text-align:center}
+            .payslip-info{flex-wrap:wrap;gap:15px}
+            .navbar-menu{display:none}
+        }
+    </style>
 </head>
 <body>
-    
-    <input type="number" id="year" min="2020" max="2035">
-    <input type="number" id="month" min="1" max="12" value="1">
+    <nav class="navbar">
+        <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
+        <div class="navbar-menu">
+            <a href="/dashboard.html">대시보드</a>
+            <a href="/employees.html">직원 관리</a>
+            <a href="/attendances.html">출퇴근 관리</a>
+            <a href="/calendar.html">휴가 관리</a>
+            <a href="/salary.html" class="active">급여 관리</a>
+            <a href="/contracts.html">계약 관리</a>
+            <a href="/settings.html">설정</a>
+        </div>
+        <div class="user-menu">
+            <div class="user-info">
+                <div class="user-name" id="userName">사용자</div>
+                <div class="company-name" id="companyName">회사명</div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+        </div>
+    </nav>
 
-    <script>
-        window.addEventListener('DOMContentLoaded', async () => {
-            console.log('페이지 로드 완료');
-            const now = new Date();
-            document.getElementById('year').value = now.getFullYear();
-            document.getElementById('month').value = now.getMonth() + 1;
-            await loadEmployees();
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">💰 급여 관리</h1>
+            <div class="header-actions">
+                <a href="/payroll-register.html">📋 급여대장</a>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>직원 선택</label>
+                <select id="employeeSelect"><option value="">직원을 선택하세요</option></select>
+            </div>
+            <div class="filter-group">
+                <label>년도</label>
+                <select id="yearSelect"></select>
+            </div>
+            <div class="filter-group">
+                <label>월</label>
+                <select id="monthSelect">
+                    <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+                    <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+                    <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+                    <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+                </select>
+            </div>
+            <button class="btn-primary" id="calculateBtn" onclick="calculatePayroll()">급여 계산</button>
+        </div>
+
+        <div class="loading" id="loading"><div class="spinner"></div><p>급여를 계산하는 중...</p></div>
+
+        <div class="empty-state" id="emptyState">
+            <div class="icon">📊</div>
+            <p>직원을 선택하고 급여 계산을 실행하세요</p>
+        </div>
+
+        <div class="warning-banner" id="warningBanner"></div>
+
+        <div class="payslip" id="payslip">
+            <div class="payslip-header">
+                <div>
+                    <div class="payslip-title" id="slipName">급여명세서</div>
+                    <div class="payslip-period" id="slipPeriod"></div>
+                </div>
+                <div class="payslip-actions">
+                    <button class="btn-pdf" onclick="downloadPDF()">📥 PDF 다운로드</button>
+                </div>
+            </div>
+
+            <div class="payslip-body">
+                <div class="payslip-info">
+                    <div class="info-item"><div class="info-label">근무일수</div><div class="info-value" id="infoWorkDays">-</div></div>
+                    <div class="info-item"><div class="info-label">정규 시간</div><div class="info-value" id="infoRegularHours">-</div></div>
+                    <div class="info-item"><div class="info-label">연장 시간</div><div class="info-value" id="infoOvertimeHours">-</div></div>
+                    <div class="info-item"><div class="info-label">야간 시간</div><div class="info-value" id="infoNightHours">-</div></div>
+                    <div class="info-item"><div class="info-label">급여 유형</div><div class="info-value" id="infoSalaryType">-</div></div>
+                </div>
+
+                <div class="payslip-grid">
+                    <div class="payslip-section">
+                        <div class="section-header payment"><span>💵 지급항목</span><span id="totalPaymentBadge">-</span></div>
+                        <div class="section-body" id="paymentSection"></div>
+                    </div>
+                    <div class="payslip-section">
+                        <div class="section-header nontax"><span>🛡️ 비과세 수당</span><span id="totalNontaxBadge">-</span></div>
+                        <div class="section-body" id="nontaxSection"></div>
+                    </div>
+                    <div class="payslip-section">
+                        <div class="section-header deduction"><span>📉 공제항목</span><span id="totalDeductionBadge">-</span></div>
+                        <div class="section-body" id="deductionSection"></div>
+                    </div>
+                    <div class="payslip-section">
+                        <div class="section-header employer"><span>🏢 사업주 부담분</span><span id="totalEmployerBadge">-</span></div>
+                        <div class="section-body" id="employerSection"></div>
+                    </div>
+                </div>
+
+                <div class="net-payment-box">
+                    <div class="net-label">실수령액</div>
+                    <div class="net-amount" id="netPayment">₩0</div>
+                    <div class="net-sub" id="netSub">총 지급액 ₩0 - 총 공제액 ₩0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+var authToken = null, userInfo = null, employees = [], currentData = null, currentEmployee = null;
+
+window.addEventListener('DOMContentLoaded', async function() {
+    authToken = localStorage.getItem('authToken');
+    var ui = localStorage.getItem('userInfo');
+    if (!authToken || !ui) { window.location.href = '/login.html'; return; }
+    try { userInfo = JSON.parse(ui); } catch(e) { window.location.href = '/login.html'; return; }
+
+    document.getElementById('userName').textContent = userInfo.name || '사용자';
+    document.getElementById('companyName').textContent = userInfo.companyName || '';
+
+    var yearSel = document.getElementById('yearSelect');
+    var curYear = new Date().getFullYear();
+    for (var y = curYear + 1; y >= curYear - 3; y--) {
+        var opt = document.createElement('option');
+        opt.value = y; opt.textContent = y + '년';
+        if (y === curYear) opt.selected = true;
+        yearSel.appendChild(opt);
+    }
+    document.getElementById('monthSelect').value = new Date().getMonth() + 1;
+
+    await loadEmployees();
+});
+
+async function loadEmployees() {
+    try {
+        var r = await fetch('/.netlify/functions/employees-list', {
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' }
         });
-
-        async function loadEmployees() {
-            // Example function to simulate loading employees
-            console.log('Loading employees...');
+        var res = await r.json();
+        if (res.success && res.data && res.data.employees) {
+            employees = res.data.employees.filter(function(e) { return e.status === 'active'; });
+            var sel = document.getElementById('employeeSelect');
+            employees.forEach(function(emp) {
+                var opt = document.createElement('option');
+                opt.value = emp.id;
+                opt.textContent = emp.name + ' (' + (emp.position || '직원') + ')';
+                sel.appendChild(opt);
+            });
         }
-    </script>
+    } catch(e) { console.error('직원 로드 실패:', e); }
+}
 
+async function calculatePayroll() {
+    var empId = document.getElementById('employeeSelect').value;
+    if (!empId) { alert('직원을 선택해주세요.'); return; }
+
+    var year = parseInt(document.getElementById('yearSelect').value);
+    var month = parseInt(document.getElementById('monthSelect').value);
+    var btn = document.getElementById('calculateBtn');
+
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('payslip').classList.remove('show');
+    document.getElementById('warningBanner').classList.remove('show');
+    btn.disabled = true;
+
+    try {
+        var r = await fetch('/.netlify/functions/calculate-payroll', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employeeId: empId, year: year, month: month })
+        });
+        var res = await r.json();
+        if (res.success && res.data) {
+            currentData = res.data;
+            currentEmployee = employees.find(function(e) { return e.id === empId; });
+            displayPayslip(res.data, empId, year, month);
+        } else {
+            alert(res.error || '급여 계산 실패');
+            document.getElementById('emptyState').style.display = 'block';
+        }
+    } catch(e) {
+        console.error(e);
+        alert('급여 계산 중 오류 발생');
+        document.getElementById('emptyState').style.display = 'block';
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+        btn.disabled = false;
+    }
+}
+
+function displayPayslip(d, empId, year, month) {
+    var emp = employees.find(function(e) { return e.id === empId; });
+    var typeMap = { hourly: '시급제', monthly: '월급제', daily: '일급제' };
+
+    document.getElementById('slipName').textContent = (emp ? emp.name : '직원') + ' 급여명세서';
+    document.getElementById('slipPeriod').textContent = year + '년 ' + month + '월';
+
+    document.getElementById('infoWorkDays').textContent = (d.total_work_days || 0) + '일';
+    document.getElementById('infoRegularHours').textContent = (d.regular_work_hours || 0).toFixed(1) + 'h';
+    document.getElementById('infoOvertimeHours').textContent = (d.overtime_hours || 0).toFixed(1) + 'h';
+    document.getElementById('infoNightHours').textContent = (d.night_work_hours || 0).toFixed(1) + 'h';
+    document.getElementById('infoSalaryType').textContent = typeMap[d.salary_type] || d.salary_type || '-';
+
+    var payItems = [
+        { label: '기본급', value: d.basic_pay || 0 },
+        { label: '주휴수당', value: d.weekly_holiday_pay || 0 },
+        { label: '연장근로수당', value: d.overtime_pay || 0 },
+        { label: '야간근로수당', value: d.night_pay || 0 },
+        { label: '휴일근로수당', value: d.holiday_pay || 0 }
+    ].filter(function(i) { return i.value > 0; });
+    var totalPayment = d.total_payment || 0;
+    renderSection('paymentSection', payItems, totalPayment);
+    document.getElementById('totalPaymentBadge').textContent = fmt(totalPayment);
+
+    var nontaxItems = [
+        { label: '식대', value: d.meal_allowance || 0 },
+        { label: '차량유지비', value: d.car_allowance || 0 },
+        { label: '보육수당', value: d.childcare_allowance || 0 }
+    ].filter(function(i) { return i.value > 0; });
+    var totalNontax = d.non_taxable_amount || 0;
+    renderSection('nontaxSection', nontaxItems, totalNontax);
+    document.getElementById('totalNontaxBadge').textContent = fmt(totalNontax);
+    if (nontaxItems.length === 0) {
+        document.getElementById('nontaxSection').innerHTML = '<div style="padding:10px 0;color:#999;font-size:13px;">비과세 수당 없음</div>';
+    }
+
+    var dedItems = [
+        { label: '국민연금', value: d.national_pension || 0 },
+        { label: '건강보험', value: d.health_insurance || 0 },
+        { label: '장기요양보험', value: d.long_term_care || 0 },
+        { label: '고용보험', value: d.employment_insurance || 0 },
+        { label: '소득세', value: d.income_tax || 0 },
+        { label: '지방소득세', value: d.local_tax || 0 }
+    ].filter(function(i) { return i.value > 0; });
+    var totalDed = d.total_deductions || 0;
+    renderSection('deductionSection', dedItems, totalDed);
+    document.getElementById('totalDeductionBadge').textContent = '-' + fmt(totalDed);
+
+    var empItems = [
+        { label: '국민연금', value: d.employer_national_pension || 0 },
+        { label: '건강보험', value: d.employer_health_insurance || 0 },
+        { label: '장기요양보험', value: d.employer_long_term_care || 0 },
+        { label: '고용보험', value: d.employer_employment_insurance || 0 },
+        { label: '산재보험', value: d.employer_industrial_accident || 0 }
+    ].filter(function(i) { return i.value > 0; });
+    var totalEmp = empItems.reduce(function(s, i) { return s + i.value; }, 0);
+    renderSection('employerSection', empItems, totalEmp);
+    document.getElementById('totalEmployerBadge').textContent = fmt(totalEmp);
+    if (empItems.length === 0) {
+        document.getElementById('employerSection').innerHTML = '<div style="padding:10px 0;color:#999;font-size:13px;">사업주 부담분 없음</div>';
+    }
+
+    var net = d.net_payment || 0;
+    document.getElementById('netPayment').textContent = fmt(net);
+    document.getElementById('netSub').textContent = '총 지급액 ' + fmt(totalPayment) + ' - 총 공제액 ' + fmt(totalDed);
+
+    var warnings = d.warnings || [];
+    if (warnings.length > 0) {
+        var banner = document.getElementById('warningBanner');
+        banner.innerHTML = '<div style="font-weight:700;margin-bottom:8px">⚠️ 이상탐지 경고</div>' +
+            warnings.map(function(w) {
+                var cls = w.level === 'critical' ? 'critical' : 'warning';
+                var icon = w.level === 'critical' ? '🔴' : '🟡';
+                return '<div class="warning-item ' + cls + '">' + icon + ' ' + w.message + '</div>';
+            }).join('');
+        banner.classList.add('show');
+    }
+
+    document.getElementById('payslip').classList.add('show');
+}
+
+function renderSection(containerId, items, total) {
+    var html = items.map(function(i) {
+        return '<div class="section-row"><span class="label">' + i.label + '</span><span class="value">' + fmt(i.value) + '</span></div>';
+    }).join('');
+    html += '<div class="section-row section-total"><span class="label">합계</span><span class="value">' + fmt(total) + '</span></div>';
+    document.getElementById(containerId).innerHTML = html;
+}
+
+function fmt(n) {
+    return ' A5' + Math.round(n || 0).toLocaleString('ko-KR');
+}
+
+function downloadPDF() {
+    if (!currentData || !currentEmployee) { alert('급여 데이터가 없습니다.'); return; }
+    var d = currentData;
+    var emp = currentEmployee;
+    var year = document.getElementById('yearSelect').value;
+    var month = document.getElementById('monthSelect').value;
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    var pageW = 210, margin = 15, contentW = pageW - margin * 2;
+    var y = margin;
+
+    doc.setFillColor(102, 126, 234);
+    doc.rect(0, 0, pageW, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.text('PAYSLIP / ' + year + '.' + month, margin, 18);
+    doc.setFontSize(12);
+    doc.text((emp.name || 'Employee') + ' | ' + (emp.position || ''), margin, 30);
+    doc.text('StaffManager', pageW - margin, 30, { align: 'right' });
+
+    y = 50;
+    doc.setTextColor(0, 0, 0);
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('Work Summary', margin, y);
+    doc.setFont(undefined, 'normal');
+    y += 8;
+    var workInfo = [
+        ['Work Days', (d.total_work_days || 0) + ' days'],
+        ['Regular Hours', (d.regular_work_hours || 0).toFixed(1) + 'h'],
+        ['Overtime Hours', (d.overtime_hours || 0).toFixed(1) + 'h'],
+        ['Night Hours', (d.night_work_hours || 0).toFixed(1) + 'h']
+    ];
+    workInfo.forEach(function(row) {
+        doc.text(row[0], margin + 2, y);
+        doc.text(row[1], margin + contentW / 2, y, { align: 'right' });
+        y += 6;
+    });
+
+    y += 5;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Earnings (Payment)', margin, y);
+    doc.setFont(undefined, 'normal');
+    y += 7;
+    var payRows = [
+        ['Basic Pay', d.basic_pay],
+        ['Weekly Holiday Pay', d.weekly_holiday_pay],
+        ['Overtime Pay', d.overtime_pay],
+        ['Night Pay', d.night_pay],
+        ['Holiday Pay', d.holiday_pay]
+    ].filter(function(r) { return (r[1] || 0) > 0; });
+    payRows.forEach(function(row) {
+        doc.text(row[0], margin + 2, y);
+        doc.text(fmtNum(row[1]), pageW - margin, y, { align: 'right' });
+        y += 6;
+    });
+    doc.setFont(undefined, 'bold');
+    doc.text('Total Payment', margin + 2, y);
+    doc.text(fmtNum(d.total_payment), pageW - margin, y, { align: 'right' });
+    doc.setFont(undefined, 'normal');
+    y += 8;
+
+    if ((d.non_taxable_amount || 0) > 0) {
+        doc.setFont(undefined, 'bold');
+        doc.text('Non-Taxable Allowances', margin, y);
+        doc.setFont(undefined, 'normal');
+        y += 7;
+        [['Meal', d.meal_allowance], ['Vehicle', d.car_allowance], ['Childcare', d.childcare_allowance]]
+        .filter(function(r) { return (r[1] || 0) > 0; })
+        .forEach(function(row) {
+            doc.text(row[0], margin + 2, y);
+            doc.text(fmtNum(row[1]), pageW - margin, y, { align: 'right' });
+            y += 6;
+        });
+        doc.setFont(undefined, 'bold');
+        doc.text('Total Non-Taxable', margin + 2, y);
+        doc.text(fmtNum(d.non_taxable_amount), pageW - margin, y, { align: 'right' });
+        doc.setFont(undefined, 'normal');
+        y += 8;
+    }
+
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    doc.setFont(undefined, 'bold');
+    doc.text('Deductions', margin, y);
+    doc.setFont(undefined, 'normal');
+    y += 7;
+    [['National Pension', d.national_pension], ['Health Insurance', d.health_insurance],
+     ['Long-term Care', d.long_term_care], ['Employment Insurance', d.employment_insurance],
+     ['Income Tax', d.income_tax], ['Local Tax', d.local_tax]]
+    .filter(function(r) { return (r[1] || 0) > 0; })
+    .forEach(function(row) {
+        doc.text(row[0], margin + 2, y);
+        doc.text('-' + fmtNum(row[1]), pageW - margin, y, { align: 'right' });
+        y += 6;
+    });
+    doc.setFont(undefined, 'bold');
+    doc.text('Total Deductions', margin + 2, y);
+    doc.text('-' + fmtNum(d.total_deductions), pageW - margin, y, { align: 'right' });
+    doc.setFont(undefined, 'normal');
+    y += 8;
+
+    var empTotal = (d.employer_national_pension || 0) + (d.employer_health_insurance || 0) +
+                   (d.employer_long_term_care || 0) + (d.employer_employment_insurance || 0) +
+                   (d.employer_industrial_accident || 0);
+    if (empTotal > 0) {
+        doc.line(margin, y, pageW - margin, y);
+        y += 8;
+        doc.setFont(undefined, 'bold');
+        doc.text('Employer Contributions', margin, y);
+        doc.setFont(undefined, 'normal');
+        y += 7;
+        [['National Pension', d.employer_national_pension], ['Health Insurance', d.employer_health_insurance],
+         ['Long-term Care', d.employer_long_term_care], ['Employment Insurance', d.employer_employment_insurance],
+         ['Industrial Accident', d.employer_industrial_accident]]
+        .filter(function(r) { return (r[1] || 0) > 0; })
+        .forEach(function(row) {
+            doc.text(row[0], margin + 2, y);
+            doc.text(fmtNum(row[1]), pageW - margin, y, { align: 'right' });
+            y += 6;
+        });
+        doc.setFont(undefined, 'bold');
+        doc.text('Total Employer Cost', margin + 2, y);
+        doc.text(fmtNum(empTotal), pageW - margin, y, { align: 'right' });
+        doc.setFont(undefined, 'normal');
+        y += 8;
+    }
+
+    y += 5;
+    doc.setFillColor(102, 126, 234);
+    doc.roundedRect(margin, y, contentW, 20, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('NET PAYMENT', margin + 10, y + 13);
+    doc.text(fmtNum(d.net_payment), pageW - margin - 10, y + 13, { align: 'right' });
+    y += 28;
+
+    var warnings = d.warnings || [];
+    if (warnings.length > 0) {
+        doc.setTextColor(200, 0, 0);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('WARNINGS', margin, y);
+        doc.setFont(undefined, 'normal');
+        y += 6;
+        warnings.forEach(function(w) {
+            doc.text('- ' + w.message, margin + 2, y);
+            y += 5;
+        });
+    }
+
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(8);
+    doc.text('Generated by StaffManager | ' + new Date().toISOString().split('T')[0], pageW / 2, 285, { align: 'center' });
+
+    doc.save((emp.name || 'payslip') + '_' + year + '_' + month + '.pdf');
+}
+
+function fmtNum(n) {
+    return 'KRW ' + Math.round(n || 0).toLocaleString('ko-KR');
+}
+
+function handleLogout() {
+    if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+    }
+}
+</script>
 </body>
 </html>
