@@ -1,62 +1,47 @@
-const { verifyToken, getCorsHeaders } = require('./lib/auth');
 // netlify/functions/calculate-payroll.js
-// 급여 계산 API
-// ✅ 보안 패치: Bearer 토큰 인증 추가
+// Phase 7: 급여엔진 v2 - 룰 엔진 기반 전면 리팩토링
+// 해결된 문제: 4대보험 2026요율, 국민연금 상하한, NTS 간이세액, 주휴수당 15시간,
+//             비과세 수당 분리, 사업주 부담분, 연령 면제, 이상탐지 경고
 
+const { verifyToken } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
+const { loadAllPayrollRules, getIncomeTax, calculateAge } = require('./lib/payroll-rules');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// [보안패치] getUserFromToken → verifyToken으로 대체됨
+const headers = {
+  'Access-Control-Allow-Origin': 'https://staffmanager.io',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json',
+};
 
-exports.handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': 'https://staffmanager.io',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json',
-  };
+function respond(statusCode, body) {
+  return { statusCode, headers, body: JSON.stringify(body) };
+}
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+function floor10(n) { return Math.floor(n / 10) * 10; } // 10원 미만 절사
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ success: false, error: 'Method Not Allowed' })
-    };
-  }
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod !== 'POST') return respond(405, { success: false, error: 'Method Not Allowed' });
 
   try {
-    // ✅ 인증 확인
+    // ── 인증 ──
     const authHeader = event.headers.authorization || event.headers.Authorization;
-    let userInfo;
-    try {
-      userInfo = verifyToken(authHeader);
-    } catch (error) {
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ success: false, error: '인증에 실패했습니다. 다시 로그인해주세요.' }),
-      };
+    try { verifyToken(authHeader); } catch {
+      return respond(401, { success: false, error: '인증에 실패했습니다. 다시 로그인해주세요.' });
     }
 
     const { employeeId, year, month, recalculate } = JSON.parse(event.body || '{}');
-
     if (!employeeId || !year || !month) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ success: false, error: '필수 정보가 누락되었습니다. (employeeId, year, month)' })
-      };
+      return respond(400, { success: false, error: '필수 정보가 누락되었습니다. (employeeId, year, month)' });
     }
 
-    // 이미 계산된 급여가 있는지 확인
+    // ── 캐시 확인 ──
     if (!recalculate) {
       const { data: existing } = await supabase
         .from('payrolls')
@@ -65,32 +50,24 @@ exports.handler = async (event, context) => {
         .eq('year', year)
         .eq('month', month)
         .single();
-
-      if (existing) {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ success: true, data: existing, cached: true })
-        };
-      }
+      if (existing) return respond(200, { success: true, data: existing, cached: true });
     }
 
-    // 직원 정보 조회
+    // ── 직원 정보 조회 ──
     const { data: employee, error: empError } = await supabase
       .from('employees')
       .select('*, company_id')
       .eq('id', employeeId)
       .single();
-
     if (empError || !employee) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ success: false, error: '직원 정보를 찾을 수 없습니다.' })
-      };
+      return respond(404, { success: false, error: '직원 정보를 찾을 수 없습니다.' });
     }
 
-    // 해당 월의 출퇴근 기록 조회
+    // ── 룰 엔진 로드 ──
+    const payDate = new Date(year, month - 1, 15); // 해당 월 중간일 기준
+    const rules = await loadAllPayrollRules(supabase, payDate);
+
+    // ── 출퇴근 기록 조회 ──
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -101,30 +78,15 @@ exports.handler = async (event, context) => {
       .gte('check_in_time', startDate.toISOString())
       .lte('check_in_time', endDate.toISOString())
       .eq('status', 'completed');
+    if (attError) return respond(500, { success: false, error: '출퇴근 기록 조회 실패' });
 
-    if (attError) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ success: false, error: '출퇴근 기록 조회 실패' })
-      };
-    }
-
-    // 최저시급 조회
-    const { data: minWage } = await supabase
-      .from('minimum_wages')
-      .select('*')
-      .eq('year', year)
-      .single();
-
-    const minimumHourlyWage = minWage?.hourly_wage || 10030;
-
-    // 근무시간 집계
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 1: 근태 데이터 집계
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const totalWorkDays = attendances?.length || 0;
     const totalWorkMinutes = attendances?.reduce((sum, att) => sum + (att.work_duration_minutes || 0), 0) || 0;
     const totalWorkHours = totalWorkMinutes / 60;
 
-    // 연장/야간/휴일 근무시간 계산
     let overtimeHours = 0;
     let nightWorkHours = 0;
     let holidayWorkHours = 0;
@@ -134,53 +96,45 @@ exports.handler = async (event, context) => {
       const checkOut = new Date(att.check_out_time);
       const workHours = (att.work_duration_minutes || 0) / 60;
 
-      // 하루 8시간 초과 시 연장근무
-      if (workHours > 8) {
-        overtimeHours += workHours - 8;
-      }
+      // 하루 8시간 초과 → 연장근무
+      if (workHours > 8) overtimeHours += workHours - 8;
 
-      // 야간근무 시간 계산 (22:00 ~ 06:00)
+      // 야간근무 (22:00 ~ 06:00)
       const nightStart = new Date(checkIn);
       nightStart.setHours(22, 0, 0, 0);
       const nightEnd = new Date(checkIn);
       nightEnd.setDate(nightEnd.getDate() + 1);
       nightEnd.setHours(6, 0, 0, 0);
-
       if (checkOut > nightStart && checkIn < nightEnd) {
-        const actualNightStart = checkIn > nightStart ? checkIn : nightStart;
-        const actualNightEnd = checkOut < nightEnd ? checkOut : nightEnd;
-        const nightMinutes = (actualNightEnd.getTime() - actualNightStart.getTime()) / (1000 * 60);
-        if (nightMinutes > 0) {
-          nightWorkHours += nightMinutes / 60;
-        }
+        const ns = checkIn > nightStart ? checkIn : nightStart;
+        const ne = checkOut < nightEnd ? checkOut : nightEnd;
+        const nightMin = (ne.getTime() - ns.getTime()) / (1000 * 60);
+        if (nightMin > 0) nightWorkHours += nightMin / 60;
       }
 
       // 휴일근무 (일요일)
-      if (checkIn.getDay() === 0) {
-        holidayWorkHours += workHours;
-      }
+      if (checkIn.getDay() === 0) holidayWorkHours += workHours;
     });
 
     const regularWorkHours = totalWorkHours - overtimeHours;
 
-    // 급여 유형별 계산
-    const salaryType = employee.salary_type || 'hourly';
-    const baseSalary = parseFloat(employee.base_salary || '0');
-    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 2: 총 지급액 계산
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const salaryType = employee.salary_type || employee.pay_type || 'hourly';
+    const baseSalary = parseFloat(employee.base_salary || employee.hourly_rate || '0');
+
+    // 시급 환산
     let effectiveHourlyRate = baseSalary;
-    if (salaryType === 'monthly' || salaryType === 'annual') {
-      const monthlyBase = salaryType === 'annual' ? baseSalary / 12 : baseSalary;
-      effectiveHourlyRate = monthlyBase / 209;
+    if (salaryType === 'monthly') {
+      effectiveHourlyRate = baseSalary / 209;
+    } else if (salaryType === 'annual') {
+      effectiveHourlyRate = baseSalary / 12 / 209;
     } else if (salaryType === 'daily') {
       effectiveHourlyRate = baseSalary / 8;
     }
 
-    // 최저시급 검증
-    if (effectiveHourlyRate < minimumHourlyWage && salaryType === 'hourly') {
-      effectiveHourlyRate = minimumHourlyWage;
-    }
-
-    // 기본급 계산
+    // 기본급
     let basicPay = 0;
     if (salaryType === 'hourly') {
       basicPay = regularWorkHours * effectiveHourlyRate;
@@ -194,86 +148,157 @@ exports.handler = async (event, context) => {
       basicPay = baseSalary;
     }
 
-    // 주휴수당 계산 (시급제, 일당제만 해당)
+    // [FIX #2] 주휴수당: 주 15시간 이상 근무 시에만 지급
     let weeklyHolidayPay = 0;
     if (salaryType === 'hourly' || salaryType === 'daily') {
-      const weeksInMonth = 4.345;
-      const avgDailyHours = totalWorkHours / totalWorkDays || 8;
-      weeklyHolidayPay = avgDailyHours * effectiveHourlyRate * weeksInMonth;
+      const avgWeeklyHours = totalWorkDays > 0 ? (totalWorkHours / totalWorkDays) * 5 : 0;
+      if (avgWeeklyHours >= rules.weeklyHoliday.minWeeklyHours) {
+        const weeksInMonth = 4.345;
+        const avgDailyHours = totalWorkHours / Math.max(totalWorkDays, 1);
+        weeklyHolidayPay = Math.floor(avgDailyHours * effectiveHourlyRate * weeksInMonth);
+      }
     }
 
-    // 연장근무 수당 (1.5배)
-    const overtimePay = overtimeHours * effectiveHourlyRate * 1.5;
+    // 수당 계산 (룰 엔진 가산율 적용)
+    const overtimePay = Math.floor(overtimeHours * effectiveHourlyRate * rules.overtime.extendedRate);
+    const nightWorkPay = Math.floor(nightWorkHours * effectiveHourlyRate * rules.overtime.nightRate);
+    const holidayWorkPay = Math.floor(holidayWorkHours * effectiveHourlyRate * rules.overtime.holidayRate);
 
-    // 야간근무 수당 (0.5배 가산)
-    const nightWorkPay = nightWorkHours * effectiveHourlyRate * 0.5;
+    // [FIX #5] 비과세 수당 분리
+    const mealAllowance = Math.min(employee.meal_allowance || 0, rules.taxExemption.mealAllowance);
+    const carAllowance = Math.min(employee.car_allowance || 0, rules.taxExemption.carAllowance);
+    const childcareAllowance = Math.min(employee.childcare_allowance || 0, rules.taxExemption.childcareAllowance);
+    const nonTaxableAmount = mealAllowance + carAllowance + childcareAllowance;
 
-    // 휴일근무 수당 (1.5배)
-    const holidayWorkPay = holidayWorkHours * effectiveHourlyRate * 1.5;
+    // 총 지급액 (과세 + 비과세)
+    const grossPayment = Math.floor(basicPay) + weeklyHolidayPay + overtimePay + nightWorkPay + holidayWorkPay + nonTaxableAmount;
+    // 과세 소득 (비과세 차감)
+    const taxableIncome = grossPayment - nonTaxableAmount;
 
-    // 총 지급액
-    const totalPayment = basicPay + weeklyHolidayPay + overtimePay + nightWorkPay + holidayWorkPay;
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 3: 공제액 계산 (4대보험 + 소득세)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const employeeAge = calculateAge(employee.birth_date, payDate);
 
-    // 4대보험 및 세금 계산
-    const nationalPension = Math.min(totalPayment, 5900000) * 0.045;
-    const healthInsurance = Math.min(totalPayment, 85500000) * 0.03545;
-    const longTermCare = healthInsurance * 0.1295;
-    const employmentInsurance = totalPayment * 0.009;
-
-    // 소득세 간이세액표 적용
-    let incomeTax = 0;
-    const taxableIncome = totalPayment;
-    if (taxableIncome <= 1060000) {
-      incomeTax = 0;
-    } else if (taxableIncome <= 2100000) {
-      incomeTax = (taxableIncome - 1060000) * 0.06;
-    } else if (taxableIncome <= 3380000) {
-      incomeTax = 62400 + (taxableIncome - 2100000) * 0.15;
-    } else if (taxableIncome <= 4740000) {
-      incomeTax = 254400 + (taxableIncome - 3380000) * 0.24;
-    } else if (taxableIncome <= 8330000) {
-      incomeTax = 580800 + (taxableIncome - 4740000) * 0.35;
-    } else if (taxableIncome <= 16670000) {
-      incomeTax = 1837350 + (taxableIncome - 8330000) * 0.38;
-    } else {
-      incomeTax = 5006270 + (taxableIncome - 16670000) * 0.40;
+    // [FIX #1, #4] 4대보험 - 룰 엔진 기반, 2026년 요율
+    // ── 국민연금 (기준소득월액 상하한 적용, 60세 이상 면제) ──
+    let nationalPension = 0;
+    let employerNationalPension = 0;
+    if (employeeAge < rules.nationalPension.exemptionAge) {
+      const pensionBase = Math.min(Math.max(taxableIncome, rules.nationalPension.lowerLimit), rules.nationalPension.upperLimit);
+      nationalPension = floor10(pensionBase * rules.nationalPension.employeeRate);
+      employerNationalPension = floor10(pensionBase * rules.nationalPension.employerRate);
     }
 
-    const localIncomeTax = incomeTax * 0.1;
+    // ── 건강보험 ──
+    const healthInsurance = floor10(taxableIncome * rules.healthInsurance.employeeRate);
+    const employerHealthInsurance = floor10(taxableIncome * rules.healthInsurance.employerRate);
 
+    // ── 장기요양보험 (건보료 기준) ──
+    const longTermCare = floor10(healthInsurance * rules.longTermCare.rate);
+    const employerLongTermCare = floor10(employerHealthInsurance * rules.longTermCare.rate);
+
+    // ── 고용보험 (65세 이상 미적용) ──
+    let employmentInsurance = 0;
+    let employerEmploymentInsurance = 0;
+    if (employeeAge < rules.employmentInsurance.exemptionAge) {
+      employmentInsurance = floor10(taxableIncome * rules.employmentInsurance.employeeRate);
+      employerEmploymentInsurance = floor10(taxableIncome * rules.employmentInsurance.employerRate);
+    }
+
+    // [FIX #3] 소득세 - NTS 간이세액표 DB 조회 (폴백 내장)
+    const incomeTax = await getIncomeTax(supabase, year, taxableIncome, employee.dependents || 1);
+    const localIncomeTax = floor10(incomeTax * rules.incomeTax.localTaxRate);
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 4: 실수령액 확정
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const totalDeductions = nationalPension + healthInsurance + longTermCare + employmentInsurance + incomeTax + localIncomeTax;
-    const netPayment = totalPayment - totalDeductions;
+    const netPayment = grossPayment - totalDeductions;
 
-    // payrolls 테이블에 저장
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 5: 이상탐지 경고
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const warnings = [];
+
+    // 최저임금 위반
+    if (effectiveHourlyRate < rules.minimumWage.hourly) {
+      warnings.push({ type: 'MIN_WAGE', severity: 'critical', message: `최저임금 미달 (시급 ${Math.floor(effectiveHourlyRate).toLocaleString()}원 < ${rules.minimumWage.hourly.toLocaleString()}원)` });
+    }
+
+    // 주 52시간 초과 (월 환산)
+    const avgWeeklyHoursAll = totalWorkDays > 0 ? (totalWorkHours / totalWorkDays) * 5 : 0;
+    if (avgWeeklyHoursAll > 52) {
+      warnings.push({ type: 'OVERTIME_LIMIT', severity: 'critical', message: `주 52시간 초과 (주 평균 ${avgWeeklyHoursAll.toFixed(1)}시간)` });
+    }
+
+    // 전월 대비 급여 급변 (±30%)
+    const { data: prevPayroll } = await supabase
+      .from('payrolls')
+      .select('total_payment')
+      .eq('employee_id', employeeId)
+      .eq('year', month === 1 ? year - 1 : year)
+      .eq('month', month === 1 ? 12 : month - 1)
+      .single();
+
+    if (prevPayroll?.total_payment > 0) {
+      const changeRate = Math.abs(grossPayment - prevPayroll.total_payment) / prevPayroll.total_payment;
+      if (changeRate > 0.3) {
+        warnings.push({ type: 'PAY_CHANGE', severity: 'warning', message: `전월 대비 ${(changeRate * 100).toFixed(0)}% 변동` });
+      }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 6: DB 저장
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const payrollData = {
       employee_id: employeeId,
       company_id: employee.company_id,
       year,
       month,
+      // 근태
       total_work_days: totalWorkDays,
       total_work_hours: parseFloat(totalWorkHours.toFixed(2)),
       regular_work_hours: parseFloat(regularWorkHours.toFixed(2)),
       overtime_hours: parseFloat(overtimeHours.toFixed(2)),
       night_work_hours: parseFloat(nightWorkHours.toFixed(2)),
       holiday_work_hours: parseFloat(holidayWorkHours.toFixed(2)),
+      // 급여 기본
       salary_type: salaryType,
       base_salary: baseSalary,
-      basic_pay: parseFloat(basicPay.toFixed(2)),
-      weekly_holiday_pay: parseFloat(weeklyHolidayPay.toFixed(2)),
-      overtime_pay: parseFloat(overtimePay.toFixed(2)),
-      night_work_pay: parseFloat(nightWorkPay.toFixed(2)),
-      holiday_work_pay: parseFloat(holidayWorkPay.toFixed(2)),
+      basic_pay: Math.floor(basicPay),
+      weekly_holiday_pay: weeklyHolidayPay,
+      overtime_pay: overtimePay,
+      night_work_pay: nightWorkPay,
+      holiday_work_pay: holidayWorkPay,
       other_allowances: 0,
-      national_pension: parseFloat(nationalPension.toFixed(2)),
-      health_insurance: parseFloat(healthInsurance.toFixed(2)),
-      long_term_care: parseFloat(longTermCare.toFixed(2)),
-      employment_insurance: parseFloat(employmentInsurance.toFixed(2)),
-      income_tax: parseFloat(incomeTax.toFixed(2)),
-      local_income_tax: parseFloat(localIncomeTax.toFixed(2)),
+      // 비과세
+      meal_allowance: mealAllowance,
+      car_allowance: carAllowance,
+      childcare_allowance: childcareAllowance,
+      non_taxable_amount: nonTaxableAmount,
+      taxable_income: taxableIncome,
+      // 근로자 공제
+      national_pension: nationalPension,
+      health_insurance: healthInsurance,
+      long_term_care: longTermCare,
+      employment_insurance: employmentInsurance,
+      income_tax: incomeTax,
+      local_income_tax: localIncomeTax,
       other_deductions: 0,
-      total_payment: parseFloat(totalPayment.toFixed(2)),
-      total_deductions: parseFloat(totalDeductions.toFixed(2)),
-      net_payment: parseFloat(netPayment.toFixed(2)),
+      // 사업주 부담
+      employer_national_pension: employerNationalPension,
+      employer_health_insurance: employerHealthInsurance,
+      employer_long_term_care: employerLongTermCare,
+      employer_employment_insurance: employerEmploymentInsurance,
+      employer_industrial_accident: 0, // 업종별 별도 설정 필요
+      // 합계
+      total_payment: grossPayment,
+      total_deductions: totalDeductions,
+      net_payment: netPayment,
+      // 메타
+      dependents: employee.dependents || 1,
+      warnings: warnings.length > 0 ? warnings : [],
       status: 'calculated'
     };
 
@@ -285,25 +310,13 @@ exports.handler = async (event, context) => {
 
     if (payrollError) {
       console.error('급여 저장 오류:', payrollError);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ success: false, error: '급여 저장 실패', details: payrollError })
-      };
+      return respond(500, { success: false, error: '급여 저장 실패', details: payrollError.message });
     }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ success: true, data: payroll, cached: false })
-    };
+    return respond(200, { success: true, data: payroll, cached: false, warnings });
 
   } catch (error) {
     console.error('급여 계산 오류:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ success: false, error: '서버 오류가 발생했습니다.' })
-    };
+    return respond(500, { success: false, error: '서버 오류가 발생했습니다.' });
   }
 };
