@@ -1,25 +1,15 @@
 const { verifyToken, getCorsHeaders } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
 
-// ====================================
-// Supabase 클라이언트 생성
-// ====================================
 function getSupabaseClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('Supabase 환경 변수가 설정되지 않았습니다');
   }
-
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// [보안패치] getUserFromToken → verifyToken으로 대체됨
-
-// ====================================
-// 메인 핸들러
-// ====================================
 exports.handler = async (event, context) => {
   console.log('=== attendances-list 함수 시작 ===');
 
@@ -43,25 +33,22 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // 1. 인증 확인
     console.log('1단계: 인증 확인');
     const authHeader = event.headers.authorization || event.headers.Authorization;
     const userInfo = verifyToken(authHeader);
     console.log('사용자 정보:', userInfo);
 
-    // 2. URL 파라미터 파싱
     const params = event.queryStringParameters || {};
-    const startDate = params.startDate; // YYYY-MM-DD
-    const endDate = params.endDate; // YYYY-MM-DD
-    const employeeId = params.employeeId; // 특정 직원만 조회
-    const department = params.department; // 특정 부서만 조회
+    const startDate = params.startDate;
+    const endDate = params.endDate;
+    const employeeId = params.employeeId;
+    const department = params.department;
+    const businessId = params.businessId;
 
-    console.log('조회 파라미터:', { startDate, endDate, employeeId, department });
+    console.log('조회 파라미터:', { startDate, endDate, employeeId, department, businessId });
 
-    // 3. Supabase 클라이언트 생성
     const supabase = getSupabaseClient();
 
-    // 4. 출퇴근 기록 조회 쿼리 구성
     let query = supabase
       .from('attendances')
       .select(`
@@ -81,28 +68,31 @@ exports.handler = async (event, context) => {
           name,
           department,
           position,
-          phone
+          phone,
+          business_id
         )
       `)
       .eq('company_id', userInfo.companyId)
       .order('check_in_time', { ascending: false });
 
-    // 날짜 범위 필터
     if (startDate) {
       query = query.gte('check_in_time', startDate + 'T00:00:00');
     }
     if (endDate) {
       query = query.lte('check_in_time', endDate + 'T23:59:59');
     }
-
-    // 특정 직원 필터
     if (employeeId) {
       query = query.eq('employee_id', employeeId);
     }
-
-    // 특정 부서 필터
     if (department) {
       query = query.eq('employees.department', department);
+    }
+    if (businessId) {
+      if (businessId === 'unassigned') {
+        query = query.is('employees.business_id', null);
+      } else {
+        query = query.eq('employees.business_id', businessId);
+      }
     }
 
     const { data: attendances, error: attendancesError } = await query;
@@ -121,11 +111,8 @@ exports.handler = async (event, context) => {
 
     console.log('조회된 기록 수:', attendances?.length || 0);
 
-    // 5. 데이터 변환 (직원 정보와 통합)
     const formattedData = (attendances || []).map(record => {
       const employee = Array.isArray(record.employees) ? record.employees[0] : record.employees;
-
-      // work_date 계산 (check_in_time에서 날짜 부분 추출)
       const workDate = record.check_in_time ? record.check_in_time.split('T')[0] : null;
 
       return {
@@ -149,7 +136,6 @@ exports.handler = async (event, context) => {
       };
     });
 
-    // 6. 통계 계산
     const stats = {
       totalRecords: formattedData.length,
       totalWorkHours: formattedData.reduce((sum, r) => sum + (r.workHours || 0), 0),
@@ -175,7 +161,8 @@ exports.handler = async (event, context) => {
             startDate,
             endDate,
             employeeId,
-            department
+            department,
+            businessId
           }
         }
       })
