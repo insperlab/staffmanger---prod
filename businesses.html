@@ -75,6 +75,10 @@
         .assign-name{font-weight:600;color:#333}
         .assign-current{font-size:12px;color:#999}
         .assign-select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px}
+        .toast{position:fixed;top:20px;right:20px;padding:14px 24px;border-radius:8px;color:#fff;font-weight:600;font-size:14px;z-index:999;opacity:0;transition:opacity .3s;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+        .toast.success{background:#27ae60}
+        .toast.error{background:#e74c3c}
+        .toast.show{opacity:1}
         @media(max-width:768px){.navbar-menu{display:none}.business-grid{grid-template-columns:1fr}.stats-bar{grid-template-columns:1fr 1fr}}
     </style>
 </head>
@@ -121,6 +125,7 @@
             <p style="margin-top:8px;font-size:14px;color:#bbb">사업장을 추가하여 직원을 지점별로 관리하세요</p>
         </div>
     </div>
+    <!-- Business Add/Edit Modal -->
     <div class="modal-overlay" id="businessModal">
         <div class="modal">
             <div class="modal-header">
@@ -134,6 +139,12 @@
                 <div class="form-group"><label>주소</label><input type="text" id="bizAddress" placeholder="사업장 주소"></div>
                 <div class="form-group"><label>전화번호</label><input type="text" id="bizPhone" placeholder="02-0000-0000"></div>
                 <div class="form-group"><label>현장 관리자</label><input type="text" id="bizManager" placeholder="관리자명"></div>
+                <div class="form-group"><label>상태</label>
+                    <select id="bizStatus">
+                        <option value="active">운영중</option>
+                        <option value="inactive">휴업</option>
+                    </select>
+                </div>
                 <div class="form-group"><div class="checkbox-group"><input type="checkbox" id="bizHQ"><label for="bizHQ" style="margin-bottom:0">본사로 설정</label></div></div>
             </div>
             <div class="modal-footer">
@@ -142,6 +153,7 @@
             </div>
         </div>
     </div>
+    <!-- Employee Assign Modal -->
     <div class="modal-overlay" id="assignModal">
         <div class="modal" style="max-width:600px">
             <div class="modal-header">
@@ -155,85 +167,243 @@
             </div>
         </div>
     </div>
+    <div class="toast" id="toast"></div>
 <script>
-var authToken=null,userInfo=null,businesses=[],employees=[];
-window.addEventListener('DOMContentLoaded',async function(){
-    authToken=localStorage.getItem('authToken');
-    var ui=localStorage.getItem('userInfo');
-    if(!authToken||!ui){window.location.href='/login.html';return;}
-    try{userInfo=JSON.parse(ui);}catch(e){window.location.href='/login.html';return;}
-    document.getElementById('userName').textContent=userInfo.name||'사용자';
-    document.getElementById('companyName').textContent=userInfo.companyName||'';
-    await Promise.all([loadBusinesses(),loadEmployees()]);
+var authToken = null, userInfo = null, businesses = [], employees = [];
+
+window.addEventListener('DOMContentLoaded', async function() {
+    authToken = localStorage.getItem('authToken');
+    var ui = localStorage.getItem('userInfo');
+    if (!authToken || !ui) { window.location.href = '/login.html'; return; }
+    try { userInfo = JSON.parse(ui); } catch(e) { window.location.href = '/login.html'; return; }
+    document.getElementById('userName').textContent = userInfo.name || '사용자';
+    document.getElementById('companyName').textContent = userInfo.companyName || '';
+    await Promise.all([loadBusinesses(), loadEmployees()]);
 });
-async function loadBusinesses(){
-    try{var r=await fetch('/.netlify/functions/businesses-manage',{headers:{'Authorization':'Bearer '+authToken}});
-    var res=await r.json();if(res.success){businesses=res.data.businesses||[];renderBusinesses(res.data);}}catch(e){console.error('사업장 로드 실패:',e);}
+
+function showToast(msg, type) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (type || 'success') + ' show';
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
-async function loadEmployees(){
-    try{var r=await fetch('/.netlify/functions/employees-list',{headers:{'Authorization':'Bearer '+authToken}});
-    var res=await r.json();if(res.success&&res.data&&res.data.employees){employees=res.data.employees.filter(function(e){return e.status==='active';});}}catch(e){console.error('직원 로드 실패:',e);}
+
+async function loadBusinesses() {
+    try {
+        var r = await fetch('/.netlify/functions/businesses-manage', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        var res = await r.json();
+        if (res.success) {
+            businesses = res.data.businesses || [];
+            renderBusinesses(res.data);
+        }
+    } catch(e) { console.error('사업장 로드 실패:', e); }
 }
-function renderBusinesses(data){
-    var grid=document.getElementById('businessGrid');var empty=document.getElementById('emptyState');var banner=document.getElementById('unassignedBanner');
-    var totalEmp=businesses.reduce(function(s,b){return s+(b.employee_count||0);},0);
-    document.getElementById('statTotal').textContent=businesses.length;
-    document.getElementById('statActive').textContent=businesses.filter(function(b){return b.status==='active';}).length;
-    document.getElementById('statEmployees').textContent=totalEmp;
-    document.getElementById('statUnassigned').textContent=data.unassigned_employees||0;
-    if(data.unassigned_employees>0){document.getElementById('unassignedCount').textContent=data.unassigned_employees;banner.style.display='flex';}else{banner.style.display='none';}
-    if(businesses.length===0){grid.innerHTML='';empty.style.display='block';return;}
-    empty.style.display='none';
-    grid.innerHTML=businesses.map(function(b){
-        var statusBadge=b.status==='active'?'<span class="badge badge-active">운영중</span>':b.status==='inactive'?'<span class="badge badge-inactive">휴업</span>':'<span class="badge badge-closed">폐업</span>';
-        var hqBadge=b.is_headquarters?'<span class="badge badge-hq">본사</span>':'';
-        return '<div class="business-card"><div class="card-header"><div class="card-name">'+b.name+'</div><div class="card-badges">'+hqBadge+statusBadge+'</div></div><div class="card-body"><div class="card-info">'+(b.address?'<div class="info-row"><span class="info-label">주소</span><span class="info-value">'+b.address+'</span></div>':'')+(b.phone?'<div class="info-row"><span class="info-label">전화</span><span class="info-value">'+b.phone+'</span></div>':'')+(b.manager_name?'<div class="info-row"><span class="info-label">관리자</span><span class="info-value">'+b.manager_name+'</span></div>':'')+(b.business_number?'<div class="info-row"><span class="info-label">사업자번호</span><span class="info-value">'+b.business_number+'</span></div>':'')+'</div></div><div class="employee-count"><span class="count">'+(b.employee_count||0)+'</span><span class="label">명 근무중</span></div><div class="card-actions"><button class="btn-outline" onclick="editBusiness(\''+b.id+'\')">수정</button><button class="btn-danger" onclick="deleteBusiness(\''+b.id+'\',\''+b.name+'\')">삭제</button></div></div>';
+
+async function loadEmployees() {
+    try {
+        var r = await fetch('/.netlify/functions/employees-list', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        var res = await r.json();
+        // Handle both response formats: {success:true, data:{employees:[]}} and flat array
+        if (res.success && res.data && res.data.employees) {
+            employees = res.data.employees.filter(function(e) { return e.status === 'active'; });
+        } else if (Array.isArray(res)) {
+            employees = res.filter(function(e) { return e.status === 'active'; });
+        } else if (res.success && Array.isArray(res.data)) {
+            employees = res.data.filter(function(e) { return e.status === 'active'; });
+        }
+    } catch(e) { console.error('직원 로드 실패:', e); }
+}
+
+// Helper to get business_id from employee (handles both camelCase and snake_case)
+function getEmpBusinessId(emp) {
+    return emp.businessId || emp.business_id || null;
+}
+
+function renderBusinesses(data) {
+    var grid = document.getElementById('businessGrid');
+    var empty = document.getElementById('emptyState');
+    var banner = document.getElementById('unassignedBanner');
+
+    var totalEmp = businesses.reduce(function(s, b) { return s + (b.employee_count || 0); }, 0);
+    document.getElementById('statTotal').textContent = businesses.length;
+    document.getElementById('statActive').textContent = businesses.filter(function(b) { return b.status === 'active'; }).length;
+    document.getElementById('statEmployees').textContent = totalEmp;
+    document.getElementById('statUnassigned').textContent = data.unassigned_employees || 0;
+
+    if (data.unassigned_employees > 0) {
+        document.getElementById('unassignedCount').textContent = data.unassigned_employees;
+        banner.style.display = 'flex';
+    } else {
+        banner.style.display = 'none';
+    }
+
+    if (businesses.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    grid.innerHTML = businesses.map(function(b) {
+        var statusBadge = b.status === 'active' ? '<span class="badge badge-active">운영중</span>' :
+                          b.status === 'inactive' ? '<span class="badge badge-inactive">휴업</span>' :
+                          '<span class="badge badge-closed">폐업</span>';
+        var hqBadge = b.is_headquarters ? '<span class="badge badge-hq">본사</span>' : '';
+
+        return '<div class="business-card">' +
+            '<div class="card-header">' +
+                '<div class="card-name">' + escapeHtml(b.name) + '</div>' +
+                '<div class="card-badges">' + hqBadge + statusBadge + '</div>' +
+            '</div>' +
+            '<div class="card-body"><div class="card-info">' +
+                (b.address ? '<div class="info-row"><span class="info-label">주소</span><span class="info-value">' + escapeHtml(b.address) + '</span></div>' : '') +
+                (b.phone ? '<div class="info-row"><span class="info-label">전화</span><span class="info-value">' + escapeHtml(b.phone) + '</span></div>' : '') +
+                (b.manager_name ? '<div class="info-row"><span class="info-label">관리자</span><span class="info-value">' + escapeHtml(b.manager_name) + '</span></div>' : '') +
+                (b.business_number ? '<div class="info-row"><span class="info-label">사업자번호</span><span class="info-value">' + escapeHtml(b.business_number) + '</span></div>' : '') +
+            '</div></div>' +
+            '<div class="employee-count"><span class="count">' + (b.employee_count || 0) + '</span><span class="label">명 근무중</span></div>' +
+            '<div class="card-actions">' +
+                '<button class="btn-outline" onclick="editBusiness(\'' + b.id + '\')">수정</button>' +
+                '<button class="btn-danger" onclick="deleteBusiness(\'' + b.id + '\',\'' + escapeHtml(b.name) + '\')">삭제</button>' +
+            '</div></div>';
     }).join('');
 }
-function openModal(biz){
-    document.getElementById('modalTitle').textContent=biz?'사업장 수정':'사업장 추가';
-    document.getElementById('editId').value=biz?biz.id:'';
-    document.getElementById('bizName').value=biz?biz.name:'';
-    document.getElementById('bizNumber').value=biz?(biz.business_number||''):'‘';
-    document.getElementById('bizAddress').value=biz?(biz.address||''):'‘';
-    document.getElementById('bizPhone').value=biz?(biz.phone||''):'‘';
-    document.getElementById('bizManager').value=biz?(biz.manager_name||''):'‘';
-    document.getElementById('bizHQ').checked=biz?biz.is_headquarters:false;
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function openModal(biz) {
+    document.getElementById('modalTitle').textContent = biz ? '사업장 수정' : '사업장 추가';
+    document.getElementById('editId').value = biz ? biz.id : '';
+    document.getElementById('bizName').value = biz ? (biz.name || '') : '';
+    document.getElementById('bizNumber').value = biz ? (biz.business_number || '') : '';
+    document.getElementById('bizAddress').value = biz ? (biz.address || '') : '';
+    document.getElementById('bizPhone').value = biz ? (biz.phone || '') : '';
+    document.getElementById('bizManager').value = biz ? (biz.manager_name || '') : '';
+    document.getElementById('bizStatus').value = biz ? (biz.status || 'active') : 'active';
+    document.getElementById('bizHQ').checked = biz ? biz.is_headquarters : false;
     document.getElementById('businessModal').classList.add('show');
 }
-function closeModal(){document.getElementById('businessModal').classList.remove('show');}
-function editBusiness(id){var biz=businesses.find(function(b){return b.id===id;});if(biz)openModal(biz);}
-async function saveBusiness(){
-    var id=document.getElementById('editId').value;
-    var body={name:document.getElementById('bizName').value,business_number:document.getElementById('bizNumber').value,address:document.getElementById('bizAddress').value,phone:document.getElementById('bizPhone').value,manager_name:document.getElementById('bizManager').value,is_headquarters:document.getElementById('bizHQ').checked};
-    if(!body.name.trim()){alert('사업장명을 입력해주세요.');return;}
-    try{var url='/.netlify/functions/businesses-manage'+(id?'?id='+id:'');
-    var r=await fetch(url,{method:id?'PUT':'POST',headers:{'Authorization':'Bearer '+authToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    var res=await r.json();if(res.success){closeModal();await loadBusinesses();}else{alert(res.error||'저장 실패');}}catch(e){console.error(e);alert('저장 중 오류 발생');}
+
+function closeModal() { document.getElementById('businessModal').classList.remove('show'); }
+
+function editBusiness(id) {
+    var biz = businesses.find(function(b) { return b.id === id; });
+    if (biz) openModal(biz);
 }
-async function deleteBusiness(id,name){
-    if(!confirm(name+' 사업장을 삭제하시겠습니까?'))return;
-    try{var r=await fetch('/.netlify/functions/businesses-manage?id='+id,{method:'DELETE',headers:{'Authorization':'Bearer '+authToken}});
-    var res=await r.json();if(res.success){await loadBusinesses();}else{alert(res.error||'삭제 실패');}}catch(e){alert('삭제 중 오류 발생');}
+
+async function saveBusiness() {
+    var id = document.getElementById('editId').value;
+    var body = {
+        name: document.getElementById('bizName').value,
+        business_number: document.getElementById('bizNumber').value,
+        address: document.getElementById('bizAddress').value,
+        phone: document.getElementById('bizPhone').value,
+        manager_name: document.getElementById('bizManager').value,
+        status: document.getElementById('bizStatus').value,
+        is_headquarters: document.getElementById('bizHQ').checked
+    };
+    if (!body.name.trim()) { alert('사업장명을 입력해주세요.'); return; }
+
+    try {
+        var url = '/.netlify/functions/businesses-manage' + (id ? '?id=' + id : '');
+        var r = await fetch(url, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        var res = await r.json();
+        if (res.success) {
+            closeModal();
+            await loadBusinesses();
+            showToast(id ? '사업장이 수정되었습니다.' : '사업장이 추가되었습니다.');
+        } else {
+            alert(res.error || '저장 실패');
+        }
+    } catch(e) { console.error(e); alert('저장 중 오류 발생'); }
 }
-function openAssignModal(){
-    var list=document.getElementById('assignList');
-    var options='<option value="">미배정</option>'+businesses.filter(function(b){return b.status==='active';}).map(function(b){return '<option value="'+b.id+'">'+b.name+'</option>';}).join('');
-    list.innerHTML=employees.map(function(emp){
-        var currentBiz=businesses.find(function(b){return b.id===emp.businessId;});
-        return '<div class="assign-item"><div><div class="assign-name">'+(emp.name||'이름없음')+'</div><div class="assign-current">현재: '+(currentBiz?currentBiz.name:'미배정')+'</div></div><select class="assign-select" data-emp-id="'+emp.id+'">'+options+'</select></div>';
+
+async function deleteBusiness(id, name) {
+    if (!confirm(name + ' 사업장을 삭제하시겠습니까?\n배정된 직원이 있으면 삭제할 수 없습니다.')) return;
+    try {
+        var r = await fetch('/.netlify/functions/businesses-manage?id=' + id, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        var res = await r.json();
+        if (res.success) {
+            await loadBusinesses();
+            showToast('사업장이 삭제되었습니다.');
+        } else {
+            alert(res.error || '삭제 실패');
+        }
+    } catch(e) { alert('삭제 중 오류 발생'); }
+}
+
+function openAssignModal() {
+    var list = document.getElementById('assignList');
+    var options = '<option value="">미배정</option>' + businesses.filter(function(b) {
+        return b.status === 'active';
+    }).map(function(b) {
+        return '<option value="' + b.id + '">' + escapeHtml(b.name) + '</option>';
     }).join('');
-    employees.forEach(function(emp){if(emp.businessId){var sel=list.querySelector('[data-emp-id="'+emp.id+'"]');if(sel)sel.value=emp.businessId;}});
+
+    list.innerHTML = employees.map(function(emp) {
+        var empBizId = getEmpBusinessId(emp);
+        var currentBiz = businesses.find(function(b) { return b.id === empBizId; });
+        return '<div class="assign-item">' +
+            '<div><div class="assign-name">' + escapeHtml(emp.name || '이름없음') + '</div>' +
+            '<div class="assign-current">현재: ' + (currentBiz ? escapeHtml(currentBiz.name) : '미배정') + '</div></div>' +
+            '<select class="assign-select" data-emp-id="' + emp.id + '">' + options + '</select></div>';
+    }).join('');
+
+    // Set current values
+    employees.forEach(function(emp) {
+        var empBizId = getEmpBusinessId(emp);
+        if (empBizId) {
+            var sel = list.querySelector('[data-emp-id="' + emp.id + '"]');
+            if (sel) sel.value = empBizId;
+        }
+    });
+
     document.getElementById('assignModal').classList.add('show');
 }
-function closeAssignModal(){document.getElementById('assignModal').classList.remove('show');}
-async function saveAssignments(){
-    var selects=document.querySelectorAll('.assign-select');var updates=[];
-    selects.forEach(function(sel){updates.push({employeeId:sel.getAttribute('data-emp-id'),businessId:sel.value||null});});
-    try{var r=await fetch('/.netlify/functions/businesses-assign',{method:'POST',headers:{'Authorization':'Bearer '+authToken,'Content-Type':'application/json'},body:JSON.stringify({assignments:updates})});
-    var res=await r.json();if(res.success){closeAssignModal();await Promise.all([loadBusinesses(),loadEmployees()]);alert('직원 배정이 완료되었습니다.');}else{alert(res.error||'배정 실패');}}catch(e){console.error(e);alert('배정 중 오류 발생');}
+
+function closeAssignModal() { document.getElementById('assignModal').classList.remove('show'); }
+
+async function saveAssignments() {
+    var selects = document.querySelectorAll('.assign-select');
+    var updates = [];
+    selects.forEach(function(sel) {
+        updates.push({ employeeId: sel.getAttribute('data-emp-id'), businessId: sel.value || null });
+    });
+
+    try {
+        var r = await fetch('/.netlify/functions/businesses-assign', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignments: updates })
+        });
+        var res = await r.json();
+        if (res.success) {
+            closeAssignModal();
+            await Promise.all([loadBusinesses(), loadEmployees()]);
+            showToast('직원 배정이 완료되었습니다.');
+        } else {
+            alert(res.error || '배정 실패');
+        }
+    } catch(e) { console.error(e); alert('배정 중 오류 발생'); }
 }
-function handleLogout(){if(confirm('로그아웃 하시겠습니까?')){localStorage.removeItem('authToken');localStorage.removeItem('userInfo');window.location.href='/login.html';}}
+
+function handleLogout() {
+    if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+    }
+}
 </script>
 </body>
 </html>
