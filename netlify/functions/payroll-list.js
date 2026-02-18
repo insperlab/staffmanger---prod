@@ -24,7 +24,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 인증
     const authHeader = event.headers.authorization || event.headers.Authorization;
     let userInfo;
     try { userInfo = verifyToken(authHeader); } catch {
@@ -39,12 +38,11 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ success: false, error: 'year, month 필수' }) };
     }
 
-    // 급여 데이터 + 직원 이름 JOIN
     const { data: payrolls, error } = await supabase
       .from('payrolls')
       .select(`
         *,
-        employees!inner(name, bank_name, bank_account)
+        employees!inner(name, bank_name, bank_account, business_id, department)
       `)
       .eq('year', year)
       .eq('month', month)
@@ -55,13 +53,14 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers, body: JSON.stringify({ success: false, error: '조회 실패' }) };
     }
 
-    // 응답 데이터 정리 (employee_name 플랫하게)
     const results = (payrolls || []).map(p => ({
       ...p,
       employee_name: p.employees?.name || '',
       bank_name: p.employees?.bank_name || '',
       bank_account: p.employees?.bank_account || '',
-      employees: undefined // 중첩 제거
+      business_id: p.employees?.business_id || null,
+      department: p.employees?.department || '',
+      employees: undefined
     }));
 
     return {
