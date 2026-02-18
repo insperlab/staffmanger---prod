@@ -1,6 +1,6 @@
 // netlify/functions/payroll-list.js
 // Phase 7: 급여 목록 조회 API (급여대장 페이지용)
-// GET ?year=2026&month=2
+// GET ?year=2026&month=2&businessId=xxx (사업장 필터 지원)
 
 const { verifyToken } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
@@ -33,20 +33,36 @@ exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
     const year = parseInt(params.year);
     const month = parseInt(params.month);
+    const businessId = params.businessId || null;
 
     if (!year || !month) {
       return { statusCode: 400, headers, body: JSON.stringify({ success: false, error: 'year, month 필수' }) };
     }
 
-    const { data: payrolls, error } = await supabase
+    // 기본 쿼리: 급여 + 직원 정보 조인
+    let query = supabase
       .from('payrolls')
       .select(`
         *,
         employees!inner(name, bank_name, bank_account, business_id, department)
       `)
       .eq('year', year)
-      .eq('month', month)
-      .order('employees(name)', { ascending: true });
+      .eq('month', month);
+
+    // 사업장 필터 적용
+    if (businessId) {
+      if (businessId === 'unassigned') {
+        // 미배정 직원만 조회
+        query = query.is('employees.business_id', null);
+      } else {
+        // 특정 사업장 직원만 조회
+        query = query.eq('employees.business_id', businessId);
+      }
+    }
+
+    query = query.order('employees(name)', { ascending: true });
+
+    const { data: payrolls, error } = await query;
 
     if (error) {
       console.error('급여 목록 조회 오류:', error);
