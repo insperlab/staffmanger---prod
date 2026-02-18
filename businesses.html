@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사업장 관리 - StaffManager</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Noto Sans KR',sans-serif;background:#f5f7fa;min-height:100vh}
+        .navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+        .navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}
+        .navbar-menu{display:flex;gap:30px;align-items:center}
+        .navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}
+        .navbar-menu a:hover,.navbar-menu a.active{color:#667eea;font-weight:600}
+        .user-menu{display:flex;align-items:center;gap:15px}
+        .user-info{text-align:right}
+        .user-name{font-weight:600;color:#333;font-size:14px}
+        .company-name{font-size:12px;color:#999}
+        .logout-btn{padding:8px 20px;background:#f5f7fa;border:none;border-radius:6px;color:#666;cursor:pointer;font-weight:600;transition:all .3s}
+        .logout-btn:hover{background:#667eea;color:#fff}
+        .container{max-width:1100px;margin:0 auto;padding:30px 20px}
+        .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;flex-wrap:wrap;gap:15px}
+        .page-title{font-size:28px;color:#333}
+        .btn-primary{padding:10px 24px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .3s}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(102,126,234,.4)}
+        .btn-outline{padding:8px 16px;background:#fff;color:#667eea;border:2px solid #667eea;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s}
+        .btn-outline:hover{background:#667eea;color:#fff}
+        .btn-danger{padding:8px 16px;background:#fff;color:#dc3545;border:2px solid #dc3545;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s}
+        .btn-danger:hover{background:#dc3545;color:#fff}
+        .stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:25px}
+        .stat-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center}
+        .stat-value{font-size:32px;font-weight:800;color:#667eea}
+        .stat-label{font-size:13px;color:#999;margin-top:5px}
+        .business-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+        .business-card{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden;transition:all .3s}
+        .business-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.15);transform:translateY(-2px)}
+        .card-header{padding:20px 20px 15px;display:flex;justify-content:space-between;align-items:flex-start}
+        .card-name{font-size:18px;font-weight:700;color:#333}
+        .card-badges{display:flex;gap:6px}
+        .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+        .badge-hq{background:#e8f5e9;color:#2e7d32}
+        .badge-active{background:#e3f2fd;color:#1565c0}
+        .badge-inactive{background:#fff3e0;color:#e65100}
+        .badge-closed{background:#fce4ec;color:#c62828}
+        .card-body{padding:0 20px 15px}
+        .card-info{display:flex;flex-direction:column;gap:8px}
+        .info-row{display:flex;justify-content:space-between;font-size:13px}
+        .info-label{color:#999}
+        .info-value{color:#333;font-weight:500}
+        .employee-count{display:flex;align-items:center;gap:6px;padding:12px 20px;background:#f9f9ff;border-top:1px solid #f0f0f0}
+        .employee-count .count{font-size:20px;font-weight:700;color:#667eea}
+        .employee-count .label{font-size:13px;color:#666}
+        .card-actions{display:flex;gap:8px;padding:12px 20px;border-top:1px solid #f0f0f0}
+        .unassigned-banner{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:15px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+        .unassigned-text{color:#856404;font-weight:600;font-size:14px}
+        .empty-state{text-align:center;padding:80px 20px;color:#999;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+        .empty-state .icon{font-size:60px;margin-bottom:15px}
+        .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;justify-content:center;align-items:center}
+        .modal-overlay.show{display:flex}
+        .modal{background:#fff;border-radius:16px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+        .modal-header{padding:20px 25px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center}
+        .modal-title{font-size:20px;font-weight:700;color:#333}
+        .modal-close{background:none;border:none;font-size:24px;cursor:pointer;color:#999;padding:4px}
+        .modal-body{padding:25px}
+        .form-group{margin-bottom:18px}
+        .form-group label{display:block;font-size:13px;font-weight:600;color:#666;margin-bottom:6px}
+        .form-group input,.form-group select{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px}
+        .form-group input:focus{outline:none;border-color:#667eea}
+        .checkbox-group{display:flex;align-items:center;gap:8px}
+        .checkbox-group input[type="checkbox"]{width:auto}
+        .modal-footer{padding:15px 25px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px}
+        .assign-list{max-height:300px;overflow-y:auto}
+        .assign-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f5}
+        .assign-item:last-child{border-bottom:none}
+        .assign-name{font-weight:600;color:#333}
+        .assign-current{font-size:12px;color:#999}
+        .assign-select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px}
+        @media(max-width:768px){.navbar-menu{display:none}.business-grid{grid-template-columns:1fr}.stats-bar{grid-template-columns:1fr 1fr}}
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
+        <div class="navbar-menu">
+            <a href="/dashboard.html">대시보드</a>
+            <a href="/employees.html">직원 관리</a>
+            <a href="/attendances.html">출퇴근 관리</a>
+            <a href="/calendar.html">휴가 관리</a>
+            <a href="/salary.html">급여 관리</a>
+            <a href="/contracts.html">계약 관리</a>
+            <a href="/businesses.html" class="active">사업장</a>
+            <a href="/settings.html">설정</a>
+        </div>
+        <div class="user-menu">
+            <div class="user-info">
+                <div class="user-name" id="userName">사용자</div>
+                <div class="company-name" id="companyName">회사명</div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">🏢 사업장 관리</h1>
+            <button class="btn-primary" onclick="openModal()">+ 사업장 추가</button>
+        </div>
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">전체 사업장</div></div>
+            <div class="stat-card"><div class="stat-value" id="statActive">0</div><div class="stat-label">운영중</div></div>
+            <div class="stat-card"><div class="stat-value" id="statEmployees">0</div><div class="stat-label">배정 직원</div></div>
+            <div class="stat-card"><div class="stat-value" id="statUnassigned">0</div><div class="stat-label">미배정 직원</div></div>
+        </div>
+        <div class="unassigned-banner" id="unassignedBanner" style="display:none">
+            <span class="unassigned-text">⚠️ <span id="unassignedCount">0</span>명의 직원이 사업장에 배정되지 않았습니다.</span>
+            <button class="btn-outline" onclick="openAssignModal()">직원 배정하기</button>
+        </div>
+        <div class="business-grid" id="businessGrid"></div>
+        <div class="empty-state" id="emptyState" style="display:none">
+            <div class="icon">🏢</div>
+            <p>등록된 사업장이 없습니다.</p>
+            <p style="margin-top:8px;font-size:14px;color:#bbb">사업장을 추가하여 직원을 지점별로 관리하세요</p>
+        </div>
+    </div>
+    <div class="modal-overlay" id="businessModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">사업장 추가</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <div class="form-group"><label>사업장명 *</label><input type="text" id="bizName" placeholder="예: 강남점, 본사"></div>
+                <div class="form-group"><label>사업자등록번호</label><input type="text" id="bizNumber" placeholder="000-00-00000"></div>
+                <div class="form-group"><label>주소</label><input type="text" id="bizAddress" placeholder="사업장 주소"></div>
+                <div class="form-group"><label>전화번호</label><input type="text" id="bizPhone" placeholder="02-0000-0000"></div>
+                <div class="form-group"><label>현장 관리자</label><input type="text" id="bizManager" placeholder="관리자명"></div>
+                <div class="form-group"><div class="checkbox-group"><input type="checkbox" id="bizHQ"><label for="bizHQ" style="margin-bottom:0">본사로 설정</label></div></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeModal()">취소</button>
+                <button class="btn-primary" onclick="saveBusiness()">저장</button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="assignModal">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+                <div class="modal-title">직원 사업장 배정</div>
+                <button class="modal-close" onclick="closeAssignModal()">&times;</button>
+            </div>
+            <div class="modal-body"><div class="assign-list" id="assignList"></div></div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeAssignModal()">취소</button>
+                <button class="btn-primary" onclick="saveAssignments()">배정 저장</button>
+            </div>
+        </div>
+    </div>
+<script>
+var authToken=null,userInfo=null,businesses=[],employees=[];
+window.addEventListener('DOMContentLoaded',async function(){
+    authToken=localStorage.getItem('authToken');
+    var ui=localStorage.getItem('userInfo');
+    if(!authToken||!ui){window.location.href='/login.html';return;}
+    try{userInfo=JSON.parse(ui);}catch(e){window.location.href='/login.html';return;}
+    document.getElementById('userName').textContent=userInfo.name||'사용자';
+    document.getElementById('companyName').textContent=userInfo.companyName||'';
+    await Promise.all([loadBusinesses(),loadEmployees()]);
+});
+async function loadBusinesses(){
+    try{var r=await fetch('/.netlify/functions/businesses-manage',{headers:{'Authorization':'Bearer '+authToken}});
+    var res=await r.json();if(res.success){businesses=res.data.businesses||[];renderBusinesses(res.data);}}catch(e){console.error('사업장 로드 실패:',e);}
+}
+async function loadEmployees(){
+    try{var r=await fetch('/.netlify/functions/employees-list',{headers:{'Authorization':'Bearer '+authToken}});
+    var res=await r.json();if(res.success&&res.data&&res.data.employees){employees=res.data.employees.filter(function(e){return e.status==='active';});}}catch(e){console.error('직원 로드 실패:',e);}
+}
+function renderBusinesses(data){
+    var grid=document.getElementById('businessGrid');var empty=document.getElementById('emptyState');var banner=document.getElementById('unassignedBanner');
+    var totalEmp=businesses.reduce(function(s,b){return s+(b.employee_count||0);},0);
+    document.getElementById('statTotal').textContent=businesses.length;
+    document.getElementById('statActive').textContent=businesses.filter(function(b){return b.status==='active';}).length;
+    document.getElementById('statEmployees').textContent=totalEmp;
+    document.getElementById('statUnassigned').textContent=data.unassigned_employees||0;
+    if(data.unassigned_employees>0){document.getElementById('unassignedCount').textContent=data.unassigned_employees;banner.style.display='flex';}else{banner.style.display='none';}
+    if(businesses.length===0){grid.innerHTML='';empty.style.display='block';return;}
+    empty.style.display='none';
+    grid.innerHTML=businesses.map(function(b){
+        var statusBadge=b.status==='active'?'<span class="badge badge-active">운영중</span>':b.status==='inactive'?'<span class="badge badge-inactive">휴업</span>':'<span class="badge badge-closed">폐업</span>';
+        var hqBadge=b.is_headquarters?'<span class="badge badge-hq">본사</span>':'';
+        return '<div class="business-card"><div class="card-header"><div class="card-name">'+b.name+'</div><div class="card-badges">'+hqBadge+statusBadge+'</div></div><div class="card-body"><div class="card-info">'+(b.address?'<div class="info-row"><span class="info-label">주소</span><span class="info-value">'+b.address+'</span></div>':'')+(b.phone?'<div class="info-row"><span class="info-label">전화</span><span class="info-value">'+b.phone+'</span></div>':'')+(b.manager_name?'<div class="info-row"><span class="info-label">관리자</span><span class="info-value">'+b.manager_name+'</span></div>':'')+(b.business_number?'<div class="info-row"><span class="info-label">사업자번호</span><span class="info-value">'+b.business_number+'</span></div>':'')+'</div></div><div class="employee-count"><span class="count">'+(b.employee_count||0)+'</span><span class="label">명 근무중</span></div><div class="card-actions"><button class="btn-outline" onclick="editBusiness(\''+b.id+'\')">수정</button><button class="btn-danger" onclick="deleteBusiness(\''+b.id+'\',\''+b.name+'\')">삭제</button></div></div>';
+    }).join('');
+}
+function openModal(biz){
+    document.getElementById('modalTitle').textContent=biz?'사업장 수정':'사업장 추가';
+    document.getElementById('editId').value=biz?biz.id:'';
+    document.getElementById('bizName').value=biz?biz.name:'';
+    document.getElementById('bizNumber').value=biz?(biz.business_number||''):'‘';
+    document.getElementById('bizAddress').value=biz?(biz.address||''):'‘';
+    document.getElementById('bizPhone').value=biz?(biz.phone||''):'‘';
+    document.getElementById('bizManager').value=biz?(biz.manager_name||''):'‘';
+    document.getElementById('bizHQ').checked=biz?biz.is_headquarters:false;
+    document.getElementById('businessModal').classList.add('show');
+}
+function closeModal(){document.getElementById('businessModal').classList.remove('show');}
+function editBusiness(id){var biz=businesses.find(function(b){return b.id===id;});if(biz)openModal(biz);}
+async function saveBusiness(){
+    var id=document.getElementById('editId').value;
+    var body={name:document.getElementById('bizName').value,business_number:document.getElementById('bizNumber').value,address:document.getElementById('bizAddress').value,phone:document.getElementById('bizPhone').value,manager_name:document.getElementById('bizManager').value,is_headquarters:document.getElementById('bizHQ').checked};
+    if(!body.name.trim()){alert('사업장명을 입력해주세요.');return;}
+    try{var url='/.netlify/functions/businesses-manage'+(id?'?id='+id:'');
+    var r=await fetch(url,{method:id?'PUT':'POST',headers:{'Authorization':'Bearer '+authToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var res=await r.json();if(res.success){closeModal();await loadBusinesses();}else{alert(res.error||'저장 실패');}}catch(e){console.error(e);alert('저장 중 오류 발생');}
+}
+async function deleteBusiness(id,name){
+    if(!confirm(name+' 사업장을 삭제하시겠습니까?'))return;
+    try{var r=await fetch('/.netlify/functions/businesses-manage?id='+id,{method:'DELETE',headers:{'Authorization':'Bearer '+authToken}});
+    var res=await r.json();if(res.success){await loadBusinesses();}else{alert(res.error||'삭제 실패');}}catch(e){alert('삭제 중 오류 발생');}
+}
+function openAssignModal(){
+    var list=document.getElementById('assignList');
+    var options='<option value="">미배정</option>'+businesses.filter(function(b){return b.status==='active';}).map(function(b){return '<option value="'+b.id+'">'+b.name+'</option>';}).join('');
+    list.innerHTML=employees.map(function(emp){
+        var currentBiz=businesses.find(function(b){return b.id===emp.businessId;});
+        return '<div class="assign-item"><div><div class="assign-name">'+(emp.name||'이름없음')+'</div><div class="assign-current">현재: '+(currentBiz?currentBiz.name:'미배정')+'</div></div><select class="assign-select" data-emp-id="'+emp.id+'">'+options+'</select></div>';
+    }).join('');
+    employees.forEach(function(emp){if(emp.businessId){var sel=list.querySelector('[data-emp-id="'+emp.id+'"]');if(sel)sel.value=emp.businessId;}});
+    document.getElementById('assignModal').classList.add('show');
+}
+function closeAssignModal(){document.getElementById('assignModal').classList.remove('show');}
+async function saveAssignments(){
+    var selects=document.querySelectorAll('.assign-select');var updates=[];
+    selects.forEach(function(sel){updates.push({employeeId:sel.getAttribute('data-emp-id'),businessId:sel.value||null});});
+    try{var r=await fetch('/.netlify/functions/businesses-assign',{method:'POST',headers:{'Authorization':'Bearer '+authToken,'Content-Type':'application/json'},body:JSON.stringify({assignments:updates})});
+    var res=await r.json();if(res.success){closeAssignModal();await Promise.all([loadBusinesses(),loadEmployees()]);alert('직원 배정이 완료되었습니다.');}else{alert(res.error||'배정 실패');}}catch(e){console.error(e);alert('배정 중 오류 발생');}
+}
+function handleLogout(){if(confirm('로그아웃 하시겠습니까?')){localStorage.removeItem('authToken');localStorage.removeItem('userInfo');window.location.href='/login.html';}}
+</script>
+</body>
+</html>
