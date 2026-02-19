@@ -10,7 +10,7 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; }
         .navbar { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 0 30px; height: 70px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .navbar .logo { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700; color: #667eea; text-decoration: none; }
-        .navbar .nav-links { display: flex; gap: 24px; align-items: center; }
+        .navbar .nav-links { display: flex; gap: 24px; align-items: center;}
         .navbar .nav-links a { text-decoration: none; color: #666; font-weight: 500; font-size: 14px; transition: color 0.2s; }
         .navbar .nav-links a:hover, .navbar .nav-links a.active { color: #667eea; font-weight: 600; }
         .logout-btn { padding: 8px 18px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
@@ -26,7 +26,7 @@
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         .btn:hover:not(:disabled) { transform: translateY(-1px); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764bab); color: white; }
         .btn-blue { background: #2196F3; color: white; }
         .btn-green { background: #4CAF50; color: white; }
         .btn-orange { background: #FF9800; color: white; }
@@ -94,72 +94,85 @@
 </head>
 <body>
 <nav class="navbar">
-    <a href="/dashboard.html" class="logo">&#128188; StaffManager</a>
+    <a href="/dashboard.html" class="logo">💼 StaffManager</a>
     <div class="nav-links">
         <a href="/dashboard.html">대시보드</a>
         <a href="/employees.html">직원 관리</a>
         <a href="/attendances.html">근태 관리</a>
         <a href="/calendar.html">달력 관리</a>
-        <a href="/salary.html">급여 계산</a>
+        <a href="/salary.html">급여 관리</a>
         <a href="/payroll-register.html" class="active">급여 대장</a>
         <a href="/contracts.html">계약 관리</a>
         <a href="/settings.html">설정</a>
     </div>
     <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
 </nav>
+
 <div class="page-container">
-    <div class="page-header"><h1>&#128178; 급여 대장</h1></div>
+    <div class="page-header"><h1>💰 급여 대장</h1></div>
     <div class="filter-bar">
         <label for="filterYear">연도</label>
         <input type="number" id="filterYear" min="2020" max="2035">
         <label for="filterMonth">월</label>
         <select id="filterMonth">
-            <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4">4월</option>
-            <option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option>
-            <option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+            <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+            <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+            <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
         </select>
+        <!-- ✅ [변경1] 사업장 필터 select — onchange에 BusinessFilter.setSelected() 연동 -->
         <label for="filterBusiness">사업장</label>
-        <select id="filterBusiness"><option value="">전체 사업장</option></select>
-        <button class="btn btn-blue" onclick="loadPayrollData()">&#128269; 조회</button>
-        <button class="btn btn-primary" onclick="batchCalculate()">&#9889; 일괄 계산</button>
+        <select id="filterBusiness" onchange="onBizSelectChange()">
+            <option value="all">전체 사업장</option>
+        </select>
+        <button class="btn btn-blue" onclick="loadPayrollData()">🔍 조회</button>
+        <button class="btn btn-primary" onclick="batchCalculate()">⚡ 일괄 급여 계산</button>
         <div class="filter-spacer"></div>
-        <button class="btn btn-green" id="excelBtn" onclick="downloadExcel()" disabled>&#128196; 엑셀 다운로드</button>
-        <button class="btn btn-orange" id="bankBtn" onclick="downloadBankFile()" disabled>&#127968; 은행 이체</button>
+        <button class="btn btn-green" id="excelBtn" onclick="downloadExcel()" disabled>📄 엑셀 다운로드</button>
+        <button class="btn btn-orange" id="bankBtn" onclick="downloadBankFile()" disabled>🏦 은행 이체</button>
     </div>
+
     <div class="summary-cards" id="summaryCards" style="display:none;">
         <div class="summary-card gross"><div class="card-label">총 지급액</div><div class="card-value" id="sumGross">-</div><div class="card-sub" id="sumCount">-</div></div>
         <div class="summary-card deduction"><div class="card-label">총 공제액</div><div class="card-value" id="sumDeduction">-</div></div>
-        <div class="summary-card net"><div class="card-label">총 차인지급액</div><div class="card-value" id="sumNet">-</div></div>
-        <div class="summary-card employer"><div class="card-label">사업주 부담금</div><div class="card-value" id="sumEmployer">-</div></div>
+        <div class="summary-card net"><div class="card-label">총 실 지급액</div><div class="card-value" id="sumNet">-</div></div>
+        <div class="summary-card employer"><div class="card-label">사업주 부담액</div><div class="card-value" id="sumEmployer">-</div></div>
         <div class="summary-card labor"><div class="card-label">총 근로시간</div><div class="card-value" id="sumLabor">-</div></div>
     </div>
+
     <div class="warnings-banner" id="warningsBanner">
-        <h4>&#9888;&#65039; 급여 계산 경고 사항</h4>
+        <h4>⚠️ 급여 계산 경고 및 오류</h4>
         <div id="warningsList"></div>
     </div>
+
     <div class="table-container">
         <div class="table-header">
-            <h3 id="tableTitle">급여 목록</h3>
+            <h3 id="tableTitle">급여 명세</h3>
             <span class="table-info" id="tableInfo"></span>
         </div>
         <div class="table-scroll">
             <div id="tableBody">
                 <div class="empty-state">
-                    <div class="icon">&#128269;</div>
-                    <p>연도와 월을 선택한 후 <strong>[조회]</strong> 또는 <strong>[일괄 계산]</strong> 버튼을 눌러주세요.</p>
+                    <div class="icon">🔍</div>
+                    <p>연도와 월을 선택하고 <strong>[조회]</strong> 또는 <strong>[일괄 급여 계산]</strong> 버튼을 클릭하여 급여 정보를 확인하세요.</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner"></div>
-    <div class="loading-text" id="loadingText">처리 중...</div>
+    <div class="loading-text" id="loadingText">데이터 로딩 중...</div>
     <div class="loading-progress" id="loadingProgress"></div>
 </div>
+
+<!-- ✅ [변경2] business-filter.js 공통 모듈 로드 -->
+<script src="/business-filter.js"></script>
 <script>
 let payrollData = [];
 const authToken = localStorage.getItem('authToken');
+
 window.addEventListener('DOMContentLoaded', () => {
     if (!authToken) { alert('로그인 세션이 만료되었습니다.'); window.location.href = '/login.html'; return; }
     const now = new Date();
@@ -167,26 +180,42 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filterMonth').value = now.getMonth() + 1;
     loadBusinesses();
 });
+
+/* ✅ [변경3] businesses-list 사용 + localStorage 복원 */
 async function loadBusinesses() {
     try {
-        const res = await fetch('/.netlify/functions/businesses-manage', { headers: { 'Authorization': 'Bearer ' + authToken } });
+        const res = await fetch('/.netlify/functions/businesses-list', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        });
         const data = await res.json();
-        if (data.success && data.data && data.data.businesses) {
+        if (data.success && data.businesses) {
             const sel = document.getElementById('filterBusiness');
-            data.data.businesses.forEach(b => {
+            data.businesses.forEach(b => {
                 const opt = document.createElement('option');
-                opt.value = b.id; opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
+                opt.value = b.id;
+                opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
                 sel.appendChild(opt);
             });
+            /* localStorage에서 이전 선택값 복원 */
+            const saved = BusinessFilter.getSelected();
+            if (saved && saved !== 'all') { sel.value = saved; }
         }
-    } catch (err) { console.error('사업장 로드 오류:', err); }
+    } catch (err) { console.error('사업장 로딩 실패:', err); }
 }
+
+/* ✅ [변경4] 사업장 변경 시 localStorage에 저장 */
+function onBizSelectChange() {
+    const val = document.getElementById('filterBusiness').value;
+    BusinessFilter.setSelected(val);
+}
+
 function showLoading(text, progress) {
-    document.getElementById('loadingText').textContent = text || '처리 중...';
+    document.getElementById('loadingText').textContent = text || '데이터 로딩 중...';
     document.getElementById('loadingProgress').textContent = progress || '';
     document.getElementById('loadingOverlay').classList.add('show');
 }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
 async function loadPayrollData() {
     const year = document.getElementById('filterYear').value;
     const month = document.getElementById('filterMonth').value;
@@ -195,7 +224,8 @@ async function loadPayrollData() {
     showLoading('급여 대장 조회 중...', year + '년 ' + month + '월');
     try {
         let url = '/.netlify/functions/payroll-list?year=' + year + '&month=' + month;
-        if (bizId) url += '&business_id=' + bizId;
+        /* 'all'이 아닐 때만 business_id 파라미터 전송 */
+        if (bizId && bizId !== 'all') url += '&business_id=' + bizId;
         const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + authToken } });
         const data = await res.json();
         if (!data.success) throw new Error(data.message || '조회 실패');
@@ -206,21 +236,21 @@ async function loadPayrollData() {
         document.getElementById('excelBtn').disabled = payrollData.length === 0;
         document.getElementById('bankBtn').disabled = payrollData.length === 0;
     } catch (err) {
-        console.error('급여 조회 오류:', err);
-        alert('급여 대장 조회 오류: ' + err.message);
+        console.error('급여 대장 조회 실패:', err);
+        alert('급여 대장 조회 실패: ' + err.message);
     } finally { hideLoading(); }
 }
+
 async function batchCalculate() {
     const year = document.getElementById('filterYear').value;
     const month = document.getElementById('filterMonth').value;
     const bizId = document.getElementById('filterBusiness').value;
     if (!year || !month) { alert('연도와 월을 선택해주세요.'); return; }
-    if (!confirm(year + '년 ' + month + '월 급여를 일괄 계산합니다.
-계속하시겠습니까?')) return;
-    showLoading('급여 일괄 계산 중...', '잠시 기다려 주세요...');
+    if (!confirm(year + '년 ' + month + '월 급여를 일괄 계산하시겠습니까?\n\n기존 급여 정보는 삭제되고 다시 계산됩니다.')) return;
+    showLoading('급여 일괄 계산 중...', '잠시만 기다려주세요...');
     try {
         const body = { year: parseInt(year), month: parseInt(month) };
-        if (bizId) body.business_id = bizId;
+        if (bizId && bizId !== 'all') body.business_id = bizId;
         const res = await fetch('/.netlify/functions/calculate-payroll-batch', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
@@ -229,47 +259,44 @@ async function batchCalculate() {
         const data = await res.json();
         if (!data.success) throw new Error(data.message || '계산 실패');
         const r = data.data || {};
-        alert('급여 일괄 계산 완료!
-
-성공: ' + (r.success_count||0) + '명
-실패: ' + (r.fail_count||0) + '명
-건너뜀: ' + (r.skip_count||0) + '명');
+        alert('급여 일괄 계산 완료!\n\n성공: ' + (r.success_count||0) + '건\n실패: ' + (r.fail_count||0) + '건\n건너뜀: ' + (r.skip_count||0) + '건');
         await loadPayrollData();
     } catch (err) {
-        console.error('일괄 계산 오류:', err);
-        alert('일괄 계산 오류: ' + err.message);
+        console.error('일괄 급여 계산 실패:', err);
+        alert('일괄 급여 계산 실패: ' + err.message);
     } finally { hideLoading(); }
 }
+
 function renderPayrollTable(payrolls, year, month) {
     document.getElementById('tableTitle').textContent = year + '년 ' + month + '월 급여 대장';
-    document.getElementById('tableInfo').textContent = payrolls.length > 0 ? '총 ' + payrolls.length + '명' : '';
+    document.getElementById('tableInfo').textContent = payrolls.length > 0 ? `총 ${payrolls.length}건` : '';
     const body = document.getElementById('tableBody');
     if (payrolls.length === 0) {
-        body.innerHTML = '<div class="empty-state"><div class="icon">&#128203;</div><p>해당 월의 급여 데이터가 없습니다.<br>[일괄 계산] 버튼으로 급여를 계산해보세요.</p></div>';
+        body.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>선택하신 기간의 급여 정보가 없습니다.<br>[일괄 급여 계산] 버튼을 클릭하여 급여 정보를 생성하세요.</p></div>';
         return;
     }
-    const typeMap = { hourly:'시급', daily:'일급', weekly:'주급', monthly:'월급', annual:'연봉' };
+    const typeMap = { hourly:'시급제', daily:'일급제', weekly:'주급제', monthly:'월급제', annual:'연봉제' };
     const rows = payrolls.map(p => {
         const hasWarn = p.warnings && p.warnings.length > 0;
-        const warnTip = hasWarn ? p.warnings.map(w => w.message).join('
-') : '';
-        const warnIcon = hasWarn ? '<span class="warn-icon" title="' + escapeHtml(warnTip) + '">&#9888;</span>' : '';
-        return '<tr class="' + (hasWarn ? 'has-warning' : '') + '">' +
-            '<td><div class="emp-name">' + escapeHtml(p.employee_name||'-') + warnIcon + '</div></td>' +
-            '<td>' + escapeHtml(p.business_name||'미지정') + '</td>' +
-            '<td><span class="salary-badge ' + (p.salary_type||'') + '">' + (typeMap[p.salary_type]||p.salary_type||'-') + '</span></td>' +
-            '<td>' + fmtNum(p.total_work_hours) + 'h</td>' +
-            '<td class="amount-blue">' + fmtMoney(p.gross_pay) + '</td>' +
-            '<td class="amount-red">' + fmtMoney(p.national_pension) + '</td>' +
-            '<td class="amount-red">' + fmtMoney(p.health_insurance) + '</td>' +
-            '<td class="amount-red">' + fmtMoney(p.employment_insurance) + '</td>' +
-            '<td class="amount-red">' + fmtMoney(p.income_tax) + '</td>' +
-            '<td class="amount-red">' + fmtMoney(p.total_deduction) + '</td>' +
-            '<td class="amount-green">' + fmtMoney(p.net_pay) + '</td>' +
-            '<td class="amount-orange">' + fmtMoney(p.employer_total) + '</td></tr>';
+        const warnTip = hasWarn ? p.warnings.map(w => w.message).join(' ') : '';
+        const warnIcon = hasWarn ? `<span class="warn-icon" title="${escapeHtml(warnTip)}">⚠️</span>` : '';
+        return `<tr class="${hasWarn ? 'has-warning' : ''}">` +
+            `<td><div class="emp-name">${escapeHtml(p.employee_name||'-')}${warnIcon}</div></td>` +
+            `<td>${escapeHtml(p.business_name||'미지정')}</td>` +
+            `<td><span class="salary-badge ${p.salary_type||''}">${typeMap[p.salary_type]||p.salary_type||'-'}</span></td>` +
+            `<td>${fmtNum(p.total_work_hours)}h</td>` +
+            `<td class="amount-blue">${fmtMoney(p.gross_pay)}</td>` +
+            `<td class="amount-red">${fmtMoney(p.national_pension)}</td>` +
+            `<td class="amount-red">${fmtMoney(p.health_insurance)}</td>` +
+            `<td class="amount-red">${fmtMoney(p.employment_insurance)}</td>` +
+            `<td class="amount-red">${fmtMoney(p.income_tax)}</td>` +
+            `<td class="amount-red">${fmtMoney(p.total_deduction)}</td>` +
+            `<td class="amount-green">${fmtMoney(p.net_pay)}</td>` +
+            `<td class="amount-orange">${fmtMoney(p.employer_total)}</td></tr>`;
     }).join('');
-    body.innerHTML = '<table><thead><tr><th>직원명</th><th>사업장</th><th>급여유형</th><th>근무시간</th><th>지급액</th><th>국민연금</th><th>건강보험</th><th>고용보험</th><th>소득세</th><th>총 공제</th><th>차인지급</th><th>사업주부담</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    body.innerHTML = `<table><thead><tr><th>직원명</th><th>사업장</th><th>급여유형</th><th>총 근로시간</th><th>총 지급액</th><th>국민연금</th><th>건강보험</th><th>고용보험</th><th>소득세</th><th>총 공제액</th><th>실 지급액</th><th>사업주 부담액</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
+
 function renderSummary(payrolls) {
     const cards = document.getElementById('summaryCards');
     if (payrolls.length === 0) { cards.style.display = 'none'; return; }
@@ -279,56 +306,61 @@ function renderSummary(payrolls) {
     document.getElementById('sumNet').textContent = fmtMoney(sum('net_pay'));
     document.getElementById('sumEmployer').textContent = fmtMoney(sum('employer_total'));
     document.getElementById('sumLabor').textContent = fmtNum(sum('total_work_hours')) + 'h';
-    document.getElementById('sumCount').textContent = '직원 ' + payrolls.length + '명';
+    document.getElementById('sumCount').textContent = `직원 ${payrolls.length}건`;
     cards.style.display = 'grid';
 }
+
 function renderWarnings(payrolls) {
     const banner = document.getElementById('warningsBanner');
     const list = document.getElementById('warningsList');
     const all = [];
     payrolls.forEach(p => { if (p.warnings && p.warnings.length > 0) p.warnings.forEach(w => all.push({name: p.employee_name, ...w})); });
     if (all.length === 0) { banner.classList.remove('show'); return; }
-    list.innerHTML = all.map(w => '<div class="warning-item ' + (w.level==='critical'?'critical':'') + '"><span class="warning-badge ' + (w.level||'warning') + '">' + (w.level==='critical'?'위반':'주의') + '</span><span>[' + escapeHtml(w.name) + '] ' + escapeHtml(w.message||'') + '</span></div>').join('');
+    list.innerHTML = all.map(w => `<div class="warning-item ${w.level==='critical'?'critical':''}"><span class="warning-badge ${w.level||'warning'}">${w.level==='critical'?'치명적':'경고'}</span><span>[ ${escapeHtml(w.name)} ] ${escapeHtml(w.message||'')}</span></div>`).join('');
     banner.classList.add('show');
 }
+
 function downloadExcel() {
     if (payrollData.length === 0) return;
     const year = document.getElementById('filterYear').value;
     const month = document.getElementById('filterMonth').value;
-    const typeMap = { hourly:'시급', daily:'일급', weekly:'주급', monthly:'월급', annual:'연봉' };
+    const typeMap = { hourly:'시급제', daily:'일급제', weekly:'주급제', monthly:'월급제', annual:'연봉제' };
     const ws = XLSX.utils.aoa_to_sheet([
-        ['직원명','사업장','급여유형','근무시간','지급액','국민연금','건강보험','고용보험','소득세','지방소득세','총공제','차인지급액','사업주부담금'],
+        ['직원명','사업장','급여유형','총 근로시간','총 지급액','국민연금','건강보험','고용보험','소득세','지방소득세','총 공제액','실 지급액','사업주 부담액'],
         ...payrollData.map(p => [p.employee_name||'-',p.business_name||'미지정',typeMap[p.salary_type]||p.salary_type,p.total_work_hours||0,p.gross_pay||0,p.national_pension||0,p.health_insurance||0,p.employment_insurance||0,p.income_tax||0,p.local_income_tax||0,p.total_deduction||0,p.net_pay||0,p.employer_total||0]),
         ['합계','','','',payrollData.reduce((s,p)=>s+(p.gross_pay||0),0),payrollData.reduce((s,p)=>s+(p.national_pension||0),0),payrollData.reduce((s,p)=>s+(p.health_insurance||0),0),payrollData.reduce((s,p)=>s+(p.employment_insurance||0),0),payrollData.reduce((s,p)=>s+(p.income_tax||0),0),payrollData.reduce((s,p)=>s+(p.local_income_tax||0),0),payrollData.reduce((s,p)=>s+(p.total_deduction||0),0),payrollData.reduce((s,p)=>s+(p.net_pay||0),0),payrollData.reduce((s,p)=>s+(p.employer_total||0),0)]
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, year+'년'+month+'월');
-    XLSX.writeFile(wb, '급여대장_'+year+'년'+month+'월.xlsx');
+    XLSX.writeFile(wb, `급여대장_${year}년${month}월.xlsx`);
 }
+
 function downloadBankFile() {
     if (payrollData.length === 0) return;
     const year = document.getElementById('filterYear').value;
     const month = document.getElementById('filterMonth').value;
     let hasEmpty = false;
-    const lines = ['직원명,은행명,계좌번호,이체금액(원)'];
+    const lines = ['직원명,은행명,계좌번호,급여액'];
     payrollData.forEach(p => {
         if (!p.bank_account || !p.bank_name) hasEmpty = true;
-        lines.push('"'+(p.employee_name||'').replace(/"/g,'')+'","'+(p.bank_name||'미등록').replace(/"/g,'')+'","'+(p.bank_account||'미등록').replace(/"/g,'')+'",'+( p.net_pay||0));
+        lines.push('"'+(p.employee_name||'').replace(/"/g,'')+'","'+(p.bank_name||'미지정').replace(/"/g,'')+'","'+(p.bank_account||'미지정').replace(/"/g,'')+'","'+(p.net_pay||0)+'"');
     });
-    if (hasEmpty) alert('일부 직원의 계좌 정보가 없습니다.
-직원 관리에서 계좌 정보를 등록해주세요.');
-    const blob = new Blob(['﻿'+lines.join('
-')], {type:'text/csv;charset=utf-8;'});
+    if (hasEmpty) alert('은행 계좌 정보가 없는 직원이 있습니다.\n직원 정보에서 계좌 정보를 설정해주세요.');
+    const blob = new Blob(['\ufeff'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = '이체파일_'+year+'년'+month+'월.csv'; a.click();
+    a.href = URL.createObjectURL(blob); a.download = `은행이체_${year}년${month}월.csv`; a.click();
 }
+
 function handleLogout() {
-    localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); sessionStorage.clear();
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userInfo');
+    localStorage.removeItem('sm_selected_business');
+    sessionStorage.clear();
     window.location.href = '/login.html';
 }
 function fmtMoney(val) { if (val===null||val===undefined) return '-'; return '₩'+Math.round(val).toLocaleString('ko-KR'); }
 function fmtNum(val) { return val ? parseFloat(val).toFixed(1) : '0.0'; }
-function escapeHtml(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 </body>
 </html>

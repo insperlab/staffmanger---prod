@@ -59,109 +59,133 @@
 </head>
 <body>
 <nav class="navbar">
-  <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
+  <a href="/dashboard.html" class="navbar-brand"><span>👋</span><span>StaffManager</span></a>
   <div class="navbar-menu">
     <a href="/dashboard.html">대시보드</a>
     <a href="/employees.html">직원 관리</a>
     <a href="/attendances.html" class="active">출퇴근 관리</a>
-    <a href="/calendar.html">휴가 관리</a>
+    <a href="/calendar.html">달력 관리</a>
     <a href="/salary.html">급여 관리</a>
     <a href="/contracts.html">계약 관리</a>
-    <a href="/businesses.html">사업장</a>
+    <a href="/businesses.html">사업장 관리</a>
     <a href="/settings.html">설정</a>
   </div>
   <div class="user-menu">
     <div class="user-info">
-      <div class="user-name" id="userName">사용자</div>
-      <div class="company-name" id="companyName">회사명</div>
+      <div class="user-name" id="userName">홍길동</div>
+      <div class="company-name" id="companyName">인스퍼랩</div>
     </div>
     <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
   </div>
 </nav>
+
 <div class="container">
   <div class="page-header">
     <div>
-      <h1 class="page-title">🕐 출퇴근 관리</h1>
-      <p class="page-subtitle">직원별 출퇴근 기록 조회 및 관리</p>
+      <h1 class="page-title">📅 출퇴근 관리</h1>
+      <p class="page-subtitle">직원들의 출퇴근 기록을 확인하고 관리합니다.</p>
     </div>
   </div>
   <div class="stats-row">
-    <div class="stat-card"><div class="stat-label">전체 기록</div><div class="stat-value" id="statTotal">0</div></div>
-    <div class="stat-card"><div class="stat-label">총 근무시간</div><div class="stat-value" id="statHours">0h</div></div>
-    <div class="stat-card"><div class="stat-label">지각</div><div class="stat-value" id="statLate">0</div></div>
-    <div class="stat-card"><div class="stat-label">조퇴</div><div class="stat-value" id="statEarlyLeave">0</div></div>
+    <div class="stat-card"><div class="stat-label">총 기록</div><div class="stat-value" id="statTotal">0</div></div>
+    <div class="stat-card"><div class="stat-label">근무 시간</div><div class="stat-value" id="statHours">0h</div></div>
+    <div class="stat-card"><div class="stat-label">지각 수</div><div class="stat-value" id="statLate">0</div></div>
+    <div class="stat-card"><div class="stat-label">조퇴 수</div><div class="stat-value" id="statEarlyLeave">0</div></div>
   </div>
   <div class="controls">
     <input type="date" class="date-input" id="startDate">
     <span style="color:#999">~</span>
     <input type="date" class="date-input" id="endDate">
-    <select class="filter-select" id="businessFilter" onchange="loadAttendances()">
-      <option value="">전체 사업장</option>
-      <option value="unassigned">미배정</option>
+    <!-- ✅ [변경1] 사업장 필터 select — onchange에 BusinessFilter.setSelected() 연동 -->
+    <select class="filter-select" id="businessFilter" onchange="onBizSelectChange()">
+      <option value="all">전체 사업장</option>
     </select>
     <select class="filter-select" id="departmentFilter" onchange="loadAttendances()">
       <option value="">전체 부서</option>
     </select>
     <button class="btn-secondary" onclick="loadAttendances()">🔍 조회</button>
-    <button class="btn-secondary" onclick="resetFilters()">↺ 초기화</button>
+    <button class="btn-secondary" onclick="resetFilters()">🔄 필터 초기화</button>
   </div>
   <div class="result-count" id="resultCount"></div>
   <div id="loadingState" class="table-container">
-    <div class="loading"><div class="spinner"></div><p style="color:#999">출퇴근 기록을 불러오는 중...</p></div>
+    <div class="loading"><div class="spinner"></div><p style="color:#999">출퇴근 기록을 불러오는 중입니다...</p></div>
   </div>
   <div id="attendanceTable" class="table-container" style="display:none">
     <table>
-      <thead><tr><th>날짜</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시각</th><th>퇴근 시각</th><th>근무시간</th><th>초과근무</th><th>상태</th></tr></thead>
+      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>상태</th></tr></thead>
       <tbody id="attendanceBody"></tbody>
     </table>
   </div>
   <div id="emptyState" class="table-container" style="display:none">
-    <div class="empty-state"><div class="empty-state-icon">🕐</div><p class="empty-state-text">해당 기간에 출퇴근 기록이 없습니다</p></div>
+    <div class="empty-state"><div class="empty-state-icon">📄</div><p class="empty-state-text">출퇴근 기록이 없습니다.</p></div>
   </div>
 </div>
+
+<!-- ✅ [변경2] business-filter.js 공통 모듈 로드 -->
+<script src="/business-filter.js"></script>
 <script>
-  var authToken=null,userInfo=null,businessMap={};
+  var authToken=null, userInfo=null, businessMap={};
   var today=new Date().toISOString().split('T')[0];
   var weekAgo=new Date(Date.now()-6*24*60*60*1000).toISOString().split('T')[0];
-  window.addEventListener('DOMContentLoaded',async function(){
+
+  window.addEventListener('DOMContentLoaded', async function(){
     authToken=localStorage.getItem('authToken');
     var ui=localStorage.getItem('userInfo');
     if(!authToken||!ui){window.location.href='/login.html';return}
     try{userInfo=JSON.parse(ui)}catch(e){window.location.href='/login.html';return}
-    document.getElementById('userName').textContent=userInfo.name||'사용자';
+    document.getElementById('userName').textContent=userInfo.name||'홍길동';
     document.getElementById('companyName').textContent=userInfo.companyName||'';
     document.getElementById('startDate').value=weekAgo;
     document.getElementById('endDate').value=today;
-    document.getElementById('startDate').addEventListener('change',loadAttendances);
-    document.getElementById('endDate').addEventListener('change',loadAttendances);
+    document.getElementById('startDate').addEventListener('change', loadAttendances);
+    document.getElementById('endDate').addEventListener('change', loadAttendances);
     await loadBusinesses();
     await loadEmployeeDepartments();
     await loadAttendances();
   });
+
+  /* ✅ [변경3] businesses-list 사용 + localStorage 복원 */
   async function loadBusinesses(){
     try{
-      var r=await fetch('/.netlify/functions/businesses-manage',{headers:{'Authorization':'Bearer '+authToken}});
+      var r=await fetch('/.netlify/functions/businesses-list',{headers:{'Authorization':'Bearer '+authToken}});
       var res=await r.json();
-      if(res.success&&res.data&&res.data.businesses){
+      if(res.success && res.businesses){
         var sel=document.getElementById('businessFilter');
-        res.data.businesses.forEach(function(b){businessMap[b.id]=b.name;var opt=document.createElement('option');opt.value=b.id;opt.textContent=b.name+(b.is_headquarters?' (본사)':'');sel.appendChild(opt);});
-        if(res.data.businesses.length<=1)document.getElementById('businessFilter').style.display='none';
-        var saved=sessionStorage.getItem('attBizFilter');
-        if(saved)document.getElementById('businessFilter').value=saved;
+        res.businesses.forEach(function(b){
+          businessMap[b.id]=b.name;
+          var opt=document.createElement('option');
+          opt.value=b.id;
+          opt.textContent=b.name+(b.is_headquarters?' (본점)':'');
+          sel.appendChild(opt);
+        });
+        /* localStorage에서 이전 선택값 복원 (다른 페이지에서 선택한 사업장 유지) */
+        var saved=BusinessFilter.getSelected();
+        if(saved && saved!=='all'){sel.value=saved;}
       }
     }catch(e){console.error('사업장 로드 실패:',e)}
   }
+
+  /* ✅ [변경4] 사업장 변경 시 localStorage에 저장 후 데이터 재조회 */
+  function onBizSelectChange(){
+    var val=document.getElementById('businessFilter').value;
+    BusinessFilter.setSelected(val);
+    loadAttendances();
+  }
+
   async function loadEmployeeDepartments(){
     try{
       var r=await fetch('/.netlify/functions/employees-list',{headers:{'Authorization':'Bearer '+authToken}});
       var res=await r.json();
-      if(res.success&&res.data&&res.data.employees){
+      if(res.success && res.data && res.data.employees){
         var depts=[...new Set(res.data.employees.map(function(e){return e.department}).filter(Boolean))];
         var sel=document.getElementById('departmentFilter');
-        depts.sort().forEach(function(dept){var opt=document.createElement('option');opt.value=dept;opt.textContent=dept;sel.appendChild(opt);});
+        depts.sort().forEach(function(dept){
+          var opt=document.createElement('option');opt.value=dept;opt.textContent=dept;sel.appendChild(opt);
+        });
       }
     }catch(e){console.error('부서 로드 실패:',e)}
   }
+
   async function loadAttendances(){
     document.getElementById('loadingState').style.display='block';
     document.getElementById('attendanceTable').style.display='none';
@@ -170,23 +194,23 @@
     var endDate=document.getElementById('endDate').value;
     var businessId=document.getElementById('businessFilter').value;
     var department=document.getElementById('departmentFilter').value;
-    sessionStorage.setItem('attBizFilter',businessId);
     var params=new URLSearchParams();
     if(startDate)params.append('startDate',startDate);
     if(endDate)params.append('endDate',endDate);
-    if(businessId)params.append('businessId',businessId);
+    /* 'all' 이 아닐 때만 business_id 파라미터 전송 */
+    if(businessId && businessId!=='all')params.append('businessId',businessId);
     if(department)params.append('department',department);
     try{
       var response=await fetch('/.netlify/functions/attendances-list?'+params.toString(),{headers:{'Authorization':'Bearer '+authToken}});
       var data=await response.json();
-      if(!data.success)throw new Error(data.error||'조회 실패');
+      if(!data.success)throw new Error(data.error||'데이터 로드 실패');
       var attendances=data.data.attendances||[];
       var stats=data.data.stats||{};
       document.getElementById('statTotal').textContent=stats.totalRecords||attendances.length;
       document.getElementById('statHours').textContent=(stats.totalWorkHours||0).toFixed(1)+'h';
       document.getElementById('statLate').textContent=stats.totalLateCount||0;
       document.getElementById('statEarlyLeave').textContent=stats.totalEarlyLeaveCount||0;
-      document.getElementById('resultCount').textContent='검색 결과: '+attendances.length+'건';
+      document.getElementById('resultCount').textContent='총 결과: '+attendances.length+'건';
       document.getElementById('loadingState').style.display='none';
       if(attendances.length===0){document.getElementById('emptyState').style.display='block';return}
       var tbody=document.getElementById('attendanceBody');tbody.innerHTML='';
@@ -197,9 +221,15 @@
         var workHours=record.workHours?record.workHours.toFixed(1)+'h':'-';
         var overtimeHours=record.overtimeHours&&record.overtimeHours>0?'<span style="color:#e74c3c;font-weight:600">+'+record.overtimeHours.toFixed(1)+'h</span>':'-';
         var statusText='',statusClass='status-normal';
-        switch(record.status){case 'normal':statusText='정상';statusClass='status-normal';break;case 'late':statusText='지각';statusClass='status-late';break;case 'absent':statusText='결근';statusClass='status-absent';break;case 'early_leave':statusText='조퇴';statusClass='status-early_leave';break;default:statusText=record.status||'-';statusClass='status-normal';}
+        switch(record.status){
+          case 'normal':statusText='정상';statusClass='status-normal';break;
+          case 'late':statusText='지각';statusClass='status-late';break;
+          case 'absent':statusText='결근';statusClass='status-absent';break;
+          case 'early_leave':statusText='조퇴';statusClass='status-early_leave';break;
+          default:statusText=record.status||'-';statusClass='status-normal';
+        }
         var emp=record.employee||{};
-        var bizName=emp.businessId?(businessMap[emp.businessId]||'알수없음'):'미배정';
+        var bizName=emp.businessId?(businessMap[emp.businessId]||'미배정'):'미배정';
         var bizHtml=emp.businessId?'<span class="biz-badge">'+escapeHtml(bizName)+'</span>':'<span class="biz-badge" style="background:#fff3e0;color:#e65100">미배정</span>';
         var tr=document.createElement('tr');
         tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td>';
@@ -207,23 +237,33 @@
       });
       document.getElementById('attendanceTable').style.display='block';
     }catch(e){
-      console.error('출퇴근 조회 오류:',e);
+      console.error('출퇴근 기록 로드 실패:',e);
       document.getElementById('loadingState').style.display='none';
       document.getElementById('emptyState').style.display='block';
-      document.getElementById('resultCount').textContent='조회 오류: '+e.message;
+      document.getElementById('resultCount').textContent='로드 실패: '+e.message;
     }
   }
+
   function resetFilters(){
     document.getElementById('startDate').value=weekAgo;
     document.getElementById('endDate').value=today;
-    document.getElementById('businessFilter').value='';
+    document.getElementById('businessFilter').value='all';
     document.getElementById('departmentFilter').value='';
-    sessionStorage.removeItem('attBizFilter');
+    BusinessFilter.setSelected('all'); /* 전체 초기화 시 localStorage도 초기화 */
     loadAttendances();
   }
+
   function formatTime(isoStr){if(!isoStr)return'-';try{var d=new Date(isoStr);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}catch(e){return isoStr}}
-  function escapeHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
-  function handleLogout(){if(confirm('로그아웃 하시겠습니까?')){localStorage.removeItem('authToken');localStorage.removeItem('userInfo');sessionStorage.clear();window.location.href='/login.html';}}
+  function escapeHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+  function handleLogout(){
+    if(confirm('로그아웃 하시겠습니까?')){
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('sm_selected_business');
+      sessionStorage.clear();
+      window.location.href='/login.html';
+    }
+  }
 </script>
 </body>
 </html>

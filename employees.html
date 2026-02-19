@@ -68,13 +68,13 @@
             <a href="/calendar.html">달력 관리</a>
             <a href="/salary.html">급여 관리</a>
             <a href="/contracts.html">계약 관리</a>
-            <a href="/businesses.html">사업체 관리</a>
-            <a href="/settings.html">설정</a>
+            <a href="/businesses.html">사업장 관리</a>
+            <a href="/settings.html">환경설정</a>
         </div>
         <div class="user-menu">
             <div class="user-info">
-                <div class="user-name" id="userName">김철수</div>
-                <div class="company-name" id="companyName">파이프드림</div>
+                <div class="user-name" id="userName">김인스</div>
+                <div class="company-name" id="companyName">인스퍼랩 관리</div>
             </div>
             <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
         </div>
@@ -82,43 +82,51 @@
     <div class="container">
         <div class="page-header">
             <div>
-                <h1 class="page-title">👨‍💼 직원 관리</h1>
-                <p class="page-subtitle">회사 소속 직원을 추가하고 관리합니다</p>
+                <h1 class="page-title">✨👥 직원 관리</h1>
+                <p class="page-subtitle">현재 재직 중인 직원 정보를 관리하고 조회합니다.</p>
             </div>
             <div style="display:flex;gap:10px">
-                <a href="/employees-import.html" class="btn-primary" style="background:#27ae60"><span>📥</span> <span>직원 가져오기</span></a>
+                <a href="/employees-import.html" class="btn-primary" style="background:#27ae60"><span>📥</span> <span>직원 일괄 추가</span></a>
                 <a href="/employee-new.html" class="btn-primary"><span>➕</span> <span>새 직원 추가</span></a>
             </div>
         </div>
         <div class="stats-row">
             <div class="stat-card"><div class="stat-label">전체 직원</div><div class="stat-value" id="totalEmployees">0</div></div>
-            <div class="stat-card"><div class="stat-label">근무중인 직원</div><div class="stat-value" id="activeEmployees">0</div></div>
+            <div class="stat-card"><div class="stat-label">현재 재직중인 직원</div><div class="stat-value" id="activeEmployees">0</div></div>
             <div class="stat-card"><div class="stat-label">휴가중</div><div class="stat-value" id="onLeaveEmployees">0</div></div>
             <div class="stat-card"><div class="stat-label">퇴사자</div><div class="stat-value" id="resignedEmployees">0</div></div>
         </div>
         <div class="controls">
             <div class="search-box"><input type="text" id="searchInput" placeholder="🔍 이름, 휴대폰, 부서, 직책..."></div>
-            <select class="filter-select" id="businessFilter"><option value="all">전체 사업체</option><option value="unassigned">미지정</option></select>
-            <select class="filter-select" id="statusFilter"><option value="all">전체 상태</option><option value="active">근무중</option><option value="on_leave">휴가중</option><option value="resigned">퇴사자</option></select>
-            <select class="filter-select" id="sortBy"><option value="name">이름순</option><option value="hireDate">입사일순</option><option value="department">부서순</option><option value="business">사업체순</option></select>
+            <!-- ✅ [변경1] 사업장 필터 select — onchange에 BusinessFilter.setSelected() 연동 -->
+            <select class="filter-select" id="businessFilter" onchange="onBizSelectChange()">
+                <option value="all">전체 사업장</option>
+                <option value="unassigned">미배정</option>
+            </select>
+            <select class="filter-select" id="statusFilter"><option value="all">전체 상태</option><option value="active">재직중</option><option value="on_leave">휴가중</option><option value="resigned">퇴사자</option></select>
+            <select class="filter-select" id="sortBy"><option value="name">이름순</option><option value="hireDate">고용일순</option><option value="department">부서순</option><option value="business">사업장순</option></select>
         </div>
         <div class="result-count" id="resultCount"></div>
         <div id="loadingState" class="table-container">
-            <div class="loading"><div class="spinner"></div><p style="color:#999">직원 목록을 불러오는 중입니다...</p></div>
+            <div class="loading"><div class="spinner"></div><p style="color:#999">직원 정보를 불러오는 중입니다...</p></div>
         </div>
         <div id="employeesTable" class="table-container" style="display:none">
-            <table><thead><tr><th>이름</th><th>휴대폰</th><th>부서</th><th>직책</th><th>사업체</th><th>입사일</th><th>상태</th></tr></thead><tbody id="employeesBody"></tbody></table>
+            <table><thead><tr><th>이름</th><th>휴대폰</th><th>부서</th><th>직책</th><th>사업장</th><th>고용일</th><th>상태</th></tr></thead><tbody id="employeesBody"></tbody></table>
         </div>
-        <div id="emptyState" class="table-container" style="display:none"><div class="empty-state"><div class="empty-state-icon">🤷</div><p class="empty-state-text">아직 등록된 직원이 없습니다.</p><a href="/employee-new.html" class="btn-primary"><span>➕</span><span>새 직원 등록하기</span></a></div></div>
+        <div id="emptyState" class="table-container" style="display:none"><div class="empty-state"><div class="empty-state-icon">🚫</div><p class="empty-state-text">아직 등록된 직원이 없습니다.</p><a href="/employee-new.html" class="btn-primary"><span>➕</span><span>새 직원 추가</span></a></div></div>
     </div>
+
+<!-- ✅ [변경2] business-filter.js 공통 모듈 로드 -->
+<script src="/business-filter.js"></script>
 <script>
 var authToken=null,userInfo=null,allEmployees=[],filteredEmployees=[],businessMap={};
+
 window.addEventListener('DOMContentLoaded',async function(){
     authToken=localStorage.getItem('authToken');
     var ui=localStorage.getItem('userInfo');
     if(!authToken||!ui){window.location.href='/login.html';return}
     try{userInfo=JSON.parse(ui)}catch(e){window.location.href='/login.html';return}
-    document.getElementById('userName').textContent=userInfo.name||'김철수';
+    document.getElementById('userName').textContent=userInfo.name||'김인스';
     document.getElementById('companyName').textContent=userInfo.companyName||'';
     document.getElementById('searchInput').addEventListener('input',filterEmployees);
     document.getElementById('businessFilter').addEventListener('change',filterEmployees);
@@ -126,19 +134,35 @@ window.addEventListener('DOMContentLoaded',async function(){
     document.getElementById('sortBy').addEventListener('change',filterEmployees);
     await Promise.all([loadBusinesses(),loadEmployees()]);
 });
+
+/* ✅ [변경3] businesses-list 사용 + localStorage 복원 */
 async function loadBusinesses(){
     try{
-        var r=await fetch('/.netlify/functions/businesses-manage',{headers:{'Authorization':'Bearer '+authToken}});
+        var r=await fetch('/.netlify/functions/businesses-list',{headers:{'Authorization':'Bearer '+authToken}});
         var res=await r.json();
-        if(res.success&&res.data&&res.data.businesses){
+        if(res.success&&res.businesses){
             var sel=document.getElementById('businessFilter');
-            res.data.businesses.forEach(function(b){
+            res.businesses.forEach(function(b){
                 businessMap[b.id]=b.name;
-                var opt=document.createElement('option');opt.value=b.id;opt.textContent=b.name;sel.appendChild(opt);
+                var opt=document.createElement('option');
+                opt.value=b.id;
+                opt.textContent=b.name+(b.is_headquarters?' (본점)':'');
+                sel.appendChild(opt);
             });
+            /* localStorage에서 이전 선택값 복원 */
+            var saved=BusinessFilter.getSelected();
+            if(saved){sel.value=saved;}
         }
-    }catch(e){console.error('사업체 로드 오류:',e)}
+    }catch(e){console.error('사업장 정보 오류:',e)}
 }
+
+/* ✅ [변경4] 사업장 select 변경 시 BusinessFilter.setSelected() 호출 */
+function onBizSelectChange(){
+    var val=document.getElementById('businessFilter').value;
+    BusinessFilter.setSelected(val);
+    filterEmployees();
+}
+
 async function loadEmployees(){
     try{
         var response=await fetch('/.netlify/functions/employees-list',{headers:{'Authorization':'Bearer '+authToken,'Content-Type':'application/json'}});
@@ -150,31 +174,34 @@ async function loadEmployees(){
             if(allEmployees.length===0){document.getElementById('emptyState').style.display='block'}
             else{document.getElementById('employeesTable').style.display='block'}
         }else{throw new Error(data.error)}
-    }catch(e){console.error('직원 목록 로드 오류:',e);document.getElementById('loadingState').style.display='none';document.getElementById('emptyState').style.display='block'}
+    }catch(e){console.error('직원 정보 오류:',e);document.getElementById('loadingState').style.display='none';document.getElementById('emptyState').style.display='block'}
 }
+
 function updateStats(){
     document.getElementById('totalEmployees').textContent=allEmployees.length;
     document.getElementById('activeEmployees').textContent=allEmployees.filter(function(e){return e.status==='active'}).length;
     document.getElementById('onLeaveEmployees').textContent=allEmployees.filter(function(e){return e.status==='on_leave'}).length;
     document.getElementById('resignedEmployees').textContent=allEmployees.filter(function(e){return e.status==='resigned'}).length;
 }
+
 function renderEmployees(){
     var tbody=document.getElementById('employeesBody');tbody.innerHTML='';
     filteredEmployees.forEach(function(emp){
         var row=document.createElement('tr');
         row.onclick=function(){viewEmployeeDetail(emp.id)};
         var statusText='',statusClass='';
-        switch(emp.status){case 'active':statusText='근무중';statusClass='status-active';break;case 'on_leave':statusText='휴가중';statusClass='status-on_leave';break;case 'resigned':statusText='퇴사자';statusClass='status-resigned';break;default:statusText=emp.status||'-';statusClass='status-active'}
+        switch(emp.status){case 'active':statusText='재직중';statusClass='status-active';break;case 'on_leave':statusText='휴가중';statusClass='status-on_leave';break;case 'resigned':statusText='퇴사자';statusClass='status-resigned';break;default:statusText=emp.status||'-';statusClass='status-active'}
         var hireDate=emp.hireDate?new Date(emp.hireDate).toISOString().split('T')[0]:'-';
         var bizId=emp.businessId||emp.business_id||null;
-        var bizName=bizId?(businessMap[bizId]||'미지정'):'';
-        var bizHtml=bizName?'<span class="biz-badge">'+escapeHtml(bizName)+'</span>':'<span class="biz-badge biz-unassigned">미지정</span>';
+        var bizName=bizId?(businessMap[bizId]||'미배정'):'';
+        var bizHtml=bizName?'<span class="biz-badge">'+escapeHtml(bizName)+'</span>':'<span class="biz-badge biz-unassigned">미배정</span>';
         row.innerHTML='<td class="employee-name">'+escapeHtml(emp.name)+'</td><td>'+escapeHtml(emp.phone||'-')+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+escapeHtml(emp.position||'-')+'</td><td>'+bizHtml+'</td><td>'+hireDate+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td>';
         tbody.appendChild(row);
     });
     var countEl=document.getElementById('resultCount');
-    if(filteredEmployees.length<allEmployees.length){countEl.textContent='검색 결과: '+filteredEmployees.length+'명 / 전체 '+allEmployees.length+'명'}else{countEl.textContent=''}
+    if(filteredEmployees.length<allEmployees.length){countEl.textContent='총 '+filteredEmployees.length+'명 / 전체 '+allEmployees.length+'명'}else{countEl.textContent=''}
 }
+
 function filterEmployees(){
     var searchTerm=document.getElementById('searchInput').value.toLowerCase();
     var bizFilter=document.getElementById('businessFilter').value;
@@ -198,15 +225,16 @@ function filterEmployees(){
     });
     renderEmployees();
 }
-function viewEmployeeDetail(employeeId){window.location.href='/employee-detail.html?id='+employeeId}
-function escapeHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
 
-/* ✅ 수정: localStorage + sessionStorage 모두 초기화 */
+function viewEmployeeDetail(employeeId){window.location.href='/employee-detail.html?id='+employeeId}
+function escapeHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+
 function handleLogout(){
     if(confirm('로그아웃 하시겠습니까?')){
         localStorage.removeItem('authToken');
         localStorage.removeItem('userInfo');
-        sessionStorage.clear(); /* 사업장 필터 등 임시 세션 데이터 전체 삭제 */
+        localStorage.removeItem('sm_selected_business');
+        sessionStorage.clear();
         window.location.href='/login.html';
     }
 }
