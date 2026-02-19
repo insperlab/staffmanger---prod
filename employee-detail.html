@@ -5,90 +5,356 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>직원 상세 - StaffManager</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;background:#f5f7fa;min-height:100vh}.navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}.navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}.navbar-menu{display:flex;gap:30px;align-items:center}.navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}.navbar-menu a:hover,.navbar-menu a.active{color:#667eea}.container{max-width:1200px;margin:0 auto;padding:30px}.breadcrumb{margin-bottom:20px;font-size:14px;color:#999}.breadcrumb a{color:#667eea;text-decoration:none}.profile-header{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px;display:flex;justify-content:space-between;align-items:center}.profile-left{display:flex;align-items:center;gap:24px}.profile-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:700}.profile-name{font-size:28px;font-weight:700;color:#333;margin-bottom:4px}.profile-meta{font-size:14px;color:#999}.profile-meta span{margin-right:16px}.status-badge{display:inline-block;padding:4px 14px;border-radius:12px;font-size:13px;font-weight:600}.status-active{background:#d4edda;color:#155724}.status-on_leave{background:#fff3cd;color:#856404}.status-resigned{background:#f8d7da;color:#721c24}.profile-actions{display:flex;gap:10px}.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .3s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}.btn-outline{background:#fff;color:#667eea;border:2px solid #667eea}.btn-outline:hover{background:#f5f7fa}.btn-danger{background:#fff;color:#e74c3c;border:2px solid #e74c3c}.btn-danger:hover{background:#fdf2f2}.tabs{background:#fff;border-radius:12px 12px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;border-bottom:2px solid #e0e0e0;overflow-x:auto}.tab{padding:16px 28px;font-size:15px;font-weight:500;color:#999;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}.tab:hover{color:#667eea}.tab.active{color:#667eea;border-bottom-color:#667eea;font-weight:600}.tab-content{background:#fff;border-radius:0 0 12px 12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);display:none}.tab-content.active{display:block}.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}.info-group{margin-bottom:8px}.info-label{font-size:13px;color:#999;margin-bottom:4px}.info-value{font-size:15px;color:#333;font-weight:500}.info-value.highlight{color:#667eea;font-weight:700;font-size:18px}.section-divider{border:none;border-top:1px solid #eee;margin:24px 0}.section-subtitle{font-size:17px;font-weight:600;color:#333;margin-bottom:16px;padding-left:12px;border-left:4px solid #667eea}.contract-list{list-style:none}.contract-item{padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}.contract-item:hover{background:#f8f9fa}.contract-type{font-weight:600;color:#333}.contract-date{font-size:13px;color:#999}.contract-status{font-size:12px;padding:3px 10px;border-radius:10px;font-weight:600}.contract-signed{background:#d4edda;color:#155724}.contract-pending{background:#fff3cd;color:#856404}.contract-sent{background:#d1ecf1;color:#0c5460}.loading{text-align:center;padding:80px 20px}.spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 20px}@keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}@media(max-width:768px){.container{padding:15px}.profile-header{flex-direction:column;gap:20px;align-items:flex-start}.info-grid{grid-template-columns:1fr}.tab{padding:12px 16px;font-size:13px}}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;background:#f5f7fa;min-height:100vh}.navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}.navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}.navbar-menu{display:flex;gap:30px;align-items:center}.navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}.navbar-menu a:hover,.navbar-menu a.active{color:#667eea}.container{max-width:1200px;margin:0 auto;padding:30px}.breadcrumb{margin-bottom:20px;font-size:14px;color:#999}.breadcrumb a{color:#667eea;text-decoration:none}.profile-header{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px;display:flex;justify-content:space-between;align-items:center}.profile-left{display:flex;align-items:center;gap:24px}.profile-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:700}.profile-name{font-size:28px;font-weight:700;color:#333;margin-bottom:4px}.profile-meta{font-size:14px;color:#999}.profile-meta span{margin-right:16px}.status-badge{display:inline-block;padding:4px 14px;border-radius:12px;font-size:13px;font-weight:600}.status-active{background:#d4edda;color:#155724}.status-on_leave{background:#fff3cd;color:#856404}.status-resigned{background:#f8d7da;color:#721c24}.profile-actions{display:flex;gap:10px}.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .3s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}.btn-primary:hover{opacity:.9}.btn-outline{background:#fff;color:#667eea;border:2px solid #667eea}.btn-outline:hover{background:#f5f7fa}.tabs{background:#fff;border-radius:12px 12px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;border-bottom:2px solid #e0e0e0;overflow-x:auto}.tab{padding:16px 28px;font-size:15px;font-weight:500;color:#999;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}.tab:hover{color:#667eea}.tab.active{color:#667eea;border-bottom-color:#667eea;font-weight:600}.tab-content{background:#fff;border-radius:0 0 12px 12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);display:none}.tab-content.active{display:block}.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}.info-group{margin-bottom:8px}.info-label{font-size:13px;color:#999;margin-bottom:4px}.info-value{font-size:15px;color:#333;font-weight:500}.info-value.highlight{color:#667eea;font-weight:700;font-size:18px}.section-divider{border:none;border-top:1px solid #eee;margin:24px 0}.section-subtitle{font-size:17px;font-weight:600;color:#333;margin-bottom:16px;padding-left:12px;border-left:4px solid #667eea}.contract-list{list-style:none}.contract-item{padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}.contract-item:hover{background:#f8f9fa}.contract-type{font-weight:600;color:#333}.contract-date{font-size:13px;color:#999}.contract-status{font-size:12px;padding:3px 10px;border-radius:10px;font-weight:600}.contract-signed{background:#d4edda;color:#155724}.contract-pending{background:#fff3cd;color:#856404}.contract-sent{background:#d1ecf1;color:#0c5460}.loading{text-align:center;padding:80px 20px}.spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 20px}@keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:center;padding:20px}.modal-overlay.show{display:flex}.modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}.modal-header{padding:24px 28px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.modal-title{font-size:20px;font-weight:700;color:#333}.modal-close{background:none;border:none;font-size:24px;color:#999;cursor:pointer;padding:4px;line-height:1}.modal-close:hover{color:#333}.modal-body{padding:0 28px 28px}.form-section{margin-bottom:24px}.form-section-title{font-size:13px;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}.form-row.full{grid-template-columns:1fr}.form-group label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px}.form-group input,.form-group select{width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;color:#333;background:#fff;transition:border-color .2s}.form-group input:focus,.form-group select:focus{outline:none;border-color:#667eea}.modal-footer{padding:20px 28px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end}.btn-save{padding:12px 28px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}.btn-save:disabled{opacity:.5;cursor:not-allowed}.btn-cancel{padding:12px 24px;background:#f5f7fa;color:#666;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}.save-result{margin:0 28px 16px;padding:12px 16px;border-radius:8px;font-size:14px;display:none}.save-result.success{background:#d4edda;color:#155724;display:block}.save-result.error{background:#f8d7da;color:#721c24;display:block}
+@media(max-width:768px){.container{padding:15px}.profile-header{flex-direction:column;gap:20px;align-items:flex-start}.info-grid{grid-template-columns:1fr}.tab{padding:12px 16px;font-size:13px}.form-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<nav class="navbar"><a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a><div class="navbar-menu"><a href="/dashboard.html">대시보드</a><a href="/employees.html" class="active">직원 관리</a><a href="/attendances.html">출퇴근 관리</a><a href="/calendar.html">휴가 관리</a><a href="/salary.html">급여 관리</a><a href="/settings.html">설정</a><a href="/contracts.html">계약 관리</a></div></nav>
+<nav class="navbar">
+  <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
+  <div class="navbar-menu">
+    <a href="/dashboard.html">대시보드</a>
+    <a href="/employees.html" class="active">직원 관리</a>
+    <a href="/attendances.html">출퇴근 관리</a>
+    <a href="/calendar.html">휴가 관리</a>
+    <a href="/salary.html">급여 관리</a>
+    <a href="/contracts.html">계약 관리</a>
+    <a href="/settings.html">설정</a>
+  </div>
+</nav>
 <div class="container">
-<div class="breadcrumb"><a href="/employees.html">직원 관리</a> &gt; <span id="breadcrumbName">직원 상세</span></div>
-<div id="loadingState" class="loading"><div class="spinner"></div><p style="color:#999">직원 정보를 불러오는 중...</p></div>
-<div id="mainContent" style="display:none">
-<div class="profile-header"><div class="profile-left"><div class="profile-avatar" id="avatar"></div><div><div class="profile-name" id="empName"></div><div class="profile-meta"><span id="empDept"></span><span id="empPosition"></span><span id="empNumber"></span></div><div style="margin-top:8px"><span class="status-badge" id="empStatus"></span></div></div></div><div class="profile-actions"><a href="/contracts.html" class="btn btn-outline">📄 계약서 발송</a><button class="btn btn-danger" onclick="confirmStatusChange()">상태 변경</button></div></div>
-<div class="tabs"><div class="tab active" data-tab="basic" onclick="switchTab('basic')">기본 정보</div><div class="tab" data-tab="work" onclick="switchTab('work')">근무 정보</div><div class="tab" data-tab="salary" onclick="switchTab('salary')">급여 정보</div><div class="tab" data-tab="contract" onclick="switchTab('contract')">계약 정보</div></div>
-<div class="tab-content active" id="tab-basic"><div class="section-subtitle">인적 사항</div><div class="info-grid"><div class="info-group"><div class="info-label">이름</div><div class="info-value" id="infoName">-</div></div><div class="info-group"><div class="info-label">이메일</div><div class="info-value" id="infoEmail">-</div></div><div class="info-group"><div class="info-label">전화번호</div><div class="info-value" id="infoPhone">-</div></div><div class="info-group"><div class="info-label">생년월일</div><div class="info-value" id="infoBirth">-</div></div><div class="info-group"><div class="info-label">주소</div><div class="info-value" id="infoAddress">-</div></div><div class="info-group"><div class="info-label">사원번호</div><div class="info-value" id="infoEmpNumber">-</div></div></div><hr class="section-divider"><div class="section-subtitle">조직 정보</div><div class="info-grid"><div class="info-group"><div class="info-label">부서</div><div class="info-value" id="infoDept">-</div></div><div class="info-group"><div class="info-label">직급</div><div class="info-value" id="infoPosition">-</div></div><div class="info-group"><div class="info-label">직책</div><div class="info-value" id="infoJobTitle">-</div></div><div class="info-group"><div class="info-label">입사일</div><div class="info-value" id="infoHireDate">-</div></div><div class="info-group"><div class="info-label">재직 기간</div><div class="info-value highlight" id="infoTenure">-</div></div><div class="info-group"><div class="info-label">등록일</div><div class="info-value" id="infoCreated">-</div></div></div></div>
-<div class="tab-content" id="tab-work"><div class="section-subtitle">근무 조건</div><div class="info-grid"><div class="info-group"><div class="info-label">근무 형태</div><div class="info-value" id="infoWorkType">-</div></div><div class="info-group"><div class="info-label">근무 시간</div><div class="info-value" id="infoWorkHours">-</div></div><div class="info-group"><div class="info-label">휴게 시간</div><div class="info-value" id="infoBreakTime">-</div></div><div class="info-group"><div class="info-label">주휴일</div><div class="info-value" id="infoWeeklyHoliday">-</div></div><div class="info-group"><div class="info-label">근무지</div><div class="info-value" id="infoWorkLocation">-</div></div><div class="info-group"><div class="info-label">수습 기간</div><div class="info-value" id="infoProbation">-</div></div></div><hr class="section-divider"><div class="section-subtitle">계약 기간</div><div class="info-grid"><div class="info-group"><div class="info-label">계약 시작일</div><div class="info-value" id="infoContractStart">-</div></div><div class="info-group"><div class="info-label">계약 종료일</div><div class="info-value" id="infoContractEnd">-</div></div></div></div>
-<div class="tab-content" id="tab-salary"><div class="section-subtitle">급여 정보</div><div class="info-grid"><div class="info-group"><div class="info-label">급여 유형</div><div class="info-value" id="infoSalaryType">-</div></div><div class="info-group"><div class="info-label">기본급</div><div class="info-value highlight" id="infoBaseSalary">-</div></div><div class="info-group"><div class="info-label">월급</div><div class="info-value highlight" id="infoMonthlyWage">-</div></div><div class="info-group"><div class="info-label">연봉</div><div class="info-value highlight" id="infoAnnualSalary">-</div></div></div><hr class="section-divider"><div class="section-subtitle">계좌 정보</div><div class="info-grid"><div class="info-group"><div class="info-label">은행명</div><div class="info-value" id="infoBankName">-</div></div><div class="info-group"><div class="info-label">계좌번호</div><div class="info-value" id="infoAccountNumber">-</div></div></div></div>
-<div class="tab-content" id="tab-contract"><div class="section-subtitle">전자계약 이력</div><ul class="contract-list" id="contractList"><li style="text-align:center;color:#999;padding:40px">계약 이력이 없습니다</li></ul></div>
-</div></div>
+  <div class="breadcrumb"><a href="/employees.html">직원 관리</a> &gt; <span id="breadcrumbName">직원 상세</span></div>
+  <div id="loadingState" class="loading"><div class="spinner"></div><p style="color:#999">직원 정보를 불러오는 중...</p></div>
+  <div id="mainContent" style="display:none">
+    <div class="profile-header">
+      <div class="profile-left">
+        <div class="profile-avatar" id="avatar"></div>
+        <div>
+          <div class="profile-name" id="empName"></div>
+          <div class="profile-meta"><span id="empDept"></span><span id="empPosition"></span><span id="empBiz"></span></div>
+          <div style="margin-top:8px"><span class="status-badge" id="empStatus"></span></div>
+        </div>
+      </div>
+      <div class="profile-actions">
+        <a href="/contracts.html" class="btn btn-outline">📄 계약서 발송</a>
+        <button class="btn btn-primary" onclick="openEditModal()">✏️ 정보 수정</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="basic" onclick="switchTab('basic')">기본 정보</div>
+      <div class="tab" data-tab="work" onclick="switchTab('work')">근무 정보</div>
+      <div class="tab" data-tab="salary" onclick="switchTab('salary')">급여 정보</div>
+      <div class="tab" data-tab="contract" onclick="switchTab('contract')">계약 정보</div>
+    </div>
+    <div class="tab-content active" id="tab-basic">
+      <div class="section-subtitle">인적 사항</div>
+      <div class="info-grid">
+        <div class="info-group"><div class="info-label">이름</div><div class="info-value" id="infoName">-</div></div>
+        <div class="info-group"><div class="info-label">이메일</div><div class="info-value" id="infoEmail">-</div></div>
+        <div class="info-group"><div class="info-label">전화번호</div><div class="info-value" id="infoPhone">-</div></div>
+        <div class="info-group"><div class="info-label">생년월일</div><div class="info-value" id="infoBirth">-</div></div>
+        <div class="info-group"><div class="info-label">주소</div><div class="info-value" id="infoAddress">-</div></div>
+        <div class="info-group"><div class="info-label">사원번호</div><div class="info-value" id="infoEmpNumber">-</div></div>
+      </div>
+      <hr class="section-divider">
+      <div class="section-subtitle">조직 정보</div>
+      <div class="info-grid">
+        <div class="info-group"><div class="info-label">소속 사업장</div><div class="info-value" id="infoBusiness">-</div></div>
+        <div class="info-group"><div class="info-label">부서</div><div class="info-value" id="infoDept">-</div></div>
+        <div class="info-group"><div class="info-label">직급</div><div class="info-value" id="infoPosition">-</div></div>
+        <div class="info-group"><div class="info-label">직책</div><div class="info-value" id="infoJobTitle">-</div></div>
+        <div class="info-group"><div class="info-label">입사일</div><div class="info-value" id="infoHireDate">-</div></div>
+        <div class="info-group"><div class="info-label">재직 기간</div><div class="info-value highlight" id="infoTenure">-</div></div>
+        <div class="info-group"><div class="info-label">등록일</div><div class="info-value" id="infoCreated">-</div></div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-work">
+      <div class="section-subtitle">근무 조건</div>
+      <div class="info-grid">
+        <div class="info-group"><div class="info-label">근무 형태</div><div class="info-value" id="infoWorkType">-</div></div>
+        <div class="info-group"><div class="info-label">근무 시간</div><div class="info-value" id="infoWorkHours">-</div></div>
+        <div class="info-group"><div class="info-label">휴게 시간</div><div class="info-value" id="infoBreakTime">-</div></div>
+        <div class="info-group"><div class="info-label">주휴일</div><div class="info-value" id="infoWeeklyHoliday">-</div></div>
+        <div class="info-group"><div class="info-label">근무지</div><div class="info-value" id="infoWorkLocation">-</div></div>
+        <div class="info-group"><div class="info-label">수습 기간</div><div class="info-value" id="infoProbation">-</div></div>
+      </div>
+      <hr class="section-divider">
+      <div class="section-subtitle">계약 기간</div>
+      <div class="info-grid">
+        <div class="info-group"><div class="info-label">계약 시작일</div><div class="info-value" id="infoContractStart">-</div></div>
+        <div class="info-group"><div class="info-label">계약 종료일</div><div class="info-value" id="infoContractEnd">-</div></div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-salary">
+      <div class="section-subtitle">급여 정보</div>
+      <div class="info-grid">
+        <div class="info-group"><div class="info-label">급여 유형</div><div class="info-value" id="infoSalaryType">-</div></div>
+        <div class="info-group"><div class="info-label">기본급</div><div class="info-value highlight" id="infoBaseSalary">-</div></div>
+        <div class="info-group"><div class="info-label">월급</div><div class="info-value highlight" id="infoMonthlyWage">-</div></div>
+        <div class="info-group"><div class="info-label">연봉</div><div class="info-value highlight" id="infoAnnualSalary">-</div></div>
+      </div>
+      <hr class="section-divider">
+      <div class="section-subtitle">계좌 정보</div>
+      <div class="info-grid">
+        <div class="info-group"><div class="info-label">은행명</div><div class="info-value" id="infoBankName">-</div></div>
+        <div class="info-group"><div class="info-label">계좌번호</div><div class="info-value" id="infoAccountNumber">-</div></div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-contract">
+      <div class="section-subtitle">전자계약 이력</div>
+      <ul class="contract-list" id="contractList"><li style="text-align:center;color:#999;padding:40px">계약 이력이 없습니다</li></ul>
+    </div>
+  </div>
+</div>
+
+<!-- 통합 정보 수정 모달 -->
+<div class="modal-overlay" id="editModal" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ 직원 정보 수정</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <div class="form-section-title">조직 배치</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>소속 사업장</label>
+            <select id="editBusiness"><option value="">미배정</option></select>
+          </div>
+          <div class="form-group">
+            <label>재직 상태</label>
+            <select id="editStatus">
+              <option value="active">재직중</option>
+              <option value="on_leave">휴직</option>
+              <option value="resigned">퇴사</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>부서</label><input type="text" id="editDept" placeholder="예: 홀, 주방, 카운터"></div>
+          <div class="form-group"><label>직급</label><input type="text" id="editPosition" placeholder="예: 사원, 주임, 매니저"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>직책</label><input type="text" id="editJobTitle" placeholder="예: 홀 매니저, 주방장"></div>
+          <div class="form-group"><label>입사일</label><input type="date" id="editHireDate"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">인적 사항</div>
+        <div class="form-row">
+          <div class="form-group"><label>이름</label><input type="text" id="editName"></div>
+          <div class="form-group"><label>전화번호</label><input type="tel" id="editPhone" placeholder="010-0000-0000"></div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group"><label>이메일</label><input type="email" id="editEmail"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">급여 정보</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>급여 유형</label>
+            <select id="editSalaryType">
+              <option value="hourly">시급제</option>
+              <option value="daily">일급제</option>
+              <option value="monthly">월급제</option>
+              <option value="annual">연봉제</option>
+            </select>
+          </div>
+          <div class="form-group"><label>기본급 (원)</label><input type="number" id="editBaseSalary" min="0"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">계좌 정보</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>은행명</label>
+            <select id="editBankName">
+              <option value="">선택</option>
+              <option>KB국민은행</option><option>신한은행</option><option>우리은행</option>
+              <option>하나은행</option><option>IBK기업은행</option><option>NH농협은행</option>
+              <option>카카오뱅크</option><option>토스뱅크</option><option>케이뱅크</option>
+              <option>SC제일은행</option><option>씨티은행</option><option>우체국</option>
+              <option>새마을금고</option><option>신협</option><option>수협은행</option>
+              <option>대구은행</option><option>부산은행</option><option>광주은행</option>
+              <option>전북은행</option><option>경남은행</option><option>제주은행</option>
+            </select>
+          </div>
+          <div class="form-group"><label>계좌번호</label><input type="text" id="editAccountNumber" placeholder="숫자만 입력"></div>
+        </div>
+      </div>
+    </div>
+    <div id="saveResult" class="save-result"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEditModal()">취소</button>
+      <button class="btn-save" id="saveBtn" onclick="saveEmployee()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
 <script>
-var authToken=null,employeeData=null;
-window.addEventListener('DOMContentLoaded',async function(){
+var authToken=null, employeeData=null, businessList=[];
+
+window.addEventListener('DOMContentLoaded', async function(){
   authToken=localStorage.getItem('authToken');
-  if(!authToken){window.location.href='/login.html';return}
+  if(!authToken){window.location.href='/login.html';return;}
   var p=new URLSearchParams(window.location.search);
   var id=p.get('id');
-  if(!id){window.location.href='/employees.html';return}
-  await loadEmployeeDetail(id);
+  if(!id){window.location.href='/employees.html';return;}
+  await Promise.all([loadEmployeeDetail(id), loadBusinessList()]);
 });
+
+async function loadBusinessList(){
+  try{
+    var r=await fetch('/.netlify/functions/businesses-list',{headers:{'Authorization':'Bearer '+authToken}});
+    var res=await r.json();
+    if(res.success && res.businesses){
+      businessList=res.businesses;
+      var sel=document.getElementById('editBusiness');
+      res.businesses.forEach(function(b){
+        var opt=document.createElement('option');
+        opt.value=b.id;
+        opt.textContent=b.name+(b.is_headquarters?' (본점)':'');
+        sel.appendChild(opt);
+      });
+    }
+  }catch(e){console.error('사업장 목록 로드 실패:',e);}
+}
+
 async function loadEmployeeDetail(id){
   try{
     var r=await fetch('/.netlify/functions/employee-detail?id='+id,{headers:{'Authorization':'Bearer '+authToken}});
     var data=await r.json();
-    if(!data.success)throw new Error(data.error);
+    if(!data.success) throw new Error(data.error);
     employeeData=data.data;
     renderDetail();
     document.getElementById('loadingState').style.display='none';
     document.getElementById('mainContent').style.display='block';
   }catch(e){
-    console.error(e);
     alert('직원 정보를 불러올 수 없습니다: '+e.message);
     window.location.href='/employees.html';
   }
 }
+
 function renderDetail(){
-  var d=employeeData,name=d.name||'이름 없음';
+  var d=employeeData, name=d.name||'이름 없음';
   document.title=name+' - StaffManager';
   document.getElementById('breadcrumbName').textContent=name;
   document.getElementById('avatar').textContent=name.charAt(0);
   document.getElementById('empName').textContent=name;
   document.getElementById('empDept').textContent=d.department?'🏢 '+d.department:'';
   document.getElementById('empPosition').textContent=d.position?'📋 '+d.position:'';
-  document.getElementById('empNumber').textContent=d.employeeNumber?'#'+d.employeeNumber:'';
+  var bizName=getBizName(d.businessId);
+  document.getElementById('empBiz').textContent=bizName?'📍 '+bizName:'';
+  setText('infoBusiness',bizName||'미배정');
   var se=document.getElementById('empStatus');
   var sm={active:['재직 중','status-active'],on_leave:['휴직','status-on_leave'],resigned:['퇴사','status-resigned']};
   var st=sm[d.status]||[d.status,'status-active'];
-  se.textContent=st[0];se.className='status-badge '+st[1];
-  setText('infoName',name);setText('infoEmail',d.email);setText('infoPhone',d.phone);
-  setText('infoBirth',fmtDate(d.birthDate));setText('infoAddress',d.address);setText('infoEmpNumber',d.employeeNumber);
-  setText('infoDept',d.department);setText('infoPosition',d.position);setText('infoJobTitle',d.jobTitle);
-  setText('infoHireDate',fmtDate(d.hireDate));setText('infoCreated',fmtDate(d.createdAt));
+  se.textContent=st[0]; se.className='status-badge '+st[1];
+  setText('infoName',name); setText('infoEmail',d.email); setText('infoPhone',d.phone);
+  setText('infoBirth',fmtDate(d.birthDate)); setText('infoAddress',d.address);
+  setText('infoEmpNumber',d.employeeNumber); setText('infoDept',d.department);
+  setText('infoPosition',d.position); setText('infoJobTitle',d.jobTitle);
+  setText('infoHireDate',fmtDate(d.hireDate)); setText('infoCreated',fmtDate(d.createdAt));
   if(d.hireDate){
     var h=new Date(d.hireDate),n=new Date(),df=n-h;
     var y=Math.floor(df/(365.25*864e5)),m=Math.floor((df%(365.25*864e5))/(30.44*864e5));
-    var t='';if(y>0)t+=y+'년 ';t+=m+'개월';
-    setText('infoTenure',t);
+    setText('infoTenure',(y>0?y+'년 ':'')+m+'개월');
   }
   var wm={full_time:'정규직',part_time:'파트타임',contract:'계약직',daily:'일용직'};
   setText('infoWorkType',wm[d.workType]||d.workType);
-  if(d.workStartTime&&d.workEndTime)setText('infoWorkHours',d.workStartTime+' ~ '+d.workEndTime);
+  if(d.workStartTime&&d.workEndTime) setText('infoWorkHours',d.workStartTime+' ~ '+d.workEndTime);
   setText('infoBreakTime',d.breakTimeMinutes?d.breakTimeMinutes+'분':null);
-  setText('infoWeeklyHoliday',d.weeklyHoliday);setText('infoWorkLocation',d.workLocation);
+  setText('infoWeeklyHoliday',d.weeklyHoliday); setText('infoWorkLocation',d.workLocation);
   setText('infoProbation',d.probationMonths?d.probationMonths+'개월':'없음');
   setText('infoContractStart',fmtDate(d.contractStartDate));
   setText('infoContractEnd',fmtDate(d.contractEndDate)||'무기한');
   var stm={monthly:'월급제',hourly:'시급제',daily:'일급제',annual:'연봉제'};
   setText('infoSalaryType',stm[d.salaryType]||d.salaryType);
-  setText('infoBaseSalary',fmtCur(d.baseSalary));
-  setText('infoMonthlyWage',fmtCur(d.monthlyWage));
-  setText('infoAnnualSalary',fmtCur(d.annualSalary));
-  setText('infoBankName',d.bankName);
+  setText('infoBaseSalary',fmtCur(d.baseSalary)); setText('infoMonthlyWage',fmtCur(d.monthlyWage));
+  setText('infoAnnualSalary',fmtCur(d.annualSalary)); setText('infoBankName',d.bankName);
   setText('infoAccountNumber',d.accountNumber?maskAcc(d.accountNumber):null);
   renderContracts(d.contracts||[]);
 }
+
+function openEditModal(){
+  var d=employeeData;
+  document.getElementById('editBusiness').value=d.businessId||'';
+  document.getElementById('editStatus').value=d.status||'active';
+  document.getElementById('editDept').value=d.department||'';
+  document.getElementById('editPosition').value=d.position||'';
+  document.getElementById('editJobTitle').value=d.jobTitle||'';
+  document.getElementById('editHireDate').value=d.hireDate?d.hireDate.split('T')[0]:'';
+  document.getElementById('editName').value=d.name||'';
+  document.getElementById('editPhone').value=d.phone||'';
+  document.getElementById('editEmail').value=d.email||'';
+  document.getElementById('editSalaryType').value=d.salaryType||'hourly';
+  document.getElementById('editBaseSalary').value=d.baseSalary||'';
+  document.getElementById('editBankName').value=d.bankName||'';
+  document.getElementById('editAccountNumber').value=d.accountNumber||'';
+  document.getElementById('saveResult').className='save-result';
+  document.getElementById('saveResult').textContent='';
+  document.getElementById('saveBtn').disabled=false;
+  document.getElementById('saveBtn').textContent='💾 저장';
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeEditModal(){document.getElementById('editModal').classList.remove('show');}
+function closeModalOnBg(e){if(e.target===document.getElementById('editModal')) closeEditModal();}
+
+async function saveEmployee(){
+  var btn=document.getElementById('saveBtn');
+  var resultEl=document.getElementById('saveResult');
+  btn.disabled=true; btn.textContent='저장 중...';
+  resultEl.className='save-result';
+  var payload={
+    employeeId:employeeData.id,
+    businessId:document.getElementById('editBusiness').value||null,
+    status:document.getElementById('editStatus').value,
+    department:document.getElementById('editDept').value.trim(),
+    position:document.getElementById('editPosition').value.trim(),
+    jobTitle:document.getElementById('editJobTitle').value.trim(),
+    hireDate:document.getElementById('editHireDate').value||null,
+    name:document.getElementById('editName').value.trim(),
+    phone:document.getElementById('editPhone').value.trim(),
+    email:document.getElementById('editEmail').value.trim(),
+    salaryType:document.getElementById('editSalaryType').value,
+    baseSalary:parseFloat(document.getElementById('editBaseSalary').value)||null,
+    bankName:document.getElementById('editBankName').value,
+    accountNumber:document.getElementById('editAccountNumber').value.trim()
+  };
+  try{
+    var r=await fetch('/.netlify/functions/employees-update',{
+      method:'PUT',
+      headers:{'Authorization':'Bearer '+authToken,'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    var res=await r.json();
+    if(!res.success) throw new Error(res.error||res.message||'저장 실패');
+    Object.assign(employeeData,payload);
+    renderDetail();
+    resultEl.textContent='✅ 저장 완료!';
+    resultEl.className='save-result success';
+    btn.textContent='💾 저장'; btn.disabled=false;
+    setTimeout(closeEditModal,1500);
+  }catch(e){
+    resultEl.textContent='❌ '+e.message;
+    resultEl.className='save-result error';
+    btn.textContent='💾 저장'; btn.disabled=false;
+  }
+}
+
+function getBizName(bizId){
+  if(!bizId) return null;
+  var b=businessList.find(function(x){return x.id===bizId;});
+  return b?b.name:null;
+}
+
 function renderContracts(cs){
   var l=document.getElementById('contractList');
-  if(!cs.length)return;
+  if(!cs.length) return;
   var tm={standard_labor:'표준 근로계약서',part_time:'단시간 근로계약서',daily:'일용 근로계약서'};
   var sm={completed:['서명 완료','contract-signed'],sent:['발송됨','contract-sent'],pending:['대기 중','contract-pending'],viewed:['열람함','contract-sent']};
   l.innerHTML=cs.map(function(c){
@@ -96,18 +362,17 @@ function renderContracts(cs){
     return '<li class="contract-item"><div><div class="contract-type">'+(tm[c.type]||c.type||'근로계약서')+'</div><div class="contract-date">생성: '+fmtDate(c.createdAt)+(c.signedAt?' · 서명: '+fmtDate(c.signedAt):'')+'</div></div><span class="contract-status '+s[1]+'">'+s[0]+'</span></li>';
   }).join('');
 }
+
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach(function(e){e.classList.remove('active')});
-  document.querySelectorAll('.tab-content').forEach(function(e){e.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(e){e.classList.remove('active');});
+  document.querySelectorAll('.tab-content').forEach(function(e){e.classList.remove('active');});
   document.querySelector('.tab[data-tab="'+t+'"]').classList.add('active');
   document.getElementById('tab-'+t).classList.add('active');
 }
-function setText(id,v){var e=document.getElementById(id);if(e)e.textContent=v||'-';}
-function fmtDate(s){if(!s)return null;var d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});}
-function fmtCur(a){if(!a&&a!==0)return null;return '₩'+Number(a).toLocaleString('ko-KR');}
-function maskAcc(a){if(!a||a.length<5)return a;return a.slice(0,3)+'****'+a.slice(-3);}
-function confirmStatusChange(){alert('상태 변경 기능은 다음 업데이트에서 제공합니다.');}
-function handleLogout(){localStorage.removeItem('authToken');localStorage.removeItem('userInfo');sessionStorage.clear();window.location.href='/login.html';}
+function setText(id,v){var e=document.getElementById(id);if(e) e.textContent=v||'-';}
+function fmtDate(s){if(!s) return null;var d=new Date(s);if(isNaN(d)) return s;return d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});}
+function fmtCur(a){if(!a&&a!==0) return null;return '₩'+Number(a).toLocaleString('ko-KR');}
+function maskAcc(a){if(!a||a.length<5) return a;return a.slice(0,3)+'****'+a.slice(-3);}
 </script>
 </body>
 </html>
