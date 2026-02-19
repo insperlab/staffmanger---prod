@@ -1,4 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>직원 상세 - StaffManager</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;background:#f5f7fa;min-height:100vh}.navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}.navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}.navbar-menu{display:flex;gap:30px;align-items:center}.navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}.navbar-menu a:hover,.navbar-menu a.active{color:#667eea}.container{max-width:1200px;margin:0 auto;padding:30px}.breadcrumb{margin-bottom:20px;font-size:14px;color:#999}.breadcrumb a{color:#667eea;text-decoration:none}.profile-header{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px;display:flex;justify-content:space-between;align-items:center}.profile-left{display:flex;align-items:center;gap:24px}.profile-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:700}.profile-name{font-size:28px;font-weight:700;color:#333;margin-bottom:4px}.profile-meta{font-size:14px;color:#999}.profile-meta span{margin-right:16px}.status-badge{display:inline-block;padding:4px 14px;border-radius:12px;font-size:13px;font-weight:600}.status-active{background:#d4edda;color:#155724}.status-on_leave{background:#fff3cd;color:#856404}.status-resigned{background:#f8d7da;color:#721c24}.profile-actions{display:flex;gap:10px}.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .3s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}.btn-outline{background:#fff;color:#667eea;border:2px solid #667eea}.btn-outline:hover{background:#f5f7fa}.btn-danger{background:#fff;color:#e74c3c;border:2px solid #e74c3c}.btn-danger:hover{background:#fdf2f2}.tabs{background:#fff;border-radius:12px 12px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;border-bottom:2px solid #e0e0e0;overflow-x:auto}.tab{padding:16px 28px;font-size:15px;font-weight:500;color:#999;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}.tab:hover{color:#667eea}.tab.active{color:#667eea;border-bottom-color:#667eea;font-weight:600}.tab-content{background:#fff;border-radius:0 0 12px 12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);display:none}.tab-content.active{display:block}.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}.info-group{margin-bottom:8px}.info-label{font-size:13px;color:#999;margin-bottom:4px}.info-value{font-size:15px;color:#333;font-weight:500}.info-value.highlight{color:#667eea;font-weight:700;font-size:18px}.section-divider{border:none;border-top:1px solid #eee;margin:24px 0}.section-subtitle{font-size:17px;font-weight:600;color:#333;margin-bottom:16px;padding-left:12px;border-left:4px solid #667eea}.contract-list{list-style:none}.contract-item{padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}.contract-item:hover{background:#f8f9fa}.contract-type{font-weight:600;color:#333}.contract-date{font-size:13px;color:#999}.contract-status{font-size:12px;padding:3px 10px;border-radius:10px;font-weight:600}.contract-signed{background:#d4edda;color:#155724}.contract-pending{background:#fff3cd;color:#856404}.contract-sent{background:#d1ecf1;color:#0c5460}.loading{text-align:center;padding:80px 20px}.spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 20px}@keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}@media(max-width:768px){.container{padding:15px}.profile-header{flex-direction:column;gap:20px;align-items:flex-start}.info-grid{grid-template-columns:1fr}.tab{padding:12px 16px;font-size:13px}}
+</style>
+</head>
+<body>
+<nav class="navbar"><a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a><div class="navbar-menu"><a href="/dashboard.html">대시보드</a><a href="/employees.html" class="active">직원 관리</a><a href="/attendances.html">출퇴근 관리</a><a href="/calendar.html">휴가 관리</a><a href="/salary.html">급여 관리</a><a href="/settings.html">설정</a><a href="/contracts.html">계약 관리</a></div></nav>
+<div class="container">
+<div class="breadcrumb"><a href="/employees.html">직원 관리</a> &gt; <span id="breadcrumbName">직원 상세</span></div>
+<div id="loadingState" class="loading"><div class="spinner"></div><p style="color:#999">직원 정보를 불러오는 중...</p></div>
+<div id="mainContent" style="display:none">
+<div class="profile-header"><div class="profile-left"><div class="profile-avatar" id="avatar"></div><div><div class="profile-name" id="empName"></div><div class="profile-meta"><span id="empDept"></span><span id="empPosition"></span><span id="empNumber"></span></div><div style="margin-top:8px"><span class="status-badge" id="empStatus"></span></div></div></div><div class="profile-actions"><a href="/contracts.html" class="btn btn-outline">📄 계약서 발송</a><button class="btn btn-danger" onclick="confirmStatusChange()">상태 변경</button></div></div>
+<div class="tabs"><div class="tab active" data-tab="basic" onclick="switchTab('basic')">기본 정보</div><div class="tab" data-tab="work" onclick="switchTab('work')">근무 정보</div><div class="tab" data-tab="salary" onclick="switchTab('salary')">급여 정보</div><div class="tab" data-tab="contract" onclick="switchTab('contract')">계약 정보</div></div>
+<div class="tab-content active" id="tab-basic"><div class="section-subtitle">인적 사항</div><div class="info-grid"><div class="info-group"><div class="info-label">이름</div><div class="info-value" id="infoName">-</div></div><div class="info-group"><div class="info-label">이메일</div><div class="info-value" id="infoEmail">-</div></div><div class="info-group"><div class="info-label">전화번호</div><div class="info-value" id="infoPhone">-</div></div><div class="info-group"><div class="info-label">생년월일</div><div class="info-value" id="infoBirth">-</div></div><div class="info-group"><div class="info-label">주소</div><div class="info-value" id="infoAddress">-</div></div><div class="info-group"><div class="info-label">사원번호</div><div class="info-value" id="infoEmpNumber">-</div></div></div><hr class="section-divider"><div class="section-subtitle">조직 정보</div><div class="info-grid"><div class="info-group"><div class="info-label">부서</div><div class="info-value" id="infoDept">-</div></div><div class="info-group"><div class="info-label">직급</div><div class="info-value" id="infoPosition">-</div></div><div class="info-group"><div class="info-label">직책</div><div class="info-value" id="infoJobTitle">-</div></div><div class="info-group"><div class="info-label">입사일</div><div class="info-value" id="infoHireDate">-</div></div><div class="info-group"><div class="info-label">재직 기간</div><div class="info-value highlight" id="infoTenure">-</div></div><div class="info-group"><div class="info-label">등록일</div><div class="info-value" id="infoCreated">-</div></div></div></div>
+<div class="tab-content" id="tab-work"><div class="section-subtitle">근무 조건</div><div class="info-grid"><div class="info-group"><div class="info-label">근무 형태</div><div class="info-value" id="infoWorkType">-</div></div><div class="info-group"><div class="info-label">근무 시간</div><div class="info-value" id="infoWorkHours">-</div></div><div class="info-group"><div class="info-label">휴게 시간</div><div class="info-value" id="infoBreakTime">-</div></div><div class="info-group"><div class="info-label">주휴일</div><div class="info-value" id="infoWeeklyHoliday">-</div></div><div class="info-group"><div class="info-label">근무지</div><div class="info-value" id="infoWorkLocation">-</div></div><div class="info-group"><div class="info-label">수습 기간</div><div class="info-value" id="infoProbation">-</div></div></div><hr class="section-divider"><div class="section-subtitle">계약 기간</div><div class="info-grid"><div class="info-group"><div class="info-label">계약 시작일</div><div class="info-value" id="infoContractStart">-</div></div><div class="info-group"><div class="info-label">계약 종료일</div><div class="info-value" id="infoContractEnd">-</div></div></div></div>
+<div class="tab-content" id="tab-salary"><div class="section-subtitle">급여 정보</div><div class="info-grid"><div class="info-group"><div class="info-label">급여 유형</div><div class="info-value" id="infoSalaryType">-</div></div><div class="info-group"><div class="info-label">기본급</div><div class="info-value highlight" id="infoBaseSalary">-</div></div><div class="info-group"><div class="info-label">월급</div><div class="info-value highlight" id="infoMonthlyWage">-</div></div><div class="info-group"><div class="info-label">연봉</div><div class="info-value highlight" id="infoAnnualSalary">-</div></div></div><hr class="section-divider"><div class="section-subtitle">계좌 정보</div><div class="info-grid"><div class="info-group"><div class="info-label">은행명</div><div class="info-value" id="infoBankName">-</div></div><div class="info-group"><div class="info-label">계좌번호</div><div class="info-value" id="infoAccountNumber">-</div></div></div></div>
+<div class="tab-content" id="tab-contract"><div class="section-subtitle">전자계약 이력</div><ul class="contract-list" id="contractList"><li style="text-align:center;color:#999;padding:40px">계약 이력이 없습니다</li></ul></div>
+</div></div>
 <script>
-function fmtCur(a){if(!a&&a!==0)return null;return'\u20A9'+Number(a).toLocaleString('ko-KR')}
+var authToken=null,employeeData=null;
+window.addEventListener('DOMContentLoaded',async function(){
+  authToken=localStorage.getItem('authToken');
+  if(!authToken){window.location.href='/login.html';return}
+  var p=new URLSearchParams(window.location.search);
+  var id=p.get('id');
+  if(!id){window.location.href='/employees.html';return}
+  await loadEmployeeDetail(id);
+});
+async function loadEmployeeDetail(id){
+  try{
+    var r=await fetch('/.netlify/functions/employee-detail?id='+id,{headers:{'Authorization':'Bearer '+authToken}});
+    var data=await r.json();
+    if(!data.success)throw new Error(data.error);
+    employeeData=data.data;
+    renderDetail();
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('mainContent').style.display='block';
+  }catch(e){
+    console.error(e);
+    alert('직원 정보를 불러올 수 없습니다: '+e.message);
+    window.location.href='/employees.html';
+  }
+}
+function renderDetail(){
+  var d=employeeData,name=d.name||'이름 없음';
+  document.title=name+' - StaffManager';
+  document.getElementById('breadcrumbName').textContent=name;
+  document.getElementById('avatar').textContent=name.charAt(0);
+  document.getElementById('empName').textContent=name;
+  document.getElementById('empDept').textContent=d.department?'🏢 '+d.department:'';
+  document.getElementById('empPosition').textContent=d.position?'📋 '+d.position:'';
+  document.getElementById('empNumber').textContent=d.employeeNumber?'#'+d.employeeNumber:'';
+  var se=document.getElementById('empStatus');
+  var sm={active:['재직 중','status-active'],on_leave:['휴직','status-on_leave'],resigned:['퇴사','status-resigned']};
+  var st=sm[d.status]||[d.status,'status-active'];
+  se.textContent=st[0];se.className='status-badge '+st[1];
+  setText('infoName',name);setText('infoEmail',d.email);setText('infoPhone',d.phone);
+  setText('infoBirth',fmtDate(d.birthDate));setText('infoAddress',d.address);setText('infoEmpNumber',d.employeeNumber);
+  setText('infoDept',d.department);setText('infoPosition',d.position);setText('infoJobTitle',d.jobTitle);
+  setText('infoHireDate',fmtDate(d.hireDate));setText('infoCreated',fmtDate(d.createdAt));
+  if(d.hireDate){
+    var h=new Date(d.hireDate),n=new Date(),df=n-h;
+    var y=Math.floor(df/(365.25*864e5)),m=Math.floor((df%(365.25*864e5))/(30.44*864e5));
+    var t='';if(y>0)t+=y+'년 ';t+=m+'개월';
+    setText('infoTenure',t);
+  }
+  var wm={full_time:'정규직',part_time:'파트타임',contract:'계약직',daily:'일용직'};
+  setText('infoWorkType',wm[d.workType]||d.workType);
+  if(d.workStartTime&&d.workEndTime)setText('infoWorkHours',d.workStartTime+' ~ '+d.workEndTime);
+  setText('infoBreakTime',d.breakTimeMinutes?d.breakTimeMinutes+'분':null);
+  setText('infoWeeklyHoliday',d.weeklyHoliday);setText('infoWorkLocation',d.workLocation);
+  setText('infoProbation',d.probationMonths?d.probationMonths+'개월':'없음');
+  setText('infoContractStart',fmtDate(d.contractStartDate));
+  setText('infoContractEnd',fmtDate(d.contractEndDate)||'무기한');
+  var stm={monthly:'월급제',hourly:'시급제',daily:'일급제',annual:'연봉제'};
+  setText('infoSalaryType',stm[d.salaryType]||d.salaryType);
+  setText('infoBaseSalary',fmtCur(d.baseSalary));
+  setText('infoMonthlyWage',fmtCur(d.monthlyWage));
+  setText('infoAnnualSalary',fmtCur(d.annualSalary));
+  setText('infoBankName',d.bankName);
+  setText('infoAccountNumber',d.accountNumber?maskAcc(d.accountNumber):null);
+  renderContracts(d.contracts||[]);
+}
+function renderContracts(cs){
+  var l=document.getElementById('contractList');
+  if(!cs.length)return;
+  var tm={standard_labor:'표준 근로계약서',part_time:'단시간 근로계약서',daily:'일용 근로계약서'};
+  var sm={completed:['서명 완료','contract-signed'],sent:['발송됨','contract-sent'],pending:['대기 중','contract-pending'],viewed:['열람함','contract-sent']};
+  l.innerHTML=cs.map(function(c){
+    var s=sm[c.status]||[c.status,'contract-pending'];
+    return '<li class="contract-item"><div><div class="contract-type">'+(tm[c.type]||c.type||'근로계약서')+'</div><div class="contract-date">생성: '+fmtDate(c.createdAt)+(c.signedAt?' · 서명: '+fmtDate(c.signedAt):'')+'</div></div><span class="contract-status '+s[1]+'">'+s[0]+'</span></li>';
+  }).join('');
+}
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(function(e){e.classList.remove('active')});
+  document.querySelectorAll('.tab-content').forEach(function(e){e.classList.remove('active')});
+  document.querySelector('.tab[data-tab="'+t+'"]').classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+}
+function setText(id,v){var e=document.getElementById(id);if(e)e.textContent=v||'-';}
+function fmtDate(s){if(!s)return null;var d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});}
+function fmtCur(a){if(!a&&a!==0)return null;return '₩'+Number(a).toLocaleString('ko-KR');}
+function maskAcc(a){if(!a||a.length<5)return a;return a.slice(0,3)+'****'+a.slice(-3);}
+function confirmStatusChange(){alert('상태 변경 기능은 다음 업데이트에서 제공합니다.');}
+function handleLogout(){localStorage.removeItem('authToken');localStorage.removeItem('userInfo');sessionStorage.clear();window.location.href='/login.html';}
 </script>
-<!-- REMAINING CONTENT UNCHANGED -->
+</body>
+</html>
