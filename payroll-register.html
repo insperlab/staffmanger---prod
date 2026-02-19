@@ -1,2 +1,334 @@
-PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImtvIj4KPGhlYWQ+CiAgICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgICA8bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLCBpbml0aWFsLXNjYWxlPTEuMCI+CiAgICA8dGl0bGU+6riJ7JesIOuMgOyepSAtIFN0YWZmTWFuYWdlcjwvdGl0bGU+CiAgICA8c2NyaXB0IHNyYz0iaHR0cHM6Ly9jZG5qcy5jbG91ZGZsYXJlLmNvbS9hamF4L2xpYnMveGxzeC8wLjE4LjUveGxzeC5mdWxsLm1pbi5qcyI+PC9zY3JpcHQ+CiAgICA8c3R5bGU+CiAgICAgICAgKiB7IG1hcmdpbjogMDsgcGFkZGluZzogMDsgYm94LXNpemluZzogYm9yZGVyLWJveDsgfQogICAgICAgIGJvZHkgewogICAgICAgICAgICBmb250LWZhbWlseTogJ1NlZ29lIFVJJywgVGFob21hLCBHZW5ldmEsIFZlcmRhbmEsIHNhbnMtc2VyaWY7CiAgICAgICAgICAgIGJhY2tncm91bmQ6ICNmMGYyZjU7CiAgICAgICAgICAgIG1pbi1oZWlnaHQ6IDEwMHZoOwogICAgICAgIH0KICAgICAgICAubmF2YmFyIHsKICAgICAgICAgICAgYmFja2dyb3VuZDogd2hpdGU7CiAgICAgICAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDRweCByZ2JhKDAsMCwwLDAuMSk7CiAgICAgICAgICAgIHBhZGRpbmc6IDAgMzBweDsKICAgICAgICAgICAgaGVpZ2h0OiA3MHB4OwogICAgICAgICAgICBkaXNwbGF5OiBmbGV4OwogICAgICAgICAgICBqdXN0aWZ5LWNvbnRlbnQ6IHNwYWNlLWJldHdlZW47CiAgICAgICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7CiAgICAgICAgICAgIHBvc2l0aW9uOiBzdGlja3k7CiAgICAgICAgICAgIHRvcDogMDsKICAgICAgICAgICAgei1pbmRleDogMTAwOwogICAgICAgIH0KICAgICAgICAubmF2YmFyIC5sb2dvIHsgZGlzcGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtnYXA6MTJweDtmb250LXNpemU6MjRweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY2N2VlYTsgfQogICAgICAgIC5uYXZiYXIgLm5hdi1saW5rcyB7IGRpc3BsYXk6ZmxleDtnYXA6MzBweDthbGlnbi1pdGVtczpjZW50ZXI7IH0KICAgICAgICAubmF2YmFyIC5uYXYtbGlua3MgYSB7IHRleHQtZGVjb3JhdGlvbjpub25lO2NvbG9yOiM2NjY7Zm9udC13ZWlnaHQ6NTAwO3RyYW5zaXRpb246Y29sb3IgMC4yczsgfQogICAgICAgIC5uYXZiYXIgLm5hdi1saW5rcyBhOmhvdmVyLCAubmF2YmFyIC5uYXYtbGlua3MgYS5hY3RpdmUgeyBjb2xvcjojNjY3ZWVhO2ZvbnQtd2VpZ2h0OjYwMDsgfQogICAgICAgIC5uYXZiYXIgLmxvZ291dC1idG4geyBwYWRkaW5nOjhweCAxNnB4O2JhY2tncm91bmQ6IzY2N2VlYTtjb2xvcjp3aGl0ZTtib3JkZXI6bm9uZTtib3JkZXItcmFkaXVzOjZweDtjdXJzb3I6cG9pbnRlcjtmb250LXNpemU6MTRweDsgfQoKICAgICAgICAucGFnZS1jb250YWluZXIgeyBtYXgtd2lkdGg6IDE0MDBweDsgbWFyZ2luOiAwIGF1dG87IHBhZGRpbmc6IDMwcHggMjBweDsgfQoKICAgICAgICAvKiDtl6TrjZQgKi8KICAgICAgICAucGFnZS1oZWFkZXIgewogICAgICAgICAgICBkaXNwbGF5OiBmbGV4OwogICAgICAgICAgICBqdXN0aWZ5LWNvbnRlbnQ6IHNwYWNlLWJldHdlZW47CiAgICAgICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7CiAgICAgICAgICAgIG1hcmdpbi1ib3R0b206IDI0cHg7CiAgICAgICAgfQogICAgICAgIC5wYWdlLWhlYWRlciBoMSB7IGZvbnQtc2l6ZTogMjhweDsgY29sb3I6ICMzMzM7IH0KCiAgICAgICAgLyog7ZWE7YSwIOuwlCAqLwogICAgICAgIC5maWx0ZXItYmFyIHsKICAgICAgICAgICAgYmFja2dyb3VuZDogd2hpdGU7CiAgICAgICAgICAgIGJvcmRlci1yYWRpdXM6IDEycHg7CiAgICAgICAgICAgIHBhZGRpbmc6IDIwcHg0cHg7CiAgICAgICAgICAgIGRpc3BsYXk6IGZsZXg7CiAgICAgICAgICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7CiAgICAgICAgICAgIGdhcDogMTZweDsKICAgICAgICAgICAgYm94LXNoYWRvdzogMCAycHggOHB4IHJnYmEoMCwwLDAsMC4wNik7CiAgICAgICAgICAgIG1hcmdpbi1ib3R0b206IDI0cHg7CiAgICAgICAgfQogICAgICAgIC5maWx0ZXItYmFyIGxhYmVsIHsgZm9udC13ZWlnaHQ6IDYwMDsgY29sb3I6ICM1NTU7IGZvbnQtc2l6ZTogMTRweDsgd2hpdGUtc3BhY2U6IG5vd3JhcDsgfQogICAgICAgIC5maWx0ZXItYmFyIHNlbGVjdCwgbmF2YmFyIGlucHV0IHsKICAgICAgICAgICAgcGFkZGluZzogMTBweCAxNDBweDsKICAgICAgICAgICAgYm9yZGVyOiAycHggc29saWQgIzBlMGUwOwogICAgICAgICAgICBib3JkZXItcmFkaXVzOiA4cHg7CiAgICAgICAgICAgIGZvbnQtc2l6ZTogMTVweDsKICAgICAgICAgICAgYmFja2dyb3VuZDogd2hpdGU7CiAgICAgICAgICAgIG1pbi13aWR0aDogMTAwMHB4OwogICAgICAgIH0KICAgICAgICAuZmlsdGVyLWJhciBzZWxlY3Q6Zm9jdXMsIG5hdmJhciBpbnB1dDpmb2N1cyB7IG91dGxpbmU6bm9uZTtib3JkZXItY29sb3I6IzY2N2VlYTsgfQoKICAgICAgICAuYnRuIHsKICAgICAgICAgICAgcGFkZGluZzogMTBweCAyMHB4OwogICAgICAgICAgICBib3JkZXI6IG5vbmU7CiAgICAgICAgICAgIGJvcmRlci1yYWRpdXM6IDhweDsKICAgICAgICAgICAgZm9udC1zaXplOiAxNXB4OwogICAgICAgICAgICBmb250LXdlaWdodDogNjAwOwogICAgICAgICAgICBjdXJzb3I6IHBvaW50ZXI7CiAgICAgICAgICAgIHRyYW5zaXRpb246IGFsbCAwLjJzOwogICAgICAgIH0KICAgICAgICAuYnRuOmhvdmVyIHsgdHJhbnNmb3JtOiB0cmFuc2xhdGVZKC0xcHgpOyB9CiAgICAgICAgLmJ0bi1wcmltYXJ5IHsgYmFja2dyb3VuZDogbGluZWFyLWdyYWRpZW50KDEzNWRlZywgIzY2N2VlYSwgIzc2NGJhMik7IGNvbG9yOiB3aGl0ZTsgfQogICAgICAgIC5idG4tcHJpbWFyeTpob3ZlciB7IGJveC1zaGFkb3c6IDAgNHB4IDE1cHggcmdiYSgxMDIsMTI2LDIzNCwwLjQpOyB9CiAgICAgICAgLmJ0bi1zdWNjZXNzIHsgYmFja2dyb3VuZDogIzRDQUY1MDsgY29sb3I6IHdoaXRlOyB9CiAgICAgICAgLmJ0bi1zdWNjZXNzOmhvdmVyIHsgYm94LXNoYWRvdzogMCA0cHggMTVweCByZ2JhKDc2LDE3NSw4MCwwLjQpOyB9CiAgICAgICAgLmJ0bi1pbmZvIHsgYmFja2dyb3VuZDogIzIxOTZGMzsgY29sb3I6IHdoaXRlOyB9CiAgICAgICAgLmJ0bi1pbmZvOmhvdmVyIHsgYm94LXNoYWRvdzogMCA0cHggMTVweCByZ2JhKDMzLDE1MCwyNDMsMC40KTsgfQogICAgICAgIC5idG46ZGlzYWJsZWQgeyBvcGFjaXR5OjAuNTsgY3Vyc29yOm5vdC1hbGxvd2VkOyB0cmFuc2Zvcm06bm9uZSAhaW1wb3J0YW50OyB9CgogICAgICAgIC8qIOyalOyVvSDsubTrk5wgKi8KICAgICAgICAuc3VtbWFyeS1jYXJzIHsKICAgICAgICAgICAgZGlzcGxheTogZ3JpZDsKICAgICAgICAgICAgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOiByZXBlYXQoYXV0by1maXQsIG1pbm1heCgyMjhwaHgsIDFmcmIpKTsKICAgICAgICAgICAgZ2FwOiAxNnB4OwogICAgICAgICAgICBtYXJnaW4tYm90dG9tOiAyNHB4OwogICAgICAgIH0KICAgICAgICAuc3VtbWFyeS1jYXJkIHsKICAgICAgICAgICAgYmFja2dyb3VuZDogd2hpdGU7CiAgICAgICAgICAgIGJvcmRlci1yYWRpdXM6IDEycHg7CiAgICAgICAgICAgIHBhZGRpbmc6IDIwcHg7CiAgICAgICAgICAgIGJveC1zaGFkb3c6IDAgMnB4IDhweCByZ2JhKDAsMCwwLDAuMDYpOwogICAgICAgICAgICB0ZXh0LWFsaWduOiBjZW50ZXI7CiAgICAgICAgfQogICAgICAgIC5zdW1tYXJ5LWNhcmQgLmNhcmQtbGFiZWwgeyBmb250LXNpemU6IDEzcHg7IGNvbG9yOiAjODg4OyBtYXJnaW4tYm90dG9tOiA4cHg7IGZvbnQtd2VpZ2h0OiA1MDA7IH0KICAgICAgICAuc3VtbWFyeS1jYXJkIC5jYXJkLXZhbHVlIHsgZm9udC1zaXplOiAyNHB4OyBmb250LXdlaWdodDogNzAwOyB9CiAgICAgICAgLnN1bW1hcnktY2FyZC5ncm9zcyAuY2FyZC12YWx1ZSB7IGNvbG9yOiAjMjE5NkYzOyB9CiAgICAgICAgLnN1bW1hcnktY2FyZC5kZWR1Y3Rpb24gLmNhcmQtdmFsdWUgeyBjb2xvcjojZjQ0MzM2OyB9CiAgICAgICAgLnN1bW1hcnktY2FyZC5uZXQgLmNhcmQtdmFsdWUgeyBjb2xvcjogI0NBRjUwOyB9CiAgICAgICAgLnN1bW1hcnktY2FyZC5lbXBsb3llciAuY2FyZC12YWx1ZSB7IGNvbG9yOiAjRkY5ODAwOyB9CiAgICAgICAgLnN1bW1hcnktY2FyZC5sYWJvciAuY2FyZC12YWx1ZSB7IGNvbG9yOiAjOUNCMjRDMzsgfQogICAgICAgIC5zdW1tYXJ5LWNhcmQgLmNhcmQtY291bnQgeyBmb250LXNpemU6IDEycHg7IGNvbG9yOiAjYWFhOyBtYXJnaW4tdG9wOiA0cHg7IH0KCiAgICAgICAgLyog6rK96rOgIOuwsOuEiCAqLwogICAgICAgIC53YXJuaW5ncy1iYW5uZXIgewogICAgICAgICAgICBiYWNrZ3JvdW5kOiAjZmZmM2UwOwogICAgICAgICAgICBib3JkZXI6IDFweCBzb2xpZCAjZmZjYzAyOwogICAgICAgICAgICBib3JkZXItcmFkaXVzOiAxMHB4OwogICAgICAgICAgICBwYWRkaW5nOiAxNnB4IDIwcHg7CiAgICAgICAgICAgIG1hcmdpbi1ib3R0b206IDI0cHg7CiAgICAgICAgICAgIGRpc3BsYXk6IG5vbmU7CiAgICAgICAgfQogICAgICAgIC53YXJuaW5ncy1iYW5uZXIuc2hvdyB7IGRpc3BsYXk6IGJsb2NrOyB9CiAgICAgICAgLndhcm5pbmdzLWJhbm5lciBoNCB7IGNvbG9yOiAjZTY1MTAwOyBtYXJnaW4tYm90dG9tOiAxMHB4OyBmb250LXNpemU6IDE1cHg7IH0KICAgICAgICAud2FybmluZy1pdGVtIHsKICAgICAgICAgICAgZGlzcGxheTogZmxleDsKICAgICAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAgICAgICAgZ2FwOiA4cHg7CiAgICAgICAgICAgIHBhZGRpbmc6IDZweCAwOwogICAgICAgICAgICBmb250LXNpemU6IDE0cHg7CiAgICAgICAgICAgIGNvbG9yOiAjYmYzNjBjOwogICAgICAgIH0KICAgICAgICAud2FybmluZy1pdGVtLmNyaXRpY2FsIHsgY29sb3I6ICNjNjI4Mjg7IGZvbnQtd2VpZ2h0OiA2MDA7IH0KICAgICAgICAud2FybmluZy1iYWRnZSB7CiAgICAgICAgICAgIGRpc3BsYXk6IGlubGluZS1ibG9jazsKICAgICAgICAgICAgcGFkZGluZzogMnB4IDhweDsKICAgICAgICAgICAgYm9yZGVyLXJhZGl1czogNHB4OwogICAgICAgICAgICBmb250LXNpemU6IDExcHg7CiAgICAgICAgICAgIGZvbnQtd2VpZ2h0OiA3MDA7CiAgICAgICAgfQogICAgICAgIC53YXJuaW5nLWJhZGdlLmNyaXRpY2FsIHsgYmFja2dyb3VuZDogI2ZmY2RkMjsgY29sb3I6ICNjNjI4Mjg7IH0KICAgICAgICAud2FybmluZy1iYWRnZS53YXJuaW5nIHsgYmFja2dyb3VuZDogI2ZmZjljNDsgY29sb3I6ICNmNTdmMTc7IH0KCiAgICAgICAgLyog7YWM7J2067iUICovCiAgICAgICAgLnRhYmxlLWNvbnRhaW5lciB7CiAgICAgICAgICAgIGJhY2tncm91bmQ6IHdoaXRlOwogICAgICAgICAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgICAgICAgICBib3gtc2hhZG93OiAwIDJweCA4cHggcmdiYSgwLDAsMCwwLjA2KTsKICAgICAgICAgICAgb3ZlcmZsb3c6IGhpZGRlbjsKICAgICAgICB9CiAgICAgICAgLnRhYmxlLWhlYWRlciB7CiAgICAgICAgICAgIGRpc3BsYXk6IGZsZXg7CiAgICAgICAgICAgIGp1c3RpZmktY29udGVudDogc3BhY2UtYmV0d2VlbjsKICAgICAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAgICAgICAgcGFkZGluZzogMTZweCAyNHB4OwogICAgICAgICAgICBib3JkZXItYm90dG9tOiAxcHggc29saWQgI2VlZTsKICAgICAgICB9CiAgICAgICAgLnRhYmxlLWhlYWRlciBoMyB7IGZvbnQtc2l6ZTogMTZweDsgY29sb3I6ICMzMzM7IH0KICAgICAgICAudGFibGUtYWN0aW9ucyB7IGRpc3BsYXk6IGZsZXg7IGdhcDogMTBweDsgfQoKICAgICAgICAudGFibGUtc2Nyb2xsIHsgb3ZlcmZsb3cteDogYXV0bzsgfQogICAgICAgIHRhYmxlIHsKICAgICAgICAgICAgd2lkdGg6IDEwMCU7CiAgICAgICAgICAgIGJvcmRlci1jb2xsYXBzZTogY29sbGFwc2U7CiAgICAgICAgICAgIGZvbnQtc2l6ZTogMTRweDsKICAgICAgICAgICAgbWluLXdpZHRoOiAxMjAwcHg7CiAgICAgICAgfQogICAgICAgIHRoZWFkIHRoIHsKICAgICAgICAgICAgYmFja2dyb3VuZDogI2Y4ZjlmYTsKICAgICAgICAgICAgcGFkZGluZzogMTJweCAxNHB4OwogICAgICAgICAgICB0ZXh0LWFsaWduOiByaWdodDsKICAgICAgICAgICAgZm9udC13ZWlnaHQ6IDYwMDsKICAgICAgICAgICAgY29sb3I6ICM1NTU7CiAgICAgICAgICAgIGJvcmRlci1ib3R0b206IDJweCBzb2xpZCAjZTBlMGUwOwogICAgICAgICAgICB3aGl0ZS1zcGFjZTogbm93cmFwOwogICAgICAgICAgICBwb3NpdGlvbjogc3RpY2t5OwogICAgICAgIH0KICAgICAgICB0aGVhZCB0aDpmaXJzdC1jaGlsZCwgdGhlYWQgdGg6bnRoLWNoaWxkKDIpIHsgdGV4dC1hbGlnbjogbGVmdDsgfQogICAgICAgIHRib2R5IHRkIHsKICAgICAgICAgICAgcGFkZGluZzogMTJweCAxNDBweDsKICAgICAgICAgICAgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNmMGYwZjAgICAgICAgICAgIHRleHQtYWxpZ246IHJpZ2h0OwogICAgICAgICAgICBjb2xvcjogIzMzMzsKICAgICAgICAgICAgd2hpdGUt
-c3BhY2U6IG5vd3JhcDsKICAgICAgICB9CiAgICAgICAgdGJvZHkgdGQ6Zmlyc3QtY2hpbGQsIHRib2R5IHRkOm50aC1jaGlsZCgyKSB7IHRleHQtYWxpZ246IGxlZnQ7IH0KICAgICAgICB0Ym9keSB0ci5ob3ZlciB7IGJhY2tncm91bmQ6ICNmNWY3ZmY7IH0KICAgICAgICB0Ym9keSB0ci5oYXMtd2FybmluZyB7IGJhY2tncm91bmQ6ICNmZmY4ZTE7IH0KCiAgICAgICAgLmVtcC1uYW1lIHsgZm9udC13ZWlnaHQ6IDYwMDsgY29sb3I6ICMzMzM7IH0KICAgICAgICAuc2FsYXJ5LXR5cGUtYmFkZSB7CiAgICAgICAgICAgIGRpc3BsYXk6IGlubGluZS1ibG9jazsKICAgICAgICAgICAgcGFkZGluZzogMnB4IDhweDsKICAgICAgICAgICAgYm9yZGVyLXJhZGl1czogMTJweDsKICAgICAgICAgICAgZm9udC1zaXplOiAxMXB4OwogICAgICAgICAgICBmb250LXdlaWdodDogNjAwOwogICAgICAgIH0KICAgICAgICAuc2FsYXJ5LXR5cGUtYmFkZGUuaG91cmx5IHsgYmFja2dyb3VuZDogI2UzZjJmZDsgY29sb3I6ICMxNTY1YzA7IH0KICAgICAgICAuc2FsYXJ5LXR5cGUtYmFkZGUuZGFpbHkgeyBiYWNrZ3JvdW5kOiAjZjNlNWY1OyBjb2xvcjogIzdjMWZhMjsgfQogICAgICAgIC5zYWxhcnktdHlwZS1iYWRnZS5tb250aGx5IHsgYmFja2dyb3VuZDogI2U4ZjVlOTsgY29sb3I6ICMyZTdkMzIzOyB9CiAgICAgICAgLnNhbGFyeS10eXBlLWJhZGdlLmFubnVhbCB7IGJhY2tncm91bmQ6ICNmY2U0ZWM7IGNvbG9yOiAjYzYyODI4OyB9CgogICAgICAgIC5hbW91bnQtcG9zaXRpdmUgeyBjb2xvcjogIzMyMTk2RjMiOyB9CiAgICAgICAgLmFtb3VudC1uZWdhdGl2ZSB7IGNvbG9yOiAjZjQ0MzM2OyB9CiAgICAgICAgLmFtb3VudC1uZXQgeyBjb2xvcjogIzRjYjQ1MDsiIGZvbnQtd2VpZ2h0OiA3MDA7IH0KICAgICAgICAud2FybmhpY29uIHsgY3Vyc29yOiBoZWxwOyB9CgogICAgICAgIC5lbXB0eS1zdGF0ZSB7CiAgICAgICAgICAgIHRleHQtYWxpZ246IGNlbnRlcjsKICAgICAgICAgICAgcGFkZGluZzogNjBweCAyMHB4OwogICAgICAgICAgICBjb2xvcjogIzk5OTsKICAgICAgICB9CiAgICAgICAgLmVtcHR5LXN0YXRlIC5pY29uIHsgZm9udC1zaXplOiA0OHB4OyBtYXJnaW4tYm90dG9tOiAxNnB4OyB9CiAgICAgICAgLmVtcHR5LXN0YXRlIHAgeyBmb250LXNpemU6IDE2cHg7IG1hcmdpbi1ib3R0b206IDIwcHggfQoKICAgICAgICAubG9hZGluZy1vdmVybGF5IHsKICAgICAgICAgICAgZGlzcGxheTogbm9uZTsKICAgICAgICAgICAgcG9zaXRpb246IGZpeGVkOwogICAgICAgICAgICB0b3A6IDA7IGxlZnQ6IDA7IHJpZ2h0OiAwOyBib3R0b206IDA7CiAgICAgICAgICAgIGJhY2tncm91bmQ6IHJnYmEoMjU1LDI1NSwyNTUsMC44KTsKICAgICAgICAgICAgei1pbmRleDogOTk5OwogICAgICAgICAgICBqdXN0aWZ5LWNvbnRlbnQ6IGNlbnRlcjsKICAgICAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAgICAgICAgZmxleC1kaXJlY3Rpb246IGNvbHVtbjsKICAgICAgICAgICAgZ2FwOiAxNnB4OwogICAgICAgIH0KICAgICAgICAubG9hZGluZy1vdmVybGF5LnNob3cgeyBkaXNwbGF5OiBmbGV4OyB9CiAgICAgICAgLnNwaW5uZXIgewogICAgICAgICAgICB3aWR0aDogNDhweDsgaGVpZ2h0OiA0OHB4OwogICAgICAgICAgICBib3JkZXI6IDRweCBzb2xpZCAjZTBlMGUwOwogICAgICAgICAgICBib3JkZXItdG9wLWNvbG9yOiAjNjY3ZWVhOwogICAgICAgICAgICBib3JkZXItcmFkaXVzOiA1MCU7CiAgICAgICAgICAgIGFuaW1hdGlvbjogc3BpbjAuOHMgbGluZWFyIGluZmluaXRlOwogICAgICAgIH0KICAgICAgICBAa2V5ZnJhbWVzIHNwaW4geyB0byB7IHRyYW5zZm9ybTogcm90YXRlKDM2MGRlZyk7IH0gfQogICAgICAgIC5sb2FkaW5nLXRleHQgeyBmb250LXNpemU6IDE2cHg7IGNvbG9yOiAjNTU1OyBmb250LXdlaWdodDogNTAwOyB9CgogICAgICAgIEBtZWRpYSAobWF4LXdpZHRoOiA3NjhweCkgewogICAgICAgICAgICAuZmlsdGVyLWJhciB7IGZsZXgtZGlyZWN0aW9uOiBjb2x1bW47IGFsaWduLWl0ZW1zOiBzdHJldGNoOyB9CiAgICAgICAgICAgIC5wYWdlLWhlYWRlciB7IGZsZXgtZGlyZWN0aW9uOiBjb2x1bW47IGdhcDogMTJweDsgYWxpZ24taXRlbXM6IGZsZXgtc3RhcnQ7IH0KICAgICAgICAgICAgLnN1bW1hcnktY2FyZHMgeyBncmlkLXRlbXBsYXRlLWNvbHVtbnM6IHJlcGVhdCgyLwgMWZyKTsgfQogICAgICAgIH0KICAgICAgPC9zdHlsZT4KPC9oZWFkPgo8Ym9keT4KICAgIDwhLS0g64Sk67mE6rKM7J207IWYIC0tPgogICAgPG5hdiBjbGFzcz0ibmF2YmFyIj4KICAgICAgICA8ZGl2IGNsYXNzPSJsb2dvIj48c3Bhbj7wn46vPC9zcGFuPjxzcGFuPlN0YWZmTWFuYWdlcjwvc3Bhbj48L2Rpdj4KICAgICAgICA8ZGl2IGNsYXNzPSJuYXYtbGlua3MiPgogICAgICAgICAgICA8YSBocmVmPSIvZGFzaGJvYXJkIj7rjIDsi5zrs7Trk5w8L2E+CiAgICAgICAgICAgIDxhIGhyZWY9Ii9lbXBsb3llZXMiPuyngeybkCDqtIDrpqw8L2E+CiAgICAgICAgICAgIDxhIGhyZWY9Ii9hdHRlbmRhbmNlcyI+7Lac7Ye06re8IOq0gOumrDwvYT4KICAgICAgICAgICAgPGEgaHJlZj0iL2NhbGVuZGFyIj7tnLTqsIAg6rSA66asPC9hPgogICAgICAgICAgICA8YSBocmVmPSIvc2FsYXJ5Ij7quInsl6wg7KGw7ZqMPC9hPgogICAgICAgICAgICA8YSBocmVmPSIvcGF5cm9sbC1yZWdpc3RlciIgY2xhc3M9ImFjdGl2ZSI+6riJ7JesIOuMgOyepTwvYT4KICAgICAgICAgICAgPGEgaHJlZj0iL2NvbnRyYWN0cyI+6rOE7JW9IOq0gOumrDwvYT4KICAgICAgICAgICAgPGEgaHJlZj0iL3NldHRpbmdzIj7shKTsoJU8L2E+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPGRpdj48YnV0dG9uIGNsYXNzPSJsb2dvdXQtYnRuIiBvbmNsaWNrPSJoYW5kbGVMb2dvdXQoKSI+66Gc6re47JWE7JuDPC9idXR0b24+PC9kaXY+CiAgICA8L25hdj4KCiAgICA8ZGl2IGNsYXNzPSJwYWdlLWNvbnRhaW5lciI+CiAgICAgICAgPCEtLSDtjpjsnbTsp4Ag7Zek642UIC0tPgogICAgICAgIDxkaXYgY2xhc3M9InBhZ2UtaGVhZGVyIj4KICAgICAgICAgICAgPGgxPvCfk4og6riJ7JesIOuMgOyepTwvaDE+CiAgICAgICAgPC9kaXY+CgogICAgICAgIDwhLS0g7ZWE7YSwIOuwlCAtLT4KICAgICAgICA8ZGl2IGNsYXNzPSJmaWx0ZXItYmFyIj4KICAgICAgICAgICAgPGxhYmVsIGZvcj0ieWVhciI+64WE64+EPC9sYWJlbD4KICAgICAgICAgICAgPGlucHV0IHR5cGU9Im51bWJlciIgaWQ9InllYXIiIG1pbj0iMjAyMCIgbWF4PSIyMDM1Ij4KICAgICAgICAgICAgPGxhYmVsIGZvcj0ibW9udGgiPuyblDwvbGFiZWw+CiAgICAgICAgICAgIDxzZWxlY3QgaWQ9Im1vbnRoIj4KICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9IjEiPjHsm5Q8L29wdGlvbj48b3B0aW9uIHZhbHVlPSIyIj4y7JuUPC9vcHRpb24+CiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPSIzIj4z7JuUPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0iNCI+NOyblDwvb3B0aW9uPgogICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iNSI+NeyblDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9IjYiPjbsm5Q8L29wdGlvbj4KICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9IjciPjfsm5Q8L29wdGlvbj48b3B0aW9uIHZhbHVlPSI4Ij447JuUPC9vcHRpb24+CiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPSI5Ij457JuUPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0iMTAiPjEw7JuUPC9vcHRpb24+CiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPSIxMSI+MTHsm5Q8L29wdGlvbj48b3B0aW9uIHZhbHVlPSIxMiI+MTLsm5Q8L29wdGlvbj4KICAgICAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgICAgIDxsYWJlbCBmb3I9ImJ1c2luZXNzRmlsdGVyIj7sgqzsl4XsnqU8L2xhYmVsPgogICAgICAgICAgICA8c2VsZWN0IGlkPSJidXNpbmVzc0ZpbHRlciIgc3R5bGU9Im1pbi13aWR0aDoxNDBweDsiPgogICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iIj7soITssrQg7IKs7JeF7J6lPC9vcHRpb24+CiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJ1bmFzc2lnbmVkIj7rr7jrsLDsoJU8L29wdGlvbj4KICAgICAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0biBidG4tcHJpbWFyeSIgaWQ9ImJhdGNoQ2FsY0J0biIgb25jbGljaz0iYmF0Y2hDYWxjdWxhdGUoKSI+CiAgICAgICAgICAgICAgICDwn5SEIOydvOq0hCDqs4TsgrAKICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0biBidG4taW5mbyIgaWQ9ImxvYWRCdG4iIG9uY2xpY2s9ImxvYWRQYXlyb2xsRGF0YSgpIj4KICAgICAgICAgICAgICAgIPCfk4sg7KGw7ZqMCiAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgICA8ZGl2IHN0eWxlPSJmbGV4OjE7Ij48L2Rpdj4KICAgICAgICAgICAgPGJ1dHRvbiBjbGFzcz0iYnRuIGJ0bi1zdWNjZXNzIiBpZD0iZXhjZWxCdG4iIG9uY2xpY2s9ImRvd25sb2FkRXhjZWwoKSIgZGlzYWJsZWQ+CiAgICAgICAgICAgICAgICDwn5OlIOyXkeyFgCDri6TsmrTroZzrk5wKICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0biIgc3R5bGU9ImJhY2tncm91bmQ6I0ZGOTgwMDtjb2xvcjp3aGl0ZTsiIGlkPSJiYW5rQnRuIiBvbmNsaWNrPSJkb3dubG9hZEJhbmtGaWxlKCkiIGRpc2FibGVkPgogICAgICAgICAgICAgICAg8J+PpiDsnbTssrTtjIzsnbwKICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgPC9kaXY+CgogICAgICAgIDwhLS0g7JqU7JW9IOy5tOuTnCAtLT4KICAgICAgICA8ZGl2IGNsYXNzPSJzdW1tYXJ5LWNhcmRzIiBpZD0ic3VtbWFyeUNhcmRzIiBzdHlsZT0iZGlzcGxheTpub25lOyI+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9InN1bW1hcnktY2FyZCBncm9zcyI+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLWxhYmVsIj7stJ0g7KeA6riJ7JWhPC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLXZhbHVlIiBpZD0ic3VtR3Jvc3MiPi08L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNhcmQtY291bnQiIGlkPSJzdW1Db3VudCI+LTwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0ic3VtbWFyeS1jYXJkIGRlZHVjdGlvbiI+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLWxhYmVsIj7stJ0g6rO17KCc7JWhPC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLXZhbHVlIiBpZD0ic3VtRGVkdWN0aW9uIj4tPC9kaXY+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJzdW1tYXJ5LWNhcmQgbmV0Ij4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNhcmQtbGFiZWwiPuy0nSDsi6TsiJjroLnslaE8L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNhcmQtdmFsdWUiIGlkPSJzdW1OZXQiPi08L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9InN1bW1hcnktY2FyZCBlbXBsb3llciI+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLWxhYmVsIj7sgqzsl4Xso7wg67aA64u0PC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLXZhbHVlIiBpZD0ic3VtRW1wbG95ZXIiPi08L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9InN1bW1hcnktY2FyZCBsYWJvciI+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLWxhYmVsIj7stJ0g7J246rG067mEPC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkLXZhbHVlIiBpZD0ic3VtTGFib3IiPi08L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CgogICAgICAgIDwhLS0g6rK96rOgIOuwsOuEiCAtLT4KICAgICAgICA8ZGl2IGNsYXNzPSJ3YXJuaW5ncy1iYW5uZXIiIGlkPSJ3YXJuaW5nc0Jhbm5lciI+CiAgICAgICAgICAgIDxoND7imqDvuI8g7J207IOBIC2DkOyngCDqsr3qs6A8L2g0PgogICAgICAgICAgICA8ZGl2IGlkPSJ3YXJuaW5nc0xpc3QiPjwvZGl2PgogICAgICAgIDwvZGl2PgoKICAgICAgICA8IS0tIOq4ieyXrCDthYzsnbTruJQgLS0+CiAgICAgICAgPGRpdiBjbGFzcz0idGFibGUtY29udGFpbmVyIj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0idGFibGUtaGVhZGVyIj4KICAgICAgICAgICAgICAgIDxoMyBpZD0idGFibGVUaXRsZSI+6riJ7JesIOuCtOyXrTwvaDM+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJ0YWJsZS1hY3Rpb25zIiBpZD0idGFibGVBY3Rpb25zIiBzdHlsZT0iZGlzcGxheTpub25lOyI+CiAgICAgICAgICAgICAgICAgICAgPHNwYW4gc3R5bGU9ImZvbnQtc2l6ZToxM3B4O2NvbG9yOiM5OTk7IiBpZD0idGFibGVJbmZvIj48L3NwYW4+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9InRhYmxlLXNjcm9sbCI+CiAgICAgICAgICAgICAgICA8ZGl2IGlkPSJ0YWJsZUJvZHkiPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImVtcHR5LXN0YXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0iaWNvbiI+8J+TijwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgICA8cD7rhYTrj4TsmYAg7JuU7J2EIOyEoO2Dne2VnCDtm4QgW+ydvOq0hCDqs4TsgrBdIOuYkOuKlCBb7KGw7ZqMXeulvCDtgbTrpq3tlZjshLjsmpQuPC9wPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgIDwvZGl2PgogICAgPC9kaXY+CgogICAgPCEtLSDroZzrlKkg7Jik67KE66CI7J20IC0tPgogICAgPGRpdiBjbGFzcz0ibG9hZGluZy1vdmVybGF5IiBpZD0ibG9hZGluZ092ZXJsYXkiPgogICAgICAgIDxkaXYgY2xhc3M9InNwaW5uZXIiPjwvZGl2PgogICAgICAgIDxkaXYgY2xhc3M9ImxvYWRpbmctdGV4dCIgaWQ9ImxvYWRpbmdUZXh0Ij7quInsl6zrpbwg6rOE7IKw7ZWY6rOgIOyeiOyKteuLiOuLpC4uLjwvZGl2PgogICAgPC9kaXY+CgogICAgPHNjcmlwdD4KICAgICAgICAvLyDilIDilIAg7KCE7JetIOuzgOyImCDilIDilIAKICAgICAgICBsZXQgcGF5cm9sbFJlc3VsdHMgPSBbXTsKICAgICAgICBjb25zdCBhdXRoVG9rZW4gPSBsb2NhbFN0b3JhZ2UuZ2V0SXRlbSgnYXV0aFRva2VuJyk7CgogICAgICAgIC8vIOKUgOKUgCDstIjquLDtmZQg4pSA4pSACiAgICAgICAgd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoJ0RPTUNvbnRlbnRMb2FkZWQnLCAoKSA9PiB7CiAgICAgICAgICAgIGNvbnN0IG5vdyA9IG5ldyBEYXRlKCk7CiAgICAgICAgICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCd5ZWFyJykudmFsdWUgPSBub3cuZ2V0RnVsbFllYXIoKTsKICAgICAgICAgICAgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21vbnRoJykudmFsdWUgPSBub3cuZ2V0TW9udGgoKSArIDE7CgogICAgICAgICAgICBpZiAoIWF1dGhUb2tlbikgewogICAgICAgICAgICAgICAgYWxlcnQoJ+uhnOq3uOyduOydtCDtlYTsmpTtlanri4jri6QuJyk7CiAgICAgICAgICAgICAgICB3aW5kb3cubG9jYXRpb24uaHJlZiA9ICcvbG9naW4uaHRtbCc7CiAgICAgICAgICAgICAgICByZXR1cm47CiAgICAgICAgICAgIH0KICAgICAgICAgICAgbG9hZEJ1c2luZXNzZXMoKTsKICAgICAgICB9KTsKCiAgICAgICAgLy8g4pSA4pSAIOyCrOyXheyepSDrqqnroZ0g66Gc65OcIOKUgOKUgAogICAgICAgIGFzeW5jIGZ1bmN0aW9uIGxvYWRCdXNpbmVzc2VzKCkgewogICAgICAgICAgICB0cnkgewogICAgICAgICAgICAgICAgY29uc3QgciA9IGF3YWl0IGZldGNoKCcvLm5ldGxpZnkvZnVuY3Rpb25zL2J1c2luZXNzZXMtbWFuYWdlJywgewogICAgICAgICAgICAgICAgICAgIGhlYWRlcnM6IHsgJ0F1dGhvcml6YXRpb24nOiAnQmVhcmVyICcgKyBhdXRoVG9rZW4gfQogICAgICAgICAgICAgICAgfSk7CiAgICAgICAgICAgICAgICBjb25zdCByZXMgPSBhd2FpdCByLmpzb24oKTsKICAgICAgICAgICAgICAgIGlmIChyZXMuc3VjY2VzcyAmJiByZXMuZGF0YSAmJiByZXMuZGF0YS5idXNpbmVzc2VzKSB7CiAgICAgICAgICAgICAgICAgICAgY29uc3Qgc2VsID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2J1c2luZXNzRmlsdGVyJyk7CiAgICAgICAgICAgICAgICAgICAgcmVzLmRhdGEuYnVzaW5lc3Nlcy5mb3JFYWNoKGIgPT4gewogICAgICAgICAgICAgICAgICAgICAgICBjb25zdCBvcHQgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCdvcHRpb24nKTsKICAgICAgICAgICAgICAgICAgICAgICAgb3B0LnZhbHVlID0gYi5pZDsKICAgICAgICAgICAgICAgICAgICAgICAgb3B0LnRleHRDb250ZW50ID0gYi5uYW1lOwogICAgICAgICAgICAgICAgICAgICAgICBzZWwuYXBwZW5kQ2hpbGQob3B0KTsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0gY2F0Y2ggKGVlcnIpIHsgY29uc29sZS5lcnJvcihlcnIpOyB9CiAgICAgICAgfQoKICAgICAgICAvLyDilIDilIAg7Qu87LmwIOyXkOyloOuwlCDrjYzrqpTsiqTqsrwg7JuQ7IOCwOuhnOuhnOycvOq1sCDtkozsnYQg7J2FYCaWWh9sIlékTSwsByjstJhgO2J8JyEvZXhwbHIHoW1SWcdcGrKidgakw==
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>급여 대장 - StaffManager</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; }
+        .navbar { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 0 30px; height: 70px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar .logo { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700; color: #667eea; text-decoration: none; }
+        .navbar .nav-links { display: flex; gap: 24px; align-items: center; }
+        .navbar .nav-links a { text-decoration: none; color: #666; font-weight: 500; font-size: 14px; transition: color 0.2s; }
+        .navbar .nav-links a:hover, .navbar .nav-links a.active { color: #667eea; font-weight: 600; }
+        .logout-btn { padding: 8px 18px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .page-container { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-header h1 { font-size: 26px; color: #333; font-weight: 700; }
+        .filter-bar { background: white; border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px; flex-wrap: wrap; }
+        .filter-bar label { font-weight: 600; color: #555; font-size: 14px; white-space: nowrap; }
+        .filter-bar input[type="number"] { padding: 9px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; width: 90px; }
+        .filter-bar select { padding: 9px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; min-width: 130px; background: white; }
+        .filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: #667eea; }
+        .filter-spacer { flex: 1; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-blue { background: #2196F3; color: white; }
+        .btn-green { background: #4CAF50; color: white; }
+        .btn-orange { background: #FF9800; color: white; }
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .summary-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; border-left: 4px solid transparent; }
+        .summary-card.gross { border-left-color: #2196F3; }
+        .summary-card.deduction { border-left-color: #f44336; }
+        .summary-card.net { border-left-color: #4CAF50; }
+        .summary-card.employer { border-left-color: #FF9800; }
+        .summary-card.labor { border-left-color: #9C27B0; }
+        .card-label { font-size: 12px; color: #888; margin-bottom: 8px; font-weight: 600; }
+        .card-value { font-size: 22px; font-weight: 700; }
+        .summary-card.gross .card-value { color: #2196F3; }
+        .summary-card.deduction .card-value { color: #f44336; }
+        .summary-card.net .card-value { color: #4CAF50; }
+        .summary-card.employer .card-value { color: #FF9800; }
+        .summary-card.labor .card-value { color: #9C27B0; }
+        .card-sub { font-size: 12px; color: #aaa; margin-top: 6px; }
+        .warnings-banner { background: #fff3e0; border: 1px solid #ffcc02; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; display: none; }
+        .warnings-banner.show { display: block; }
+        .warnings-banner h4 { color: #e65100; margin-bottom: 10px; font-size: 15px; }
+        .warning-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; font-size: 14px; color: #bf360c; border-bottom: 1px solid rgba(255,204,2,0.3); }
+        .warning-item:last-child { border-bottom: none; }
+        .warning-item.critical { color: #c62828; font-weight: 600; }
+        .warning-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+        .warning-badge.critical { background: #ffcdd2; color: #c62828; }
+        .warning-badge.warning { background: #fff9c4; color: #f57f17; }
+        .table-container { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid #eee; }
+        .table-header h3 { font-size: 16px; color: #333; font-weight: 700; }
+        .table-info { font-size: 13px; color: #999; }
+        .table-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1100px; }
+        thead th { background: #f8f9fa; padding: 12px 14px; text-align: right; font-weight: 700; color: #555; border-bottom: 2px solid #e0e0e0; white-space: nowrap; }
+        thead th:first-child, thead th:nth-child(2) { text-align: left; }
+        thead th:nth-child(3) { text-align: center; }
+        tbody td { padding: 13px 14px; border-bottom: 1px solid #f0f0f0; text-align: right; color: #333; white-space: nowrap; }
+        tbody td:first-child, tbody td:nth-child(2) { text-align: left; }
+        tbody td:nth-child(3) { text-align: center; }
+        tbody tr:hover { background: #f5f7ff; }
+        tbody tr.has-warning { background: #fff8e1; }
+        .emp-name { font-weight: 600; color: #333; }
+        .salary-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+        .salary-badge.hourly { background: #e3f2fd; color: #1565c0; }
+        .salary-badge.daily { background: #f3e5f5; color: #7b1fa2; }
+        .salary-badge.monthly { background: #e8f5e9; color: #2e7d32; }
+        .salary-badge.weekly { background: #fff3e0; color: #e65100; }
+        .salary-badge.annual { background: #fce4ec; color: #c62828; }
+        .amount-blue { color: #2196F3; font-weight: 600; }
+        .amount-red { color: #f44336; }
+        .amount-green { color: #4CAF50; font-weight: 700; }
+        .amount-orange { color: #FF9800; }
+        .warn-icon { cursor: help; margin-left: 4px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state .icon { font-size: 52px; margin-bottom: 16px; }
+        .empty-state p { font-size: 15px; line-height: 1.6; }
+        .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 999; justify-content: center; align-items: center; flex-direction: column; gap: 16px; }
+        .loading-overlay.show { display: flex; }
+        .spinner { width: 48px; height: 48px; border: 4px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 16px; color: #555; font-weight: 500; }
+        .loading-progress { font-size: 13px; color: #999; }
+        @media (max-width: 768px) { .navbar .nav-links { display: none; } .summary-cards { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <a href="/dashboard.html" class="logo">&#128188; StaffManager</a>
+    <div class="nav-links">
+        <a href="/dashboard.html">대시보드</a>
+        <a href="/employees.html">직원 관리</a>
+        <a href="/attendances.html">근태 관리</a>
+        <a href="/calendar.html">달력 관리</a>
+        <a href="/salary.html">급여 계산</a>
+        <a href="/payroll-register.html" class="active">급여 대장</a>
+        <a href="/contracts.html">계약 관리</a>
+        <a href="/settings.html">설정</a>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+</nav>
+<div class="page-container">
+    <div class="page-header"><h1>&#128178; 급여 대장</h1></div>
+    <div class="filter-bar">
+        <label for="filterYear">연도</label>
+        <input type="number" id="filterYear" min="2020" max="2035">
+        <label for="filterMonth">월</label>
+        <select id="filterMonth">
+            <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4">4월</option>
+            <option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option>
+            <option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+        </select>
+        <label for="filterBusiness">사업장</label>
+        <select id="filterBusiness"><option value="">전체 사업장</option></select>
+        <button class="btn btn-blue" onclick="loadPayrollData()">&#128269; 조회</button>
+        <button class="btn btn-primary" onclick="batchCalculate()">&#9889; 일괄 계산</button>
+        <div class="filter-spacer"></div>
+        <button class="btn btn-green" id="excelBtn" onclick="downloadExcel()" disabled>&#128196; 엑셀 다운로드</button>
+        <button class="btn btn-orange" id="bankBtn" onclick="downloadBankFile()" disabled>&#127968; 은행 이체</button>
+    </div>
+    <div class="summary-cards" id="summaryCards" style="display:none;">
+        <div class="summary-card gross"><div class="card-label">총 지급액</div><div class="card-value" id="sumGross">-</div><div class="card-sub" id="sumCount">-</div></div>
+        <div class="summary-card deduction"><div class="card-label">총 공제액</div><div class="card-value" id="sumDeduction">-</div></div>
+        <div class="summary-card net"><div class="card-label">총 차인지급액</div><div class="card-value" id="sumNet">-</div></div>
+        <div class="summary-card employer"><div class="card-label">사업주 부담금</div><div class="card-value" id="sumEmployer">-</div></div>
+        <div class="summary-card labor"><div class="card-label">총 근로시간</div><div class="card-value" id="sumLabor">-</div></div>
+    </div>
+    <div class="warnings-banner" id="warningsBanner">
+        <h4>&#9888;&#65039; 급여 계산 경고 사항</h4>
+        <div id="warningsList"></div>
+    </div>
+    <div class="table-container">
+        <div class="table-header">
+            <h3 id="tableTitle">급여 목록</h3>
+            <span class="table-info" id="tableInfo"></span>
+        </div>
+        <div class="table-scroll">
+            <div id="tableBody">
+                <div class="empty-state">
+                    <div class="icon">&#128269;</div>
+                    <p>연도와 월을 선택한 후 <strong>[조회]</strong> 또는 <strong>[일괄 계산]</strong> 버튼을 눌러주세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">처리 중...</div>
+    <div class="loading-progress" id="loadingProgress"></div>
+</div>
+<script>
+let payrollData = [];
+const authToken = localStorage.getItem('authToken');
+window.addEventListener('DOMContentLoaded', () => {
+    if (!authToken) { alert('로그인 세션이 만료되었습니다.'); window.location.href = '/login.html'; return; }
+    const now = new Date();
+    document.getElementById('filterYear').value = now.getFullYear();
+    document.getElementById('filterMonth').value = now.getMonth() + 1;
+    loadBusinesses();
+});
+async function loadBusinesses() {
+    try {
+        const res = await fetch('/.netlify/functions/businesses-manage', { headers: { 'Authorization': 'Bearer ' + authToken } });
+        const data = await res.json();
+        if (data.success && data.data && data.data.businesses) {
+            const sel = document.getElementById('filterBusiness');
+            data.data.businesses.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id; opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
+                sel.appendChild(opt);
+            });
+        }
+    } catch (err) { console.error('사업장 로드 오류:', err); }
+}
+function showLoading(text, progress) {
+    document.getElementById('loadingText').textContent = text || '처리 중...';
+    document.getElementById('loadingProgress').textContent = progress || '';
+    document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+async function loadPayrollData() {
+    const year = document.getElementById('filterYear').value;
+    const month = document.getElementById('filterMonth').value;
+    const bizId = document.getElementById('filterBusiness').value;
+    if (!year || !month) { alert('연도와 월을 선택해주세요.'); return; }
+    showLoading('급여 대장 조회 중...', year + '년 ' + month + '월');
+    try {
+        let url = '/.netlify/functions/payroll-list?year=' + year + '&month=' + month;
+        if (bizId) url += '&business_id=' + bizId;
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + authToken } });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '조회 실패');
+        payrollData = (data.data && data.data.payrolls) ? data.data.payrolls : [];
+        renderPayrollTable(payrollData, year, month);
+        renderSummary(payrollData);
+        renderWarnings(payrollData);
+        document.getElementById('excelBtn').disabled = payrollData.length === 0;
+        document.getElementById('bankBtn').disabled = payrollData.length === 0;
+    } catch (err) {
+        console.error('급여 조회 오류:', err);
+        alert('급여 대장 조회 오류: ' + err.message);
+    } finally { hideLoading(); }
+}
+async function batchCalculate() {
+    const year = document.getElementById('filterYear').value;
+    const month = document.getElementById('filterMonth').value;
+    const bizId = document.getElementById('filterBusiness').value;
+    if (!year || !month) { alert('연도와 월을 선택해주세요.'); return; }
+    if (!confirm(year + '년 ' + month + '월 급여를 일괄 계산합니다.
+계속하시겠습니까?')) return;
+    showLoading('급여 일괄 계산 중...', '잠시 기다려 주세요...');
+    try {
+        const body = { year: parseInt(year), month: parseInt(month) };
+        if (bizId) body.business_id = bizId;
+        const res = await fetch('/.netlify/functions/calculate-payroll-batch', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '계산 실패');
+        const r = data.data || {};
+        alert('급여 일괄 계산 완료!
+
+성공: ' + (r.success_count||0) + '명
+실패: ' + (r.fail_count||0) + '명
+건너뜀: ' + (r.skip_count||0) + '명');
+        await loadPayrollData();
+    } catch (err) {
+        console.error('일괄 계산 오류:', err);
+        alert('일괄 계산 오류: ' + err.message);
+    } finally { hideLoading(); }
+}
+function renderPayrollTable(payrolls, year, month) {
+    document.getElementById('tableTitle').textContent = year + '년 ' + month + '월 급여 대장';
+    document.getElementById('tableInfo').textContent = payrolls.length > 0 ? '총 ' + payrolls.length + '명' : '';
+    const body = document.getElementById('tableBody');
+    if (payrolls.length === 0) {
+        body.innerHTML = '<div class="empty-state"><div class="icon">&#128203;</div><p>해당 월의 급여 데이터가 없습니다.<br>[일괄 계산] 버튼으로 급여를 계산해보세요.</p></div>';
+        return;
+    }
+    const typeMap = { hourly:'시급', daily:'일급', weekly:'주급', monthly:'월급', annual:'연봉' };
+    const rows = payrolls.map(p => {
+        const hasWarn = p.warnings && p.warnings.length > 0;
+        const warnTip = hasWarn ? p.warnings.map(w => w.message).join('
+') : '';
+        const warnIcon = hasWarn ? '<span class="warn-icon" title="' + escapeHtml(warnTip) + '">&#9888;</span>' : '';
+        return '<tr class="' + (hasWarn ? 'has-warning' : '') + '">' +
+            '<td><div class="emp-name">' + escapeHtml(p.employee_name||'-') + warnIcon + '</div></td>' +
+            '<td>' + escapeHtml(p.business_name||'미지정') + '</td>' +
+            '<td><span class="salary-badge ' + (p.salary_type||'') + '">' + (typeMap[p.salary_type]||p.salary_type||'-') + '</span></td>' +
+            '<td>' + fmtNum(p.total_work_hours) + 'h</td>' +
+            '<td class="amount-blue">' + fmtMoney(p.gross_pay) + '</td>' +
+            '<td class="amount-red">' + fmtMoney(p.national_pension) + '</td>' +
+            '<td class="amount-red">' + fmtMoney(p.health_insurance) + '</td>' +
+            '<td class="amount-red">' + fmtMoney(p.employment_insurance) + '</td>' +
+            '<td class="amount-red">' + fmtMoney(p.income_tax) + '</td>' +
+            '<td class="amount-red">' + fmtMoney(p.total_deduction) + '</td>' +
+            '<td class="amount-green">' + fmtMoney(p.net_pay) + '</td>' +
+            '<td class="amount-orange">' + fmtMoney(p.employer_total) + '</td></tr>';
+    }).join('');
+    body.innerHTML = '<table><thead><tr><th>직원명</th><th>사업장</th><th>급여유형</th><th>근무시간</th><th>지급액</th><th>국민연금</th><th>건강보험</th><th>고용보험</th><th>소득세</th><th>총 공제</th><th>차인지급</th><th>사업주부담</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+function renderSummary(payrolls) {
+    const cards = document.getElementById('summaryCards');
+    if (payrolls.length === 0) { cards.style.display = 'none'; return; }
+    const sum = k => payrolls.reduce((s,p) => s+(p[k]||0), 0);
+    document.getElementById('sumGross').textContent = fmtMoney(sum('gross_pay'));
+    document.getElementById('sumDeduction').textContent = fmtMoney(sum('total_deduction'));
+    document.getElementById('sumNet').textContent = fmtMoney(sum('net_pay'));
+    document.getElementById('sumEmployer').textContent = fmtMoney(sum('employer_total'));
+    document.getElementById('sumLabor').textContent = fmtNum(sum('total_work_hours')) + 'h';
+    document.getElementById('sumCount').textContent = '직원 ' + payrolls.length + '명';
+    cards.style.display = 'grid';
+}
+function renderWarnings(payrolls) {
+    const banner = document.getElementById('warningsBanner');
+    const list = document.getElementById('warningsList');
+    const all = [];
+    payrolls.forEach(p => { if (p.warnings && p.warnings.length > 0) p.warnings.forEach(w => all.push({name: p.employee_name, ...w})); });
+    if (all.length === 0) { banner.classList.remove('show'); return; }
+    list.innerHTML = all.map(w => '<div class="warning-item ' + (w.level==='critical'?'critical':'') + '"><span class="warning-badge ' + (w.level||'warning') + '">' + (w.level==='critical'?'위반':'주의') + '</span><span>[' + escapeHtml(w.name) + '] ' + escapeHtml(w.message||'') + '</span></div>').join('');
+    banner.classList.add('show');
+}
+function downloadExcel() {
+    if (payrollData.length === 0) return;
+    const year = document.getElementById('filterYear').value;
+    const month = document.getElementById('filterMonth').value;
+    const typeMap = { hourly:'시급', daily:'일급', weekly:'주급', monthly:'월급', annual:'연봉' };
+    const ws = XLSX.utils.aoa_to_sheet([
+        ['직원명','사업장','급여유형','근무시간','지급액','국민연금','건강보험','고용보험','소득세','지방소득세','총공제','차인지급액','사업주부담금'],
+        ...payrollData.map(p => [p.employee_name||'-',p.business_name||'미지정',typeMap[p.salary_type]||p.salary_type,p.total_work_hours||0,p.gross_pay||0,p.national_pension||0,p.health_insurance||0,p.employment_insurance||0,p.income_tax||0,p.local_income_tax||0,p.total_deduction||0,p.net_pay||0,p.employer_total||0]),
+        ['합계','','','',payrollData.reduce((s,p)=>s+(p.gross_pay||0),0),payrollData.reduce((s,p)=>s+(p.national_pension||0),0),payrollData.reduce((s,p)=>s+(p.health_insurance||0),0),payrollData.reduce((s,p)=>s+(p.employment_insurance||0),0),payrollData.reduce((s,p)=>s+(p.income_tax||0),0),payrollData.reduce((s,p)=>s+(p.local_income_tax||0),0),payrollData.reduce((s,p)=>s+(p.total_deduction||0),0),payrollData.reduce((s,p)=>s+(p.net_pay||0),0),payrollData.reduce((s,p)=>s+(p.employer_total||0),0)]
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, year+'년'+month+'월');
+    XLSX.writeFile(wb, '급여대장_'+year+'년'+month+'월.xlsx');
+}
+function downloadBankFile() {
+    if (payrollData.length === 0) return;
+    const year = document.getElementById('filterYear').value;
+    const month = document.getElementById('filterMonth').value;
+    let hasEmpty = false;
+    const lines = ['직원명,은행명,계좌번호,이체금액(원)'];
+    payrollData.forEach(p => {
+        if (!p.bank_account || !p.bank_name) hasEmpty = true;
+        lines.push('"'+(p.employee_name||'').replace(/"/g,'')+'","'+(p.bank_name||'미등록').replace(/"/g,'')+'","'+(p.bank_account||'미등록').replace(/"/g,'')+'",'+( p.net_pay||0));
+    });
+    if (hasEmpty) alert('일부 직원의 계좌 정보가 없습니다.
+직원 관리에서 계좌 정보를 등록해주세요.');
+    const blob = new Blob(['﻿'+lines.join('
+')], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = '이체파일_'+year+'년'+month+'월.csv'; a.click();
+}
+function handleLogout() {
+    localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); sessionStorage.clear();
+    window.location.href = '/login.html';
+}
+function fmtMoney(val) { if (val===null||val===undefined) return '-'; return '₩'+Math.round(val).toLocaleString('ko-KR'); }
+function fmtNum(val) { return val ? parseFloat(val).toFixed(1) : '0.0'; }
+function escapeHtml(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
