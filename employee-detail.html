@@ -5,12 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>직원 상세 - StaffManager</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;background:#f5f7fa;min-height:100vh}.navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}.navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}.navbar-menu{display:flex;gap:30px;align-items:center}.navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}.navbar-menu a:hover,.navbar-menu a.active{color:#667eea}.container{max-width:1200px;margin:0 auto;padding:30px}.breadcrumb{margin-bottom:20px;font-size:14px;color:#999}.breadcrumb a{color:#667eea;text-decoration:none}.profile-header{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px;display:flex;justify-content:space-between;align-items:center}.profile-left{display:flex;align-items:center;gap:24px}.profile-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:700}.profile-name{font-size:28px;font-weight:700;color:#333;margin-bottom:4px}.profile-meta{font-size:14px;color:#999}.profile-meta span{margin-right:16px}.status-badge{display:inline-block;padding:4px 14px;border-radius:12px;font-size:13px;font-weight:600}.status-active{background:#d4edda;color:#155724}.status-on_leave{background:#fff3cd;color:#856404}.status-resigned{background:#f8d7da;color:#721c24}.profile-actions{display:flex;gap:10px}.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .3s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}.btn-primary:hover{opacity:.9}.btn-outline{background:#fff;color:#667eea;border:2px solid #667eea}.btn-outline:hover{background:#f5f7fa}.tabs{background:#fff;border-radius:12px 12px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;border-bottom:2px solid #e0e0e0;overflow-x:auto}.tab{padding:16px 28px;font-size:15px;font-weight:500;color:#999;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}.tab:hover{color:#667eea}.tab.active{color:#667eea;border-bottom-color:#667eea;font-weight:600}.tab-content{background:#fff;border-radius:0 0 12px 12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);display:none}.tab-content.active{display:block}.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}.info-group{margin-bottom:8px}.info-label{font-size:13px;color:#999;margin-bottom:4px}.info-value{font-size:15px;color:#333;font-weight:500}.info-value.highlight{color:#667eea;font-weight:700;font-size:18px}.section-divider{border:none;border-top:1px solid #eee;margin:24px 0}.section-subtitle{font-size:17px;font-weight:600;color:#333;margin-bottom:16px;padding-left:12px;border-left:4px solid #667eea}.contract-list{list-style:none}.contract-item{padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}.contract-item:hover{background:#f8f9fa}.contract-type{font-weight:600;color:#333}.contract-date{font-size:13px;color:#999}.contract-status{font-size:12px;padding:3px 10px;border-radius:10px;font-weight:600}.contract-signed{background:#d4edda;color:#155724}.contract-pending{background:#fff3cd;color:#856404}.contract-sent{background:#d1ecf1;color:#0c5460}.loading{text-align:center;padding:80px 20px}.spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 20px}@keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:center;padding:20px}.modal-overlay.show{display:flex}.modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}.modal-header{padding:24px 28px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.modal-title{font-size:20px;font-weight:700;color:#333}.modal-close{background:none;border:none;font-size:24px;color:#999;cursor:pointer;padding:4px;line-height:1}.modal-close:hover{color:#333}.modal-body{padding:0 28px 28px}.form-section{margin-bottom:24px}.form-section-title{font-size:13px;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}.form-row.full{grid-template-columns:1fr}.form-group label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px}.form-group input,.form-group select{width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;color:#333;background:#fff;transition:border-color .2s}.form-group input:focus,.form-group select:focus{outline:none;border-color:#667eea}.modal-footer{padding:20px 28px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end}.btn-save{padding:12px 28px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}.btn-save:disabled{opacity:.5;cursor:not-allowed}.btn-cancel{padding:12px 24px;background:#f5f7fa;color:#666;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}.save-result{margin:0 28px 16px;padding:12px 16px;border-radius:8px;font-size:14px;display:none}.save-result.success{background:#d4edda;color:#155724;display:block}.save-result.error{background:#f8d7da;color:#721c24;display:block}
-@media(max-width:768px){.container{padding:15px}.profile-header{flex-direction:column;gap:20px;align-items:flex-start}.info-grid{grid-template-columns:1fr}.tab{padding:12px 16px;font-size:13px}.form-row{grid-template-columns:1fr}}
+/* ===== 기본 리셋 & 바디 ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;background:#f5f7fa;min-height:100vh}
+
+/* ===== 상단 네비게이션 바 ===== */
+.navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}
+.navbar-menu{display:flex;gap:30px;align-items:center}
+.navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}
+.navbar-menu a:hover,.navbar-menu a.active{color:#667eea}
+
+/* ===== 페이지 컨테이너 ===== */
+.container{max-width:1200px;margin:0 auto;padding:30px}
+.breadcrumb{margin-bottom:20px;font-size:14px;color:#999}
+.breadcrumb a{color:#667eea;text-decoration:none}
+
+/* ===== 프로필 헤더 카드 ===== */
+.profile-header{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px;display:flex;justify-content:space-between;align-items:center}
+.profile-left{display:flex;align-items:center;gap:24px}
+.profile-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:700}
+.profile-name{font-size:28px;font-weight:700;color:#333;margin-bottom:4px}
+.profile-meta{font-size:14px;color:#999}
+.profile-meta span{margin-right:16px}
+
+/* ===== 재직 상태 뱃지 ===== */
+.status-badge{display:inline-block;padding:4px 14px;border-radius:12px;font-size:13px;font-weight:600}
+.status-active{background:#d4edda;color:#155724}
+.status-on_leave{background:#fff3cd;color:#856404}
+.status-resigned{background:#f8d7da;color:#721c24}
+
+/* ===== 버튼 공통 스타일 ===== */
+.profile-actions{display:flex;gap:10px}
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .3s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-outline{background:#fff;color:#667eea;border:2px solid #667eea}
+.btn-outline:hover{background:#f5f7fa}
+
+/* ===== 탭 메뉴 ===== */
+.tabs{background:#fff;border-radius:12px 12px 0 0;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;border-bottom:2px solid #e0e0e0;overflow-x:auto}
+.tab{padding:16px 28px;font-size:15px;font-weight:500;color:#999;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}
+.tab:hover{color:#667eea}
+.tab.active{color:#667eea;border-bottom-color:#667eea;font-weight:600}
+
+/* ===== 탭 콘텐츠 영역 ===== */
+.tab-content{background:#fff;border-radius:0 0 12px 12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);display:none}
+.tab-content.active{display:block}
+
+/* ===== 정보 그리드 & 항목 ===== */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.info-group{margin-bottom:8px}
+.info-label{font-size:13px;color:#999;margin-bottom:4px}
+.info-value{font-size:15px;color:#333;font-weight:500}
+.info-value.highlight{color:#667eea;font-weight:700;font-size:18px}
+
+/* ===== 섹션 구분 ===== */
+.section-divider{border:none;border-top:1px solid #eee;margin:24px 0}
+.section-subtitle{font-size:17px;font-weight:600;color:#333;margin-bottom:16px;padding-left:12px;border-left:4px solid #667eea}
+
+/* ===== 계약 목록 ===== */
+.contract-list{list-style:none}
+.contract-item{padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.contract-item:hover{background:#f8f9fa}
+.contract-type{font-weight:600;color:#333}
+.contract-date{font-size:13px;color:#999}
+.contract-status{font-size:12px;padding:3px 10px;border-radius:10px;font-weight:600}
+.contract-signed{background:#d4edda;color:#155724}
+.contract-pending{background:#fff3cd;color:#856404}
+.contract-sent{background:#d1ecf1;color:#0c5460}
+
+/* ===== 로딩 스피너 ===== */
+.loading{text-align:center;padding:80px 20px}
+.spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 20px}
+@keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* ===== 수정 모달 오버레이 ===== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:center;padding:20px}
+.modal-overlay.show{display:flex}
+
+/* ===== 모달 본체 ===== */
+.modal{background:#fff;border-radius:16px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{padding:24px 28px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:20px;font-weight:700;color:#333}
+.modal-close{background:none;border:none;font-size:24px;color:#999;cursor:pointer;padding:4px;line-height:1}
+.modal-close:hover{color:#333}
+.modal-body{padding:0 28px 28px}
+
+/* ===== 모달 섹션 타이틀 ===== */
+.form-section{margin-bottom:24px}
+.form-section-title{font-size:13px;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee}
+
+/* ===== 폼 레이아웃 (2열 / 1열) ===== */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row.full{grid-template-columns:1fr}
+
+/* ===== 폼 입력 필드 ===== */
+.form-group label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px}
+.form-group input,.form-group select{width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;color:#333;background:#fff;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#667eea}
+
+/* ===== 모달 하단 버튼 ===== */
+.modal-footer{padding:20px 28px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end}
+.btn-save{padding:12px 28px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.btn-save:disabled{opacity:.5;cursor:not-allowed}
+.btn-cancel{padding:12px 24px;background:#f5f7fa;color:#666;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+
+/* ===== 저장 결과 메시지 ===== */
+.save-result{margin:0 28px 16px;padding:12px 16px;border-radius:8px;font-size:14px;display:none}
+.save-result.success{background:#d4edda;color:#155724;display:block}
+.save-result.error{background:#f8d7da;color:#721c24;display:block}
+
+/* ===== 모바일 반응형 ===== */
+@media(max-width:768px){
+  .container{padding:15px}
+  .profile-header{flex-direction:column;gap:20px;align-items:flex-start}
+  .info-grid{grid-template-columns:1fr}
+  .tab{padding:12px 16px;font-size:13px}
+  .form-row{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
+
+<!-- ===== 상단 네비게이션 ===== -->
 <nav class="navbar">
   <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
   <div class="navbar-menu">
@@ -23,16 +141,28 @@
     <a href="/settings.html">설정</a>
   </div>
 </nav>
+
 <div class="container">
+  <!-- 페이지 경로 표시 (직원 관리 > 홍길동) -->
   <div class="breadcrumb"><a href="/employees.html">직원 관리</a> &gt; <span id="breadcrumbName">직원 상세</span></div>
+
+  <!-- 로딩 중 (API 응답 전) -->
   <div id="loadingState" class="loading"><div class="spinner"></div><p style="color:#999">직원 정보를 불러오는 중...</p></div>
+
+  <!-- 메인 콘텐츠 (API 응답 후 표시) -->
   <div id="mainContent" style="display:none">
+
+    <!-- ===== 프로필 헤더 ===== -->
     <div class="profile-header">
       <div class="profile-left">
-        <div class="profile-avatar" id="avatar"></div>
+        <div class="profile-avatar" id="avatar"></div>  <!-- 이름 첫 글자 -->
         <div>
           <div class="profile-name" id="empName"></div>
-          <div class="profile-meta"><span id="empDept"></span><span id="empPosition"></span><span id="empBiz"></span></div>
+          <div class="profile-meta">
+            <span id="empDept"></span>       <!-- 🏢 부서 -->
+            <span id="empPosition"></span>   <!-- 📋 직급 -->
+            <span id="empBiz"></span>        <!-- 📍 소속 사업장 -->
+          </div>
           <div style="margin-top:8px"><span class="status-badge" id="empStatus"></span></div>
         </div>
       </div>
@@ -41,12 +171,16 @@
         <button class="btn btn-primary" onclick="openEditModal()">✏️ 정보 수정</button>
       </div>
     </div>
+
+    <!-- ===== 탭 메뉴 ===== -->
     <div class="tabs">
-      <div class="tab active" data-tab="basic" onclick="switchTab('basic')">기본 정보</div>
-      <div class="tab" data-tab="work" onclick="switchTab('work')">근무 정보</div>
-      <div class="tab" data-tab="salary" onclick="switchTab('salary')">급여 정보</div>
-      <div class="tab" data-tab="contract" onclick="switchTab('contract')">계약 정보</div>
+      <div class="tab active" data-tab="basic"    onclick="switchTab('basic')">기본 정보</div>
+      <div class="tab"        data-tab="work"     onclick="switchTab('work')">근무 정보</div>
+      <div class="tab"        data-tab="salary"   onclick="switchTab('salary')">급여 정보</div>
+      <div class="tab"        data-tab="contract" onclick="switchTab('contract')">계약 정보</div>
     </div>
+
+    <!-- ===== 탭1: 기본 정보 ===== -->
     <div class="tab-content active" id="tab-basic">
       <div class="section-subtitle">인적 사항</div>
       <div class="info-grid">
@@ -69,14 +203,21 @@
         <div class="info-group"><div class="info-label">등록일</div><div class="info-value" id="infoCreated">-</div></div>
       </div>
     </div>
+
+    <!-- ===== 탭2: 근무 정보 ===== -->
     <div class="tab-content" id="tab-work">
       <div class="section-subtitle">근무 조건</div>
       <div class="info-grid">
+        <!-- infoWorkType: full_time/part_time/contract/daily → 한글 변환 표시 -->
         <div class="info-group"><div class="info-label">근무 형태</div><div class="info-value" id="infoWorkType">-</div></div>
+        <!-- infoWorkHours: workStartTime ~ workEndTime 합쳐서 표시 -->
         <div class="info-group"><div class="info-label">근무 시간</div><div class="info-value" id="infoWorkHours">-</div></div>
+        <!-- infoBreakTime: breakTimeMinutes + "분" -->
         <div class="info-group"><div class="info-label">휴게 시간</div><div class="info-value" id="infoBreakTime">-</div></div>
         <div class="info-group"><div class="info-label">주휴일</div><div class="info-value" id="infoWeeklyHoliday">-</div></div>
+        <!-- ★ infoWorkLocation: work_location 컬럼 (이번 수정의 핵심) ★ -->
         <div class="info-group"><div class="info-label">근무지</div><div class="info-value" id="infoWorkLocation">-</div></div>
+        <!-- infoProbation: probationMonths + "개월" -->
         <div class="info-group"><div class="info-label">수습 기간</div><div class="info-value" id="infoProbation">-</div></div>
       </div>
       <hr class="section-divider">
@@ -86,6 +227,8 @@
         <div class="info-group"><div class="info-label">계약 종료일</div><div class="info-value" id="infoContractEnd">-</div></div>
       </div>
     </div>
+
+    <!-- ===== 탭3: 급여 정보 ===== -->
     <div class="tab-content" id="tab-salary">
       <div class="section-subtitle">급여 정보</div>
       <div class="info-grid">
@@ -98,30 +241,49 @@
       <div class="section-subtitle">계좌 정보</div>
       <div class="info-grid">
         <div class="info-group"><div class="info-label">은행명</div><div class="info-value" id="infoBankName">-</div></div>
+        <!-- 계좌번호는 앞3자리 + **** + 뒤3자리 마스킹 처리 -->
         <div class="info-group"><div class="info-label">계좌번호</div><div class="info-value" id="infoAccountNumber">-</div></div>
       </div>
     </div>
+
+    <!-- ===== 탭4: 계약 정보 ===== -->
     <div class="tab-content" id="tab-contract">
       <div class="section-subtitle">전자계약 이력</div>
-      <ul class="contract-list" id="contractList"><li style="text-align:center;color:#999;padding:40px">계약 이력이 없습니다</li></ul>
+      <!-- renderContracts() 함수가 이 안을 채움 -->
+      <ul class="contract-list" id="contractList">
+        <li style="text-align:center;color:#999;padding:40px">계약 이력이 없습니다</li>
+      </ul>
     </div>
-  </div>
-</div>
 
-<!-- 통합 정보 수정 모달 -->
+  </div><!-- /mainContent -->
+</div><!-- /container -->
+
+
+<!-- ================================================================ -->
+<!-- ===== 통합 정보 수정 모달 (✏️ 정보 수정 버튼 클릭 시 표시) ===== -->
+<!-- ================================================================ -->
 <div class="modal-overlay" id="editModal" onclick="closeModalOnBg(event)">
   <div class="modal">
+
+    <!-- 모달 헤더 -->
     <div class="modal-header">
       <div class="modal-title">✏️ 직원 정보 수정</div>
       <button class="modal-close" onclick="closeEditModal()">✕</button>
     </div>
+
     <div class="modal-body">
+
+      <!-- ===== [모달 섹션1] 조직 배치 ===== -->
+      <!-- 사업장 소속 / 재직 상태 / 부서 / 직급 / 직책 / 입사일 -->
       <div class="form-section">
         <div class="form-section-title">조직 배치</div>
         <div class="form-row">
           <div class="form-group">
             <label>소속 사업장</label>
-            <select id="editBusiness"><option value="">미배정</option></select>
+            <!-- loadBusinessList()가 API로 가져온 사업장 목록을 동적 추가 -->
+            <select id="editBusiness">
+              <option value="">미배정</option>
+            </select>
           </div>
           <div class="form-group">
             <label>재직 상태</label>
@@ -141,6 +303,46 @@
           <div class="form-group"><label>입사일</label><input type="date" id="editHireDate"></div>
         </div>
       </div>
+
+      <!-- ===== [모달 섹션2] 근무 조건 ===== -->
+      <!-- ★★★ 이 섹션이 이번 수정에서 새로 추가된 부분 ★★★ -->
+      <!-- employees.work_type / work_location / work_start_time / work_end_time / break_time_minutes / probation_months -->
+      <div class="form-section">
+        <div class="form-section-title">근무 조건</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>근무 형태</label>
+            <!-- employees.work_type 컬럼 (full_time/part_time/contract/daily) -->
+            <select id="editWorkType">
+              <option value="">선택</option>
+              <option value="full_time">정규직</option>
+              <option value="part_time">파트타임</option>
+              <option value="contract">계약직</option>
+              <option value="daily">일용직</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>근무지</label>
+            <!-- employees.work_location 컬럼 (예: 강남점, 본점 2층) -->
+            <input type="text" id="editWorkLocation" placeholder="예: 강남점, 본점 2층">
+          </div>
+        </div>
+        <div class="form-row">
+          <!-- employees.work_start_time 컬럼 -->
+          <div class="form-group"><label>근무 시작 시간</label><input type="time" id="editWorkStart"></div>
+          <!-- employees.work_end_time 컬럼 -->
+          <div class="form-group"><label>근무 종료 시간</label><input type="time" id="editWorkEnd"></div>
+        </div>
+        <div class="form-row">
+          <!-- employees.break_time_minutes 컬럼 (분 단위) -->
+          <div class="form-group"><label>휴게 시간 (분)</label><input type="number" id="editBreakTime" placeholder="예: 60" min="0" max="480"></div>
+          <!-- employees.probation_months 컬럼 (개월 단위) -->
+          <div class="form-group"><label>수습 기간 (개월)</label><input type="number" id="editProbation" placeholder="예: 3" min="0" max="12"></div>
+        </div>
+      </div>
+
+      <!-- ===== [모달 섹션3] 인적 사항 ===== -->
+      <!-- 이름 / 전화번호 / 이메일 -->
       <div class="form-section">
         <div class="form-section-title">인적 사항</div>
         <div class="form-row">
@@ -151,11 +353,15 @@
           <div class="form-group"><label>이메일</label><input type="email" id="editEmail"></div>
         </div>
       </div>
+
+      <!-- ===== [모달 섹션4] 급여 정보 ===== -->
+      <!-- 급여유형 / 기본급 -->
       <div class="form-section">
         <div class="form-section-title">급여 정보</div>
         <div class="form-row">
           <div class="form-group">
             <label>급여 유형</label>
+            <!-- employees.salary_type 컬럼 -->
             <select id="editSalaryType">
               <option value="hourly">시급제</option>
               <option value="daily">일급제</option>
@@ -163,9 +369,13 @@
               <option value="annual">연봉제</option>
             </select>
           </div>
+          <!-- employees.base_salary 컬럼 (원 단위) -->
           <div class="form-group"><label>기본급 (원)</label><input type="number" id="editBaseSalary" min="0"></div>
         </div>
       </div>
+
+      <!-- ===== [모달 섹션5] 계좌 정보 ===== -->
+      <!-- 은행명 / 계좌번호 -->
       <div class="form-section">
         <div class="form-section-title">계좌 정보</div>
         <div class="form-row">
@@ -185,194 +395,414 @@
           <div class="form-group"><label>계좌번호</label><input type="text" id="editAccountNumber" placeholder="숫자만 입력"></div>
         </div>
       </div>
-    </div>
+
+    </div><!-- /modal-body -->
+
+    <!-- 저장 결과 메시지 영역 -->
     <div id="saveResult" class="save-result"></div>
+
+    <!-- 모달 하단 버튼 -->
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeEditModal()">취소</button>
+      <!-- 저장 중에는 disabled 처리, 성공 후 1.5초 뒤 자동 닫힘 -->
       <button class="btn-save" id="saveBtn" onclick="saveEmployee()">💾 저장</button>
     </div>
-  </div>
-</div>
+
+  </div><!-- /modal -->
+</div><!-- /modal-overlay -->
+
 
 <script>
-var authToken=null, employeeData=null, businessList=[];
+/* ============================================================
+   전역 변수
+   authToken    : localStorage 의 JWT 토큰
+   employeeData : API 로 불러온 직원 상세 객체
+   businessList : 사업장 목록 (드롭다운·이름 변환용)
+============================================================ */
+var authToken    = null;
+var employeeData = null;
+var businessList = [];
 
-window.addEventListener('DOMContentLoaded', async function(){
-  authToken=localStorage.getItem('authToken');
-  if(!authToken){window.location.href='/login.html';return;}
-  var p=new URLSearchParams(window.location.search);
-  var id=p.get('id');
-  if(!id){window.location.href='/employees.html';return;}
-  await Promise.all([loadEmployeeDetail(id), loadBusinessList()]);
+/* ============================================================
+   페이지 진입 초기화
+   - URL ?id= 파라미터로 직원 ID 추출
+   - 직원 상세 + 사업장 목록 병렬 로드
+============================================================ */
+window.addEventListener('DOMContentLoaded', async function() {
+  authToken = localStorage.getItem('authToken');
+  if (!authToken) { window.location.href = '/login.html'; return; }
+
+  var p  = new URLSearchParams(window.location.search);
+  var id = p.get('id');
+  if (!id) { window.location.href = '/employees.html'; return; }
+
+  /* 두 API 동시 호출 (속도 최적화) */
+  await Promise.all([
+    loadEmployeeDetail(id),
+    loadBusinessList()
+  ]);
 });
 
-async function loadBusinessList(){
-  try{
-    var r=await fetch('/.netlify/functions/businesses-list',{headers:{'Authorization':'Bearer '+authToken}});
-    var res=await r.json();
-    if(res.success && res.businesses){
-      businessList=res.businesses;
-      var sel=document.getElementById('editBusiness');
-      res.businesses.forEach(function(b){
-        var opt=document.createElement('option');
-        opt.value=b.id;
-        opt.textContent=b.name+(b.is_headquarters?' (본점)':'');
+/* ============================================================
+   사업장 목록 로드
+   businesses-list API → editBusiness 드롭다운에 옵션 추가
+   + businessList 전역 변수 저장 (getBizName 에서 사용)
+============================================================ */
+async function loadBusinessList() {
+  try {
+    var r   = await fetch('/.netlify/functions/businesses-list',
+                         { headers: { 'Authorization': 'Bearer ' + authToken } });
+    var res = await r.json();
+    if (res.success && res.businesses) {
+      businessList = res.businesses;
+      var sel = document.getElementById('editBusiness');
+      res.businesses.forEach(function(b) {
+        var opt       = document.createElement('option');
+        opt.value     = b.id;
+        opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
         sel.appendChild(opt);
       });
     }
-  }catch(e){console.error('사업장 목록 로드 실패:',e);}
+  } catch(e) {
+    console.error('사업장 목록 로드 실패:', e);
+  }
 }
 
-async function loadEmployeeDetail(id){
-  try{
-    var r=await fetch('/.netlify/functions/employee-detail?id='+id,{headers:{'Authorization':'Bearer '+authToken}});
-    var data=await r.json();
-    if(!data.success) throw new Error(data.error);
-    employeeData=data.data;
+/* ============================================================
+   직원 상세 로드
+   employee-detail API → employeeData 저장 → renderDetail()
+============================================================ */
+async function loadEmployeeDetail(id) {
+  try {
+    var r    = await fetch('/.netlify/functions/employee-detail?id=' + id,
+                          { headers: { 'Authorization': 'Bearer ' + authToken } });
+    var data = await r.json();
+    if (!data.success) throw new Error(data.error);
+
+    employeeData = data.data;
     renderDetail();
-    document.getElementById('loadingState').style.display='none';
-    document.getElementById('mainContent').style.display='block';
-  }catch(e){
-    alert('직원 정보를 불러올 수 없습니다: '+e.message);
-    window.location.href='/employees.html';
+
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('mainContent').style.display  = 'block';
+  } catch(e) {
+    alert('직원 정보를 불러올 수 없습니다: ' + e.message);
+    window.location.href = '/employees.html';
   }
 }
 
-function renderDetail(){
-  var d=employeeData, name=d.name||'이름 없음';
-  document.title=name+' - StaffManager';
-  document.getElementById('breadcrumbName').textContent=name;
-  document.getElementById('avatar').textContent=name.charAt(0);
-  document.getElementById('empName').textContent=name;
-  document.getElementById('empDept').textContent=d.department?'🏢 '+d.department:'';
-  document.getElementById('empPosition').textContent=d.position?'📋 '+d.position:'';
-  var bizName=getBizName(d.businessId);
-  document.getElementById('empBiz').textContent=bizName?'📍 '+bizName:'';
-  setText('infoBusiness',bizName||'미배정');
-  var se=document.getElementById('empStatus');
-  var sm={active:['재직 중','status-active'],on_leave:['휴직','status-on_leave'],resigned:['퇴사','status-resigned']};
-  var st=sm[d.status]||[d.status,'status-active'];
-  se.textContent=st[0]; se.className='status-badge '+st[1];
-  setText('infoName',name); setText('infoEmail',d.email); setText('infoPhone',d.phone);
-  setText('infoBirth',fmtDate(d.birthDate)); setText('infoAddress',d.address);
-  setText('infoEmpNumber',d.employeeNumber); setText('infoDept',d.department);
-  setText('infoPosition',d.position); setText('infoJobTitle',d.jobTitle);
-  setText('infoHireDate',fmtDate(d.hireDate)); setText('infoCreated',fmtDate(d.createdAt));
-  if(d.hireDate){
-    var h=new Date(d.hireDate),n=new Date(),df=n-h;
-    var y=Math.floor(df/(365.25*864e5)),m=Math.floor((df%(365.25*864e5))/(30.44*864e5));
-    setText('infoTenure',(y>0?y+'년 ':'')+m+'개월');
+/* ============================================================
+   화면 렌더링 (employeeData → 모든 DOM 반영)
+   저장 성공 후에도 재호출되어 새로고침 없이 즉시 반영
+============================================================ */
+function renderDetail() {
+  var d    = employeeData;
+  var name = d.name || '이름 없음';
+
+  /* 브라우저 탭 + 빵부스러기 */
+  document.title = name + ' - StaffManager';
+  document.getElementById('breadcrumbName').textContent = name;
+
+  /* 아바타 (이름 첫 글자) */
+  document.getElementById('avatar').textContent = name.charAt(0);
+
+  /* 프로필 헤더 */
+  document.getElementById('empName').textContent     = name;
+  document.getElementById('empDept').textContent     = d.department ? '🏢 ' + d.department : '';
+  document.getElementById('empPosition').textContent = d.position   ? '📋 ' + d.position   : '';
+
+  /* 소속 사업장명 (ID → 이름 변환) */
+  var bizName = getBizName(d.businessId);
+  document.getElementById('empBiz').textContent = bizName ? '📍 ' + bizName : '';
+  setText('infoBusiness', bizName || '미배정');
+
+  /* 재직 상태 뱃지 */
+  var se        = document.getElementById('empStatus');
+  var statusMap = {
+    active:   ['재직 중', 'status-active'],
+    on_leave: ['휴직',    'status-on_leave'],
+    resigned: ['퇴사',    'status-resigned']
+  };
+  var st = statusMap[d.status] || [d.status, 'status-active'];
+  se.textContent = st[0];
+  se.className   = 'status-badge ' + st[1];
+
+  /* ─ 탭1: 인적 사항 ─ */
+  setText('infoName',      name);
+  setText('infoEmail',     d.email);
+  setText('infoPhone',     d.phone);
+  setText('infoBirth',     fmtDate(d.birthDate));
+  setText('infoAddress',   d.address);
+  setText('infoEmpNumber', d.employeeNumber);
+
+  /* ─ 탭1: 조직 정보 ─ */
+  setText('infoDept',     d.department);
+  setText('infoPosition', d.position);
+  setText('infoJobTitle', d.jobTitle);
+  setText('infoHireDate', fmtDate(d.hireDate));
+  setText('infoCreated',  fmtDate(d.createdAt));
+
+  /* 재직 기간 계산 */
+  if (d.hireDate) {
+    var h      = new Date(d.hireDate);
+    var now    = new Date();
+    var diff   = now - h;
+    var years  = Math.floor(diff / (365.25 * 864e5));
+    var months = Math.floor((diff % (365.25 * 864e5)) / (30.44 * 864e5));
+    setText('infoTenure', (years > 0 ? years + '년 ' : '') + months + '개월');
   }
-  var wm={full_time:'정규직',part_time:'파트타임',contract:'계약직',daily:'일용직'};
-  setText('infoWorkType',wm[d.workType]||d.workType);
-  if(d.workStartTime&&d.workEndTime) setText('infoWorkHours',d.workStartTime+' ~ '+d.workEndTime);
-  setText('infoBreakTime',d.breakTimeMinutes?d.breakTimeMinutes+'분':null);
-  setText('infoWeeklyHoliday',d.weeklyHoliday); setText('infoWorkLocation',d.workLocation);
-  setText('infoProbation',d.probationMonths?d.probationMonths+'개월':'없음');
-  setText('infoContractStart',fmtDate(d.contractStartDate));
-  setText('infoContractEnd',fmtDate(d.contractEndDate)||'무기한');
-  var stm={monthly:'월급제',hourly:'시급제',daily:'일급제',annual:'연봉제'};
-  setText('infoSalaryType',stm[d.salaryType]||d.salaryType);
-  setText('infoBaseSalary',fmtCur(d.baseSalary)); setText('infoMonthlyWage',fmtCur(d.monthlyWage));
-  setText('infoAnnualSalary',fmtCur(d.annualSalary)); setText('infoBankName',d.bankName);
-  setText('infoAccountNumber',d.accountNumber?maskAcc(d.accountNumber):null);
-  renderContracts(d.contracts||[]);
+
+  /* ─ 탭2: 근무 조건 ─ */
+  var workTypeMap = { full_time: '정규직', part_time: '파트타임', contract: '계약직', daily: '일용직' };
+  setText('infoWorkType', workTypeMap[d.workType] || d.workType);
+
+  if (d.workStartTime && d.workEndTime) {
+    setText('infoWorkHours', d.workStartTime + ' ~ ' + d.workEndTime);
+  }
+  setText('infoBreakTime',     d.breakTimeMinutes ? d.breakTimeMinutes + '분' : null);
+  setText('infoWeeklyHoliday', d.weeklyHoliday);
+  setText('infoWorkLocation',  d.workLocation);   /* ★ 근무지 표시 ★ */
+  setText('infoProbation',     d.probationMonths ? d.probationMonths + '개월' : '없음');
+  setText('infoContractStart', fmtDate(d.contractStartDate));
+  setText('infoContractEnd',   fmtDate(d.contractEndDate) || '무기한');
+
+  /* ─ 탭3: 급여 정보 ─ */
+  var salaryTypeMap = { monthly: '월급제', hourly: '시급제', daily: '일급제', annual: '연봉제' };
+  setText('infoSalaryType',   salaryTypeMap[d.salaryType] || d.salaryType);
+  setText('infoBaseSalary',   fmtCur(d.baseSalary));
+  setText('infoMonthlyWage',  fmtCur(d.monthlyWage));
+  setText('infoAnnualSalary', fmtCur(d.annualSalary));
+  setText('infoBankName',     d.bankName);
+  setText('infoAccountNumber', d.accountNumber ? maskAcc(d.accountNumber) : null);
+
+  /* ─ 탭4: 계약 이력 ─ */
+  renderContracts(d.contracts || []);
 }
 
-function openEditModal(){
-  var d=employeeData;
-  document.getElementById('editBusiness').value=d.businessId||'';
-  document.getElementById('editStatus').value=d.status||'active';
-  document.getElementById('editDept').value=d.department||'';
-  document.getElementById('editPosition').value=d.position||'';
-  document.getElementById('editJobTitle').value=d.jobTitle||'';
-  document.getElementById('editHireDate').value=d.hireDate?d.hireDate.split('T')[0]:'';
-  document.getElementById('editName').value=d.name||'';
-  document.getElementById('editPhone').value=d.phone||'';
-  document.getElementById('editEmail').value=d.email||'';
-  document.getElementById('editSalaryType').value=d.salaryType||'hourly';
-  document.getElementById('editBaseSalary').value=d.baseSalary||'';
-  document.getElementById('editBankName').value=d.bankName||'';
-  document.getElementById('editAccountNumber').value=d.accountNumber||'';
-  document.getElementById('saveResult').className='save-result';
-  document.getElementById('saveResult').textContent='';
-  document.getElementById('saveBtn').disabled=false;
-  document.getElementById('saveBtn').textContent='💾 저장';
+/* ============================================================
+   모달 열기 (openEditModal)
+   현재 employeeData 값을 모달 폼에 자동 채움
+============================================================ */
+function openEditModal() {
+  var d = employeeData;
+
+  /* ─ 섹션1: 조직 배치 ─ */
+  document.getElementById('editBusiness').value  = d.businessId || '';
+  document.getElementById('editStatus').value    = d.status     || 'active';
+  document.getElementById('editDept').value      = d.department || '';
+  document.getElementById('editPosition').value  = d.position   || '';
+  document.getElementById('editJobTitle').value  = d.jobTitle   || '';
+  document.getElementById('editHireDate').value  = d.hireDate ? d.hireDate.split('T')[0] : '';
+
+  /* ─ 섹션2: 근무 조건 (★★★ 이번 수정으로 새로 추가된 필드들 ★★★) ─ */
+  document.getElementById('editWorkType').value     = d.workType      || '';
+  document.getElementById('editWorkLocation').value = d.workLocation  || '';
+  document.getElementById('editWorkStart').value    = d.workStartTime || '';
+  document.getElementById('editWorkEnd').value      = d.workEndTime   || '';
+  document.getElementById('editBreakTime').value    = d.breakTimeMinutes || '';
+  document.getElementById('editProbation').value    = d.probationMonths  || '';
+
+  /* ─ 섹션3: 인적 사항 ─ */
+  document.getElementById('editName').value  = d.name  || '';
+  document.getElementById('editPhone').value = d.phone || '';
+  document.getElementById('editEmail').value = d.email || '';
+
+  /* ─ 섹션4: 급여 정보 ─ */
+  document.getElementById('editSalaryType').value = d.salaryType || 'hourly';
+  document.getElementById('editBaseSalary').value = d.baseSalary || '';
+
+  /* ─ 섹션5: 계좌 정보 ─ */
+  document.getElementById('editBankName').value      = d.bankName      || '';
+  document.getElementById('editAccountNumber').value = d.accountNumber || '';
+
+  /* 이전 결과 메시지 초기화 */
+  document.getElementById('saveResult').className   = 'save-result';
+  document.getElementById('saveResult').textContent = '';
+  document.getElementById('saveBtn').disabled       = false;
+  document.getElementById('saveBtn').textContent    = '💾 저장';
+
   document.getElementById('editModal').classList.add('show');
 }
 
-function closeEditModal(){document.getElementById('editModal').classList.remove('show');}
-function closeModalOnBg(e){if(e.target===document.getElementById('editModal')) closeEditModal();}
+/* 모달 닫기 */
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('show');
+}
 
-async function saveEmployee(){
-  var btn=document.getElementById('saveBtn');
-  var resultEl=document.getElementById('saveResult');
-  btn.disabled=true; btn.textContent='저장 중...';
-  resultEl.className='save-result';
-  var payload={
-    employeeId:employeeData.id,
-    businessId:document.getElementById('editBusiness').value||null,
-    status:document.getElementById('editStatus').value,
-    department:document.getElementById('editDept').value.trim(),
-    position:document.getElementById('editPosition').value.trim(),
-    jobTitle:document.getElementById('editJobTitle').value.trim(),
-    hireDate:document.getElementById('editHireDate').value||null,
-    name:document.getElementById('editName').value.trim(),
-    phone:document.getElementById('editPhone').value.trim(),
-    email:document.getElementById('editEmail').value.trim(),
-    salaryType:document.getElementById('editSalaryType').value,
-    baseSalary:parseFloat(document.getElementById('editBaseSalary').value)||null,
-    bankName:document.getElementById('editBankName').value,
-    accountNumber:document.getElementById('editAccountNumber').value.trim()
+/* 배경 클릭 시 닫기 */
+function closeModalOnBg(e) {
+  if (e.target === document.getElementById('editModal')) closeEditModal();
+}
+
+/* ============================================================
+   저장 처리 (saveEmployee)
+   employees-update API (PUT) 호출
+   성공: employeeData 갱신 → renderDetail() → 1.5초 후 닫힘
+   실패: 에러 메시지 표시, 모달 유지
+============================================================ */
+async function saveEmployee() {
+  var btn      = document.getElementById('saveBtn');
+  var resultEl = document.getElementById('saveResult');
+
+  btn.disabled    = true;
+  btn.textContent = '저장 중...';
+  resultEl.className = 'save-result';  /* 이전 메시지 숨김 */
+
+  /* API 전송 데이터 구성 */
+  var payload = {
+    employeeId: employeeData.id,
+
+    /* 섹션1: 조직 배치 */
+    businessId:  document.getElementById('editBusiness').value || null,
+    status:      document.getElementById('editStatus').value,
+    department:  document.getElementById('editDept').value.trim(),
+    position:    document.getElementById('editPosition').value.trim(),
+    jobTitle:    document.getElementById('editJobTitle').value.trim(),
+    hireDate:    document.getElementById('editHireDate').value || null,
+
+    /* 섹션2: 근무 조건 (★★★ 신규 필드 ★★★) */
+    workType:         document.getElementById('editWorkType').value     || null,
+    workLocation:     document.getElementById('editWorkLocation').value.trim() || null,
+    workStartTime:    document.getElementById('editWorkStart').value    || null,
+    workEndTime:      document.getElementById('editWorkEnd').value      || null,
+    breakTimeMinutes: parseInt(document.getElementById('editBreakTime').value) || null,
+    probationMonths:  parseInt(document.getElementById('editProbation').value) || null,
+
+    /* 섹션3: 인적 사항 */
+    name:  document.getElementById('editName').value.trim(),
+    phone: document.getElementById('editPhone').value.trim(),
+    email: document.getElementById('editEmail').value.trim(),
+
+    /* 섹션4: 급여 정보 */
+    salaryType: document.getElementById('editSalaryType').value,
+    baseSalary: parseFloat(document.getElementById('editBaseSalary').value) || null,
+
+    /* 섹션5: 계좌 정보 */
+    bankName:      document.getElementById('editBankName').value,
+    accountNumber: document.getElementById('editAccountNumber').value.trim()
   };
-  try{
-    var r=await fetch('/.netlify/functions/employees-update',{
-      method:'PUT',
-      headers:{'Authorization':'Bearer '+authToken,'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
+
+  try {
+    var r = await fetch('/.netlify/functions/employees-update', {
+      method:  'PUT',
+      headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
     });
-    var res=await r.json();
-    if(!res.success) throw new Error(res.error||res.message||'저장 실패');
-    Object.assign(employeeData,payload);
-    renderDetail();
-    resultEl.textContent='✅ 저장 완료!';
-    resultEl.className='save-result success';
-    btn.textContent='💾 저장'; btn.disabled=false;
-    setTimeout(closeEditModal,1500);
-  }catch(e){
-    resultEl.textContent='❌ '+e.message;
-    resultEl.className='save-result error';
-    btn.textContent='💾 저장'; btn.disabled=false;
+    var res = await r.json();
+    if (!res.success) throw new Error(res.error || res.message || '저장 실패');
+
+    /* 성공: employeeData 즉시 갱신 (API 재조회 없이) */
+    Object.assign(employeeData, {
+      businessId:       payload.businessId,
+      status:           payload.status,
+      department:       payload.department,
+      position:         payload.position,
+      jobTitle:         payload.jobTitle,
+      hireDate:         payload.hireDate,
+      workType:         payload.workType,         /* ★ 신규 */
+      workLocation:     payload.workLocation,     /* ★ 신규 */
+      workStartTime:    payload.workStartTime,    /* ★ 신규 */
+      workEndTime:      payload.workEndTime,      /* ★ 신규 */
+      breakTimeMinutes: payload.breakTimeMinutes, /* ★ 신규 */
+      probationMonths:  payload.probationMonths,  /* ★ 신규 */
+      name:             payload.name,
+      phone:            payload.phone,
+      email:            payload.email,
+      salaryType:       payload.salaryType,
+      baseSalary:       payload.baseSalary,
+      bankName:         payload.bankName,
+      accountNumber:    payload.accountNumber
+    });
+
+    renderDetail();  /* 화면 즉시 재렌더링 */
+
+    resultEl.textContent = '✅ 저장 완료!';
+    resultEl.className   = 'save-result success';
+    btn.textContent      = '💾 저장';
+    btn.disabled         = false;
+    setTimeout(closeEditModal, 1500);  /* 1.5초 후 자동 닫힘 */
+
+  } catch(e) {
+    resultEl.textContent = '❌ ' + e.message;
+    resultEl.className   = 'save-result error';
+    btn.textContent      = '💾 저장';
+    btn.disabled         = false;
   }
 }
 
-function getBizName(bizId){
-  if(!bizId) return null;
-  var b=businessList.find(function(x){return x.id===bizId;});
-  return b?b.name:null;
+/* ============================================================
+   탭 전환 (switchTab)
+============================================================ */
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(function(e) { e.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(e) { e.classList.remove('active'); });
+  document.querySelector('.tab[data-tab="' + t + '"]').classList.add('active');
+  document.getElementById('tab-' + t).classList.add('active');
 }
 
-function renderContracts(cs){
-  var l=document.getElementById('contractList');
-  if(!cs.length) return;
-  var tm={standard_labor:'표준 근로계약서',part_time:'단시간 근로계약서',daily:'일용 근로계약서'};
-  var sm={completed:['서명 완료','contract-signed'],sent:['발송됨','contract-sent'],pending:['대기 중','contract-pending'],viewed:['열람함','contract-sent']};
-  l.innerHTML=cs.map(function(c){
-    var s=sm[c.status]||[c.status,'contract-pending'];
-    return '<li class="contract-item"><div><div class="contract-type">'+(tm[c.type]||c.type||'근로계약서')+'</div><div class="contract-date">생성: '+fmtDate(c.createdAt)+(c.signedAt?' · 서명: '+fmtDate(c.signedAt):'')+'</div></div><span class="contract-status '+s[1]+'">'+s[0]+'</span></li>';
+/* ============================================================
+   계약 이력 렌더링 (탭4)
+============================================================ */
+function renderContracts(cs) {
+  var l = document.getElementById('contractList');
+  if (!cs.length) return;  /* 없으면 기본 메시지 유지 */
+
+  var typeMap   = { standard_labor: '표준 근로계약서', part_time: '단시간 근로계약서', daily: '일용 근로계약서' };
+  var statusMap = {
+    completed: ['서명 완료', 'contract-signed'],
+    sent:      ['발송됨',    'contract-sent'],
+    pending:   ['대기 중',   'contract-pending'],
+    viewed:    ['열람함',    'contract-sent']
+  };
+
+  l.innerHTML = cs.map(function(c) {
+    var s = statusMap[c.status] || [c.status, 'contract-pending'];
+    return '<li class="contract-item">'
+      + '<div>'
+      + '<div class="contract-type">' + (typeMap[c.type] || c.type || '근로계약서') + '</div>'
+      + '<div class="contract-date">생성: ' + fmtDate(c.createdAt)
+      + (c.signedAt ? ' · 서명: ' + fmtDate(c.signedAt) : '') + '</div>'
+      + '</div>'
+      + '<span class="contract-status ' + s[1] + '">' + s[0] + '</span>'
+      + '</li>';
   }).join('');
 }
 
-function switchTab(t){
-  document.querySelectorAll('.tab').forEach(function(e){e.classList.remove('active');});
-  document.querySelectorAll('.tab-content').forEach(function(e){e.classList.remove('active');});
-  document.querySelector('.tab[data-tab="'+t+'"]').classList.add('active');
-  document.getElementById('tab-'+t).classList.add('active');
+/* ============================================================
+   유틸 함수
+============================================================ */
+
+/** businessId → 사업장 이름 (businessList 배열 검색) */
+function getBizName(bizId) {
+  if (!bizId) return null;
+  var b = businessList.find(function(x) { return x.id === bizId; });
+  return b ? b.name : null;
 }
-function setText(id,v){var e=document.getElementById(id);if(e) e.textContent=v||'-';}
-function fmtDate(s){if(!s) return null;var d=new Date(s);if(isNaN(d)) return s;return d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});}
-function fmtCur(a){if(!a&&a!==0) return null;return '₩'+Number(a).toLocaleString('ko-KR');}
-function maskAcc(a){if(!a||a.length<5) return a;return a.slice(0,3)+'****'+a.slice(-3);}
+
+/** DOM 텍스트 설정 (값 없으면 '-') */
+function setText(id, v) {
+  var e = document.getElementById(id);
+  if (e) e.textContent = v || '-';
+}
+
+/** 날짜 포맷 (ISO → 한국식) */
+function fmtDate(s) {
+  if (!s) return null;
+  var d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+/** 금액 포맷 (₩ + 천단위 콤마) */
+function fmtCur(a) {
+  if (!a && a !== 0) return null;
+  return '\u20A9' + Number(a).toLocaleString('ko-KR');
+}
+
+/** 계좌번호 마스킹 (앞3 + **** + 뒤3) */
+function maskAcc(a) {
+  if (!a || a.length < 5) return a;
+  return a.slice(0, 3) + '****' + a.slice(-3);
+}
 </script>
 </body>
 </html>
