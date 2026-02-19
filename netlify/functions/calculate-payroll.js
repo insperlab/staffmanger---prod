@@ -182,13 +182,19 @@ exports.handler = async (event) => {
 
     // [FIX #1, #4] 4대보험 - 룰 엔진 기반, 2026년 요율
     // ── 국민연금 (기준소득월액 상하한 적용, 60세 이상 면제) ──
+    // ── 단시간 근로자 예외: 월 60시간 미만이면 국민연금 가입 제외 ──
+    // 근거: 국민연금법 시행령 제2조 (1개월 60시간 미만 근로자 적용 제외)
+    // 예외: 3개월 이상 계속 근무 + 사용자 동의 시 적용 가능하나, 기본값은 제외
+    const isShortTimeWorker = totalWorkHours < 60; // 월 60시간 미만 단시간 근로자 여부
     let nationalPension = 0;
     let employerNationalPension = 0;
-    if (employeeAge < rules.nationalPension.exemptionAge) {
+    if (employeeAge < rules.nationalPension.exemptionAge && !isShortTimeWorker) {
+      // 정규 근로자: 기준소득월액 상하한 적용
       const pensionBase = Math.min(Math.max(taxableIncome, rules.nationalPension.lowerLimit), rules.nationalPension.upperLimit);
       nationalPension = floor10(pensionBase * rules.nationalPension.employeeRate);
       employerNationalPension = floor10(pensionBase * rules.nationalPension.employerRate);
     }
+
 
     // ── 건강보험 ──
     const healthInsurance = floor10(taxableIncome * rules.healthInsurance.employeeRate);
@@ -220,6 +226,16 @@ exports.handler = async (event) => {
     // STEP 5: 이상탐지 경고
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const warnings = [];
+
+    // 단시간 근로자 국민연금 적용 제외 안내
+    // 근거: 국민연금법 시행령 제2조 (1개월 60시간 미만 근로자 적용 제외)
+    if (isShortTimeWorker && employeeAge < rules.nationalPension.exemptionAge) {
+      warnings.push({
+        type: 'SHORT_TIME_WORKER',
+        severity: 'info',
+        message: `월 ${totalWorkHours.toFixed(1)}시간 근무 — 국민연금 적용 제외 (월 60시간 미만 단시간 근로자)`
+      });
+    }
 
     // 최저임금 위반
     if (effectiveHourlyRate < rules.minimumWage.hourly) {
