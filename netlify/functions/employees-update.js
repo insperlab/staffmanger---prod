@@ -1,8 +1,8 @@
-// =====================================================
+// ===============================================
 // 직원 정보 수정 API
 // PUT /.netlify/functions/employees-update
 // Body: { employeeId, ...fields }
-// =====================================================
+// ===============================================
 
 const { verifyToken, handleCors, errorResponse } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
@@ -19,7 +19,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors.headers, body: '' };
 
   if (event.httpMethod !== 'PUT') {
-    return errorResponse('PUT 메서드만 허용됩니다', 405, cors.headers);
+    return errorResponse('PUT 요청만 허용됩니다.', 405, cors.headers);
   }
 
   try {
@@ -32,10 +32,10 @@ exports.handler = async (event) => {
     const { employeeId } = body;
 
     if (!employeeId) {
-      return errorResponse('employeeId가 필요합니다', 400, cors.headers);
+      return errorResponse('employeeId는 필수입니다.', 400, cors.headers);
     }
 
-    // 직원 존재 확인
+    // 직원 존재 여부 확인
     const { data: emp, error: fetchErr } = await supabase
       .from('employees')
       .select('id, user_id')
@@ -44,7 +44,7 @@ exports.handler = async (event) => {
       .single();
 
     if (fetchErr || !emp) {
-      return errorResponse('직원을 찾을 수 없습니다', 404, cors.headers);
+      return errorResponse('해당 직원을 찾을 수 없습니다.', 404, cors.headers);
     }
 
     // users 테이블 업데이트 (이름, 전화번호, 이메일)
@@ -61,9 +61,9 @@ exports.handler = async (event) => {
 
       if (userErr) {
         if (userErr.code === '23505') {
-          return errorResponse('이미 등록된 이메일 또는 전화번호입니다', 400, cors.headers);
+          return errorResponse('이미 존재하는 이메일입니다.', 400, cors.headers);
         }
-        return errorResponse('사용자 정보 수정 실패: ' + userErr.message, 500, cors.headers);
+        return errorResponse('사용자 정보 업데이트 오류: ' + userErr.message, 500, cors.headers);
       }
     }
 
@@ -72,9 +72,12 @@ exports.handler = async (event) => {
     if (body.employeeNumber !== undefined) empUpdate.employee_number = body.employeeNumber;
     if (body.department !== undefined) empUpdate.department = body.department;
     if (body.position !== undefined) empUpdate.position = body.position;
+    if (body.jobTitle !== undefined) empUpdate.job_title = body.jobTitle;
     if (body.hireDate !== undefined) empUpdate.hire_date = body.hireDate;
     if (body.resignDate !== undefined) empUpdate.resign_date = body.resignDate;
     if (body.status !== undefined) empUpdate.status = body.status;
+    // ✅ 사업장 변경 필드 추가 (null 허용 - 미배정 처리)
+    if (body.businessId !== undefined) empUpdate.business_id = body.businessId || null;
     if (body.salaryType !== undefined) empUpdate.salary_type = body.salaryType;
     if (body.baseSalary !== undefined) empUpdate.base_salary = body.baseSalary;
     if (body.monthlyWage !== undefined) empUpdate.monthly_wage = body.monthlyWage;
@@ -100,12 +103,12 @@ exports.handler = async (event) => {
         .eq('company_id', companyId);
 
       if (empErr) {
-        return errorResponse('직원 정보 수정 실패: ' + empErr.message, 500, cors.headers);
+        return errorResponse('직원 정보 업데이트 오류: ' + empErr.message, 500, cors.headers);
       }
     }
 
     if (Object.keys(userUpdate).length === 0 && Object.keys(empUpdate).length === 0) {
-      return errorResponse('수정할 항목이 없습니다', 400, cors.headers);
+      return errorResponse('업데이트할 정보가 없습니다.', 400, cors.headers);
     }
 
     return {
@@ -113,12 +116,12 @@ exports.handler = async (event) => {
       headers: cors.headers,
       body: JSON.stringify({
         success: true,
-        data: { message: '직원 정보가 수정되었습니다.' }
+        data: { message: '직원 정보가 성공적으로 업데이트되었습니다.' }
       })
     };
 
   } catch (error) {
     console.error('Update employee error:', error);
-    return errorResponse(error.message || '서버 오류', 500, cors.headers);
+    return errorResponse(error.message || '알 수 없는 오류 발생', 500, cors.headers);
   }
 };
