@@ -49,11 +49,12 @@ exports.handler = async (event) => {
       .order('created_at', { ascending: false });
 
     // 사업장 필터
-    if (params.businessId) {
-      if (params.businessId === 'unassigned') {
-        query = query.is('business_id', null);
+    const bizId = params.businessId || params.business_id || null;
+    if (bizId) {
+     if (bizId === 'unassigned') {
+       query = query.is('business_id', null);
       } else {
-        query = query.eq('business_id', params.businessId);
+        query = query.eq('business_id', bizId);
       }
     }
 
