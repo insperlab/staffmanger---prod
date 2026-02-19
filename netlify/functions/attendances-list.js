@@ -14,7 +14,7 @@ exports.handler = async (event, context) => {
   console.log('=== attendances-list 함수 시작 ===');
 
   const corsHeaders = {
-    'Access-Control-Allow-Origin': 'https://staffmanager.io',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Content-Type': 'application/json'
@@ -43,7 +43,8 @@ exports.handler = async (event, context) => {
     const endDate = params.endDate;
     const employeeId = params.employeeId;
     const department = params.department;
-    const businessId = params.businessId;
+    // ✅ business_id, businessId 파라미터 이름 둘 다 수용
+    const businessId = params.businessId || params.business_id || null;
 
     console.log('조회 파라미터:', { startDate, endDate, employeeId, department, businessId });
 
