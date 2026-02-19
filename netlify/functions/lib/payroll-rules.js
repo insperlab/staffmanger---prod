@@ -28,58 +28,59 @@ function calculateAge(birthDate, referenceDate = new Date()) {
  */
 async function loadAllPayrollRules(supabase, payDate = new Date()) {
   // ── 기본 법정 요율 (2026년 기준) ──
+  // ✅ BUG FIX: 기본값 전체를 2026년 실제 법정값으로 업데이트
   const defaultRules = {
-    // 최저임금 (2026년 기준)
+    // 최저임금 (2026년 기준 — 고용노동부 고시)
     minimumWage: {
-      hourly: 10030,       // 시급 최저임금
-      monthly: 2096270,    // 월급 환산 (주 40시간, 209시간)
+      hourly: 10320,       // ✅ 수정: 10030 → 10320원 (2026년 최저임금)
+      monthly: 2156880,    // ✅ 수정: 2096270 → 2156880원 (주 40시간, 209시간 기준)
     },
 
-    // 국민연금 (2026년)
+    // 국민연금 (2026년 — 국민연금공단 고시)
     nationalPension: {
-      employeeRate: 0.045,   // 근로자 4.5%
-      employerRate: 0.045,   // 사업주 4.5%
-      lowerLimit: 390000,    // 기준소득월액 하한
-      upperLimit: 6170000,   // 기준소득월액 상한
-      exemptionAge: 60,      // 60세 이상 납부 면제
+      employeeRate: 0.0475,  // ✅ 수정: 0.045(4.5%) → 0.0475(4.75%)
+      employerRate: 0.0475,  // ✅ 수정: 0.045(4.5%) → 0.0475(4.75%)
+      lowerLimit: 370000,    // ✅ 수정: 390000 → 370000원 (기준소득월액 하한)
+      upperLimit: 6370000,   // ✅ 수정: 6170000 → 6370000원 (기준소득월액 상한)
+      exemptionAge: 60,      // 60세 이상 납부 면제 (유지)
     },
 
-    // 건강보험 (2026년)
+    // 건강보험 (2026년 — 국민건강보험공단 고시)
     healthInsurance: {
-      employeeRate: 0.03545, // 근로자 3.545%
-      employerRate: 0.03545, // 사업주 3.545%
+      employeeRate: 0.03595, // ✅ 수정: 0.03545(3.545%) → 0.03595(3.595%)
+      employerRate: 0.03595, // ✅ 수정: 0.03545(3.545%) → 0.03595(3.595%)
     },
 
-    // 장기요양보험 (건강보험료의 12.95%)
+    // 장기요양보험 (건강보험료의 13.85%)
     longTermCare: {
-      rate: 0.1295,          // 건강보험료 대비 비율
+      rate: 0.1385,          // ✅ 수정: 0.1295(12.95%) → 0.1385(13.85%)
     },
 
-    // 고용보험 (2026년)
+    // 고용보험 (2026년 — 유지)
     employmentInsurance: {
-      employeeRate: 0.009,   // 근로자 0.9%
-      employerRate: 0.011,   // 사업주 1.1% (150인 미만 기준)
-      exemptionAge: 65,      // 65세 이상 신규 취득 면제
+      employeeRate: 0.009,   // 근로자 0.9% (유지)
+      employerRate: 0.011,   // 사업주 1.1% 150인 미만 기준 (유지)
+      exemptionAge: 65,      // 65세 이상 신규 취득 면제 (유지)
     },
 
-    // 소득세
+    // 소득세 (유지)
     incomeTax: {
       localTaxRate: 0.1,     // 지방소득세 = 소득세의 10%
     },
 
-    // 연장/야간/휴일 수당 가산율 (근로기준법 제56조)
+    // 연장/야간/휴일 수당 가산율 (근로기준법 제56조 — 유지)
     overtime: {
       extendedRate: 1.5,     // 연장근무 통상임금 50% 가산
       nightRate: 1.5,        // 야간근무 통상임금 50% 가산
       holidayRate: 1.5,      // 휴일근무 통상임금 50% 가산
     },
 
-    // 주휴수당 (근로기준법 제55조)
+    // 주휴수당 (근로기준법 제55조 — 유지)
     weeklyHoliday: {
       minWeeklyHours: 15,    // 주 15시간 이상 근무 시 지급
     },
 
-    // 비과세 수당 한도 (2026년 소득세법 기준)
+    // 비과세 수당 한도 (2026년 소득세법 기준 — 유지)
     taxExemption: {
       mealAllowance: 200000,      // 식대 월 20만원 한도
       carAllowance: 200000,       // 자가운전보조금 월 20만원 한도
@@ -90,11 +91,11 @@ async function loadAllPayrollRules(supabase, payDate = new Date()) {
   // DB에서 커스텀 룰 조회 시도 (없으면 기본값 사용)
   try {
     const { data: customRules } = await supabase
-      .from('''payroll_rules''')
-      .select('''*''')
-      .lte('''effective_from''', payDate.toISOString())
-      .or(`effective_to.is.null,effective_to.gte.${payDate.toISOString()}`)
-      .order('''effective_from''', { ascending: false })
+      .from('payroll_rules')
+      .select('*')
+      .lte('valid_from', payDate.toISOString())  // ✅ 수정: effective_from → valid_from
+      .or(`valid_to.is.null,valid_to.gte.${payDate.toISOString()}`) // ✅ 수정: effective_to → valid_to
+      .order('valid_from', { ascending: false })  // ✅ 수정: effective_from → valid_from
       .limit(1)
       .single();
 
@@ -124,16 +125,16 @@ async function getIncomeTax(supabase, year, taxableIncome, dependents = 1) {
   // DB 간이세액표 조회 시도
   try {
     const { data: taxRow } = await supabase
-      .from('''income_tax_table''')
-      .select('''*''')
-      .eq('''year''', year)
-      .lte('''income_from''', taxableIncome)
-      .gte('''income_to''', taxableIncome)
+      .from('income_tax_brackets')  // ✅ 수정: income_tax_table → income_tax_brackets
+      .select('*')
+      .eq('year', year)
+      .lte('min_salary', taxableIncome)  // ✅ 수정: income_from → min_salary
+      .gte('max_salary', taxableIncome)  // ✅ 수정: income_to → max_salary
+      .eq('dependents', Math.min(dependents, 11)) // ✅ 수정: dep_1 방식 → dependents 컬럼 직접 조회
       .single();
 
     if (taxRow) {
-      const depKey = `dep_${Math.min(dependents, 11)}`;
-      return taxRow[depKey] || taxRow.dep_1 || 0;
+      return taxRow.tax_amount || 0; // ✅ 수정: taxRow[depKey] → taxRow.tax_amount
     }
   } catch (e) {
     // 간이세액표 없으면 직접 계산
@@ -187,7 +188,7 @@ function calculateIncomeTaxDirect(monthlyIncome, dependents = 1) {
 function deepMerge(target, source) {
   const result = { ...target };
   for (const key of Object.keys(source)) {
-    if (source[key] && typeof source[key] === '''object''' && !Array.isArray(source[key])) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
       result[key] = deepMerge(target[key] || {}, source[key]);
     } else {
       result[key] = source[key];
