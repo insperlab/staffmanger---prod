@@ -89,13 +89,18 @@ exports.handler = async (event) => {
     }
 
     // ── 2) 전화번호 → 직원 조회 ──────────────────────────────
-    const phone = normalizePhone(phoneNumber);
+    // DB 저장 형식: '010-1234-5678' (하이픈 포함)
+    // .or() 에서 하이픈이 파싱 오류 유발 → 정규화 후 in() 방식으로 변경
+    const phoneNormalized = normalizePhone(phoneNumber); // '01012345678'
+    const phoneDashed = phoneNormalized.replace(/^(\d{3})(\d{4})(\d{4})$/, '$1-$2-$3'); // '010-1234-5678'
+
     const { data: employee, error: empErr } = await supabase
       .from('employees')
       .select('id, name, business_id, status')
       .eq('company_id', companyId)
-      .or(`phone.eq.${phone},phone.eq.${phoneNumber}`)
-      .single();
+      .in('phone', [phoneNormalized, phoneDashed, phoneNumber])
+      .eq('status', 'active')
+      .maybeSingle();
 
     if (empErr || !employee) {
       return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '등록되지 않은 전화번호입니다.' }) };
