@@ -66,11 +66,14 @@ exports.handler = async (event, context) => {
         notes,
         employees!inner (
           id,
-          name,
           department,
           position,
-          phone,
-          business_id
+          business_id,
+          users:user_id (
+            id,
+            name,
+            phone
+          )
         )
       `)
       .eq('company_id', userInfo.companyId)
@@ -129,10 +132,11 @@ exports.handler = async (event, context) => {
         notes: record.notes,
         employee: {
           id: employee?.id,
-          name: employee?.name,
-          phone: employee?.phone,
+          name: employee?.users?.name || null,
+          phone: employee?.users?.phone || null,
           department: employee?.department,
-          position: employee?.position
+          position: employee?.position,
+          businessId: employee?.business_id || null
         }
       };
     });
