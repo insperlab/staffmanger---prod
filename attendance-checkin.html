@@ -1,645 +1,278 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>출퇴근 기록 - StaffManager</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+// netlify/functions/attendance-checkin.js
+// M4: 출퇴근 체크인 핵심 API
+//
+// POST /.netlify/functions/attendance-checkin
+// Body: {
+//   token: "ATT_xxx",           // QR 코드 토큰 (회사 식별)
+//   phoneNumber: "010-1234-5678", // 직원 식별
+//   type: "check-in" | "check-out",
+//   timestamp: ISO8601,
+//   location: { latitude, longitude } | null  // GPS (항상 수집)
+// }
+//
+// 처리 순서:
+//  1) 토큰 → companyId 조회
+//  2) 전화번호 → 직원 조회
+//  3) 직원의 businessId → businesses WiFi 설정 조회
+//  4) 서버가 X-Forwarded-For 에서 client_ip 추출 (위조 불가)
+//  5) wifi_enabled = true → 등록 IP vs client_ip 비교
+//  6) 불일치 → businesses.wifi_ip_mismatch_detected 업데이트
+//  7) attendances INSERT (check_method, client_ip, wifi_matched 포함)
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+const { createClient } = require('@supabase/supabase-js');
 
-        /* 
-         * 메인 컨테이너
-         * 모바일에서 보기 좋도록 최대 너비를 제한하고
-         * 그림자 효과로 입체감을 줍니다
-         */
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 450px;
-            width: 100%;
-            padding: 40px 30px;
-        }
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-        /* 로고 및 헤더 */
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
+const CORS = {
+  'Access-Control-Allow-Origin': '*', // QR 체크인은 외부 기기에서 접속 가능하도록 허용
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json',
+};
 
-        .logo {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
+// ── 전화번호 정규화: "010-1234-5678" → "01012345678" ────────────
+function normalizePhone(phone) {
+  return (phone || '').replace(/[^0-9]/g, '');
+}
 
-        .company-name {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 8px;
-        }
+// ── X-Forwarded-For 에서 실제 클라이언트 IP 추출 ──────────────
+function extractClientIp(headers) {
+  const fwd = headers['x-forwarded-for'] || headers['X-Forwarded-For'] || '';
+  return fwd.split(',')[0].trim() || 'unknown';
+}
 
-        .page-subtitle {
-            color: #999;
-            font-size: 15px;
-        }
-
-        /* 
-         * 현재 시각 표시
-         * 직원이 정확히 몇 시에 찍었는지 바로 확인할 수 있게
-         * 큰 글씨로 눈에 잘 띄게 표시합니다
-         */
-        .current-time {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 30px;
-            border: 2px solid #e0e0e0;
-        }
-
-        .time-label {
-            font-size: 13px;
-            color: #999;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .time-display {
-            font-size: 36px;
-            font-weight: 700;
-            color: #667eea;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .date-display {
-            font-size: 16px;
-            color: #666;
-            margin-top: 8px;
-        }
-
-        /* 폼 요소 */
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 10px;
-            color: #333;
-            font-weight: 600;
-            font-size: 15px;
-        }
-
-        /*
-         * 전화번호 입력 필드
-         * 모바일에서 숫자 키패드가 자동으로 나타나도록
-         * type="tel"을 사용합니다
-         * 터치하기 쉽도록 padding을 넉넉하게 줍니다
-         */
-        input[type="tel"] {
-            width: 100%;
-            padding: 16px 18px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 17px;
-            transition: all 0.3s;
-        }
-
-        input[type="tel"]:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-        }
-
-        input[type="tel"]::placeholder {
-            color: #bbb;
-        }
-
-        /* 
-         * 출근/퇴근 버튼
-         * 손가락으로 쉽게 누를 수 있도록 최소 높이 56px 이상
-         * (iOS Human Interface Guidelines 권장사항)
-         */
-        .action-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .btn {
-            padding: 18px 24px;
-            border: none;
-            border-radius: 12px;
-            font-size: 17px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            min-height: 60px;
-        }
-
-        .btn-check-in {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-check-in:active {
-            transform: scale(0.98);
-        }
-
-        .btn-check-out {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-
-        .btn-check-out:active {
-            transform: scale(0.98);
-            background: #f5f7fa;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* 상태 메시지 */
-        .status-message {
-            padding: 16px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-            text-align: center;
-            font-size: 15px;
-        }
-
-        .status-message.show {
-            display: block;
-        }
-
-        .status-message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status-message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status-message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        /* 로딩 상태 */
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 안내 정보 */
-        .info-box {
-            background: #f8f9fa;
-            padding: 16px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .info-box p {
-            color: #666;
-            font-size: 14px;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        /* 푸터 */
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .footer p {
-            color: #999;
-            font-size: 13px;
-        }
-
-        /* 반응형: 작은 화면에서는 버튼을 세로로 배치 */
-        @media (max-width: 400px) {
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-        }
-    
-  /* WiFi 인증 뱃지 (M7) */
-  .wifi-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 12px; font-weight: 600; padding: 4px 10px;
-    border-radius: 20px; margin-top: 8px;
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers: CORS, body: JSON.stringify({ success: false, error: 'POST만 허용' }) };
   }
-  .wifi-badge.matched  { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
-  .wifi-badge.unmatched{ background: #FFF7ED; color: #EA580C; border: 1px solid #FED7AA; }
-  .wifi-badge.unused   { display: none; }
 
-</style>
-</head>
-<body>
-    <div class="container">
-        <!-- 헤더 -->
-        <div class="header">
-            <div class="logo">🎯</div>
-            <h1 class="company-name" id="companyName">StaffManager</h1>
-            <p class="page-subtitle">출퇴근 기록 시스템</p>
-        </div>
+  try {
+    const body = JSON.parse(event.body || '{}');
+    const { token, phoneNumber, type, timestamp, location } = body;
 
-        <!-- 현재 시각 표시 -->
-        <div class="current-time">
-            <div class="time-label">현재 시각</div>
-            <div class="time-display" id="currentTime">--:--</div>
-            <div class="date-display" id="currentDate">----년 --월 --일</div>
-        </div>
+    // ── 입력값 검증 ───────────────────────────────────────────
+    if (!token)       return err400('token 필수');
+    if (!phoneNumber) return err400('phoneNumber 필수');
+    if (!type || !['check-in', 'check-out'].includes(type)) return err400('type은 check-in 또는 check-out');
 
-        <!-- 상태 메시지 -->
-        <div id="statusMessage" class="status-message"></div>
+    const checkTime = timestamp ? new Date(timestamp) : new Date();
+    if (isNaN(checkTime)) return err400('timestamp 형식 오류');
 
-        <!-- 로딩 상태 -->
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p style="color: #666;">처리 중...</p>
-        </div>
+    // ── 1) QR 토큰 → companyId 파싱 ─────────────────────────
+    // 토큰 형식: ATT_{companyId}_{timestamp}
+    // DB 조회 없이 직접 파싱 (settings.html이 클라이언트에서 생성하는 구조)
+    if (!token.startsWith('ATT_')) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드입니다.' }) };
+    }
+    // ATT_ 제거 후 첫 번째 UUID (companyId) 추출
+    // 형식: ATT_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx_1234567890
+    const tokenBody = token.slice(4); // "ATT_" 제거
+    // UUID는 36자 (8-4-4-4-12)
+    const companyId = tokenBody.slice(0, 36);
+    if (!companyId || companyId.length !== 36) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드 형식입니다.' }) };
+    }
 
-        <!-- 출퇴근 폼 -->
-        <div id="attendanceForm">
-            <form id="checkInOutForm">
-                <div class="form-group">
-                    <label for="phoneNumber">휴대전화번호</label>
-                    <input 
-                        type="tel" 
-                        id="phoneNumber" 
-                        name="phoneNumber"
-                        placeholder="010-1234-5678" 
-                        required
-                        autocomplete="tel"
-                        pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
-                    >
-                </div>
+    // companyId 실존 여부 확인
+    const { data: company, error: compErr } = await supabase
+      .from('companies')
+      .select('id, company_name')
+      .eq('id', companyId)
+      .single();
 
-                <div class="action-buttons">
-                    <button type="button" class="btn btn-check-in" onclick="handleCheckIn()">
-                        <span>🌅</span>
-                        <span>출근</span>
-                    </button>
-                    <button type="button" class="btn btn-check-out" onclick="handleCheckOut()">
-                        <span>🌆</span>
-                        <span>퇴근</span>
-                    </button>
-                </div>
-            </form>
+    if (compErr || !company) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '등록되지 않은 회사입니다.' }) };
+    }
 
-            <div class="info-box">
-                <p>
-                    📱 전화번호를 입력하고 출근 또는 퇴근 버튼을 눌러주세요. 
-                    출퇴근 기록은 자동으로 저장되며, 카카오톡으로 확인 알림을 받으실 수 있습니다.
-                </p>
-            </div>
-        </div>
+    // ── 2) 전화번호 → 직원 조회 ──────────────────────────────
+    const phone = normalizePhone(phoneNumber);
+    const { data: employee, error: empErr } = await supabase
+      .from('employees')
+      .select('id, name, business_id, status')
+      .eq('company_id', companyId)
+      .or(`phone.eq.${phone},phone.eq.${phoneNumber}`)
+      .single();
 
-        <!-- 푸터 -->
-        <div class="footer">
-            <p>Powered by <strong>StaffManager</strong></p>
-        </div>
-    </div>
+    if (empErr || !employee) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '등록되지 않은 전화번호입니다.' }) };
+    }
+    if (employee.status === 'inactive' || employee.status === 'resigned') {
+      return { statusCode: 403, headers: CORS, body: JSON.stringify({ success: false, error: '재직 중인 직원만 체크인할 수 있습니다.' }) };
+    }
 
-    <script>
-        // ====================================
-        // 전역 변수
-        // ====================================
-        
-        /*
-         * URL에서 받은 출퇴근 토큰
-         * 예: https://staffmanager.io/attendance-checkin.html?token=ATT_abc123
-         * 이 토큰으로 어느 회사의 QR코드인지 식별합니다
-         */
-        let attendanceToken = null;
-        let companyInfo = null;
-        let currentLocation = { latitude: null, longitude: null };
+    // ── 3) 사업장 WiFi 설정 조회 ─────────────────────────────
+    let bizSettings = null;
+    if (employee.business_id) {
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('id, checkin_method, wifi_enabled, wifi_registered_ip')
+        .eq('id', employee.business_id)
+        .single();
+      bizSettings = biz;
+    }
 
-        // ====================================
-        // 페이지 로드 시 실행
-        // ====================================
+    // ── 4) 서버에서 클라이언트 IP 추출 (위조 불가) ────────────
+    const clientIp = extractClientIp(event.headers);
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            // URL 파라미터에서 토큰 추출
-            const urlParams = new URLSearchParams(window.location.search);
-            attendanceToken = urlParams.get('token');
+    // ── 5) WiFi IP 매칭 ───────────────────────────────────────
+    let wifiMatched = null; // null = WiFi 인증 미사용
+    const wifiEnabled = bizSettings?.wifi_enabled === true;
+    const registeredIp = bizSettings?.wifi_registered_ip || null;
 
-            // 토큰이 없으면 에러 표시
-            if (!attendanceToken) {
-                showStatus('유효하지 않은 QR코드입니다. 다시 촬영해주세요.', 'error');
-                disableForm();
-                return;
-            }
+    if (wifiEnabled && registeredIp) {
+      wifiMatched = (clientIp === registeredIp);
 
-            // 현재 시각 표시 시작
-            updateCurrentTime();
-            setInterval(updateCurrentTime, 1000);  // 1초마다 갱신
-
-            // GPS 위치 정보 가져오기 (비동기, 에러 무시)
-            try {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            currentLocation.latitude = position.coords.latitude;
-                            currentLocation.longitude = position.coords.longitude;
-                            console.log('위치 정보 획득 성공:', currentLocation);
-                        },
-                        (error) => {
-                            console.warn('위치 정보 획득 실패:', error.message);
-                            // 위치 정보는 선택사항이므로 실패해도 계속 진행
-                        }
-                    );
-                }
-            } catch (error) {
-                console.warn('위치 정보 접근 불가:', error);
-            }
-
-            // 전화번호 입력 필드에 자동 포맷팅 적용
-            setupPhoneNumberFormatting();
-        });
-
-        // ====================================
-        // 현재 시각 업데이트
-        // ====================================
-
-        function updateCurrentTime() {
-            const now = new Date();
-            
-            // 시각 표시 (HH:MM:SS 형식)
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
-
-            // 날짜 표시
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const date = String(now.getDate()).padStart(2, '0');
-            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-            const dayName = dayNames[now.getDay()];
-            document.getElementById('currentDate').textContent = 
-                `${year}년 ${month}월 ${date}일 (${dayName})`;
+      // ── 6) IP 불일치 → 사업장에 알림 플래그 저장 ────────────
+      if (!wifiMatched) {
+        // 이미 같은 IP로 감지된 경우는 중복 업데이트 방지
+        const alreadyFlagged = bizSettings?.wifi_ip_mismatch_detected === clientIp;
+        if (!alreadyFlagged) {
+          await supabase
+            .from('businesses')
+            .update({
+              wifi_ip_mismatch_detected: clientIp,   // 감지된 새 IP
+              wifi_ip_mismatch_at: new Date().toISOString(),
+            })
+            .eq('id', employee.business_id);
         }
+      }
+    }
 
-        // ====================================
-        // 전화번호 자동 포맷팅
-        // ====================================
+    // ── 7) 출퇴근 기록 저장 ──────────────────────────────────
+    const today = checkTime.toISOString().slice(0, 10); // YYYY-MM-DD
+    const checkinMethod = bizSettings?.checkin_method || 'qr';
 
-        function setupPhoneNumberFormatting() {
-            const phoneInput = document.getElementById('phoneNumber');
-            
-            phoneInput.addEventListener('input', (e) => {
-                // 숫자만 추출
-                let value = e.target.value.replace(/[^0-9]/g, '');
-                
-                // 11자리로 제한
-                if (value.length > 11) {
-                    value = value.slice(0, 11);
-                }
-                
-                // 자동으로 하이픈 추가
-                // 예: 01012345678 → 010-1234-5678
-                if (value.length <= 3) {
-                    e.target.value = value;
-                } else if (value.length <= 7) {
-                    e.target.value = `${value.slice(0, 3)}-${value.slice(3)}`;
-                } else {
-                    e.target.value = `${value.slice(0, 3)}-${value.slice(3, 7)}-${value.slice(7)}`;
-                }
-            });
-        }
+    if (type === 'check-in') {
+      // 오늘 이미 출근 기록이 있는지 확인
+      const { data: existing } = await supabase
+        .from('attendances')
+        .select('id, check_in_time')
+        .eq('employee_id', employee.id)
+        .eq('company_id', companyId)
+        .gte('check_in_time', today + 'T00:00:00')
+        .lte('check_in_time', today + 'T23:59:59')
+        .maybeSingle();
 
-        // ====================================
-        // 출근 처리
-        // ====================================
+      if (existing) {
+        return {
+          statusCode: 409,
+          headers: CORS,
+          body: JSON.stringify({
+            success: false,
+            error: `오늘 이미 출근 기록이 있습니다. (${new Date(existing.check_in_time).toLocaleTimeString('ko-KR')})`,
+          }),
+        };
+      }
 
-        async function handleCheckIn() {
-            const phoneNumber = document.getElementById('phoneNumber').value.trim();
-            
-            // 전화번호 유효성 검사
-            if (!phoneNumber) {
-                showStatus('전화번호를 입력해주세요.', 'error');
-                return;
-            }
+      // 출근 기록 INSERT
+      const { data: att, error: attErr } = await supabase
+        .from('attendances')
+        .insert({
+          employee_id:              employee.id,
+          company_id:               companyId,
+          check_in_time:            checkTime.toISOString(),
+          status:                   'in_progress',
+          check_method:             checkinMethod,
+          client_ip:                clientIp,
+          wifi_matched:             wifiMatched,
+          registered_ip_snapshot:   registeredIp,
+          // GPS 위치 (항상 기록 — 법적 분쟁 대비)
+          ...(location?.latitude ? {
+            check_in_latitude:  location.latitude,
+            check_in_longitude: location.longitude,
+          } : {}),
+        })
+        .select('id, check_in_time')
+        .single();
 
-            // 전화번호 형식 검증 (010-1234-5678)
-            const phoneRegex = /^010-\d{4}-\d{4}$/;
-            if (!phoneRegex.test(phoneNumber)) {
-                showStatus('전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)', 'error');
-                return;
-            }
+      if (attErr) throw attErr;
 
-            // 출근 API 호출
-            await submitAttendance('check-in', phoneNumber);
-        }
+      return {
+        statusCode: 200,
+        headers: CORS,
+        body: JSON.stringify({
+          success: true,
+          type: 'check-in',
+          employeeName: employee.name,
+          checkinTime: att.check_in_time,
+          wifiMatched,           // null=미사용, true=일치, false=불일치
+          checkinMethod,
+          message: `${employee.name}님 출근이 기록되었습니다.`,
+        }),
+      };
 
-        // ====================================
-        // 퇴근 처리
-        // ====================================
+    } else {
+      // ── 퇴근 처리 ───────────────────────────────────────────
+      // 오늘 출근 기록 조회
+      const { data: existing, error: findErr } = await supabase
+        .from('attendances')
+        .select('id, check_in_time')
+        .eq('employee_id', employee.id)
+        .eq('company_id', companyId)
+        .eq('status', 'in_progress')
+        .gte('check_in_time', today + 'T00:00:00')
+        .order('check_in_time', { ascending: false })
+        .maybeSingle();
 
-        async function handleCheckOut() {
-            const phoneNumber = document.getElementById('phoneNumber').value.trim();
-            
-            // 전화번호 유효성 검사
-            if (!phoneNumber) {
-                showStatus('전화번호를 입력해주세요.', 'error');
-                return;
-            }
+      if (!existing) {
+        return {
+          statusCode: 404,
+          headers: CORS,
+          body: JSON.stringify({ success: false, error: '오늘 출근 기록을 찾을 수 없습니다.' }),
+        };
+      }
 
-            // 전화번호 형식 검증
-            const phoneRegex = /^010-\d{4}-\d{4}$/;
-            if (!phoneRegex.test(phoneNumber)) {
-                showStatus('전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)', 'error');
-                return;
-            }
+      // 근무 시간 계산
+      const checkIn  = new Date(existing.check_in_time);
+      const checkOut = checkTime;
+      const workMinutes = Math.max(0, (checkOut - checkIn) / 60000);
+      const workHours   = Math.round(workMinutes / 60 * 100) / 100;
 
-            // 퇴근 API 호출
-            await submitAttendance('check-out', phoneNumber);
-        }
+      const { data: att, error: upErr } = await supabase
+        .from('attendances')
+        .update({
+          check_out_time: checkOut.toISOString(),
+          work_hours:     workHours,
+          status:         'completed',
+          // 퇴근 시 WiFi/IP 도 기록 (client_ip는 출근 때 이미 저장됨)
+          ...(location?.latitude ? {
+            check_out_latitude:  location.latitude,
+            check_out_longitude: location.longitude,
+          } : {}),
+        })
+        .eq('id', existing.id)
+        .select('id, check_out_time, work_hours')
+        .single();
 
-        // ====================================
-        // 출퇴근 API 호출
-        // ====================================
+      if (upErr) throw upErr;
 
-        async function submitAttendance(type, phoneNumber) {
-            try {
-                // 로딩 상태 표시
-                showLoading(true);
-                hideStatus();
+      return {
+        statusCode: 200,
+        headers: CORS,
+        body: JSON.stringify({
+          success: true,
+          type: 'check-out',
+          employeeName: employee.name,
+          checkoutTime: att.check_out_time,
+          workHours:    att.work_hours,
+          wifiMatched,
+          checkinMethod,
+          message: `${employee.name}님 퇴근이 기록되었습니다. (근무 ${Math.floor(workMinutes/60)}시간 ${Math.floor(workMinutes%60)}분)`,
+        }),
+      };
+    }
 
-                // 현재 시각 캡처
-                const now = new Date();
+  } catch (err) {
+    console.error('attendance-checkin 오류:', err);
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ success: false, error: '서버 오류: ' + err.message }) };
+  }
+};
 
-                /*
-                 * API 엔드포인트로 POST 요청
-                 * 실제 구현에서는 Netlify Functions를 호출합니다
-                 * 
-                 * 전송 데이터:
-                 * - token: QR코드에서 받은 회사 식별 토큰
-                 * - phoneNumber: 직원 전화번호 (직원 식별용)
-                 * - type: 'check-in' 또는 'check-out'
-                 * - timestamp: 출퇴근 기록 시각
-                 * - location: GPS 좌표 (선택사항)
-                 */
-                const response = await fetch('/.netlify/functions/attendance-checkin', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        token: attendanceToken,
-                        phoneNumber: phoneNumber,
-                        type: type,  // 'check-in' or 'check-out'
-                        timestamp: now.toISOString(),
-                        location: currentLocation.latitude ? {
-                            latitude: currentLocation.latitude,
-                            longitude: currentLocation.longitude
-                        } : null
-                    })
-                });
-
-                const data = await response.json();
-
-                // 로딩 상태 숨김
-                showLoading(false);
-
-                if (data.success) {
-                    // 성공 메시지
-                    const actionName = type === 'check-in' ? '출근' : '퇴근';
-                    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                    
-                    // WiFi 뱃지 상태 결정
-                    let wifiBadge = '';
-                    if (data.wifiMatched === true) {
-                        wifiBadge = '<div class="wifi-badge matched">✅ WiFi 인증됨</div>';
-                    } else if (data.wifiMatched === false) {
-                        wifiBadge = '<div class="wifi-badge unmatched">⚠️ WiFi 미인증 (기록은 완료)</div>';
-                    }
-                    showStatus(
-                        `${actionName}이 기록되었습니다. (${timeStr})${wifiBadge}`,
-                        'success',
-                        true  // HTML 허용
-                    );
-
-                    // 전화번호 입력 필드 초기화
-                    document.getElementById('phoneNumber').value = '';
-
-                } else {
-                    // 에러 메시지 표시
-                    showStatus(data.error || `${type === 'check-in' ? '출근' : '퇴근'} 기록에 실패했습니다.`, 'error');
-                }
-
-            } catch (error) {
-                console.error('출퇴근 기록 오류:', error);
-                showLoading(false);
-                showStatus('서버와 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error');
-            }
-        }
-
-        // ====================================
-        // 상태 메시지 표시
-        // ====================================
-
-        function showStatus(message, type = 'info', isHtml = false) {
-            const statusEl = document.getElementById('statusMessage');
-            if (isHtml) { statusEl.innerHTML = message; } else { statusEl.textContent = message; }
-            statusEl.className = `status-message ${type} show`;
-
-            // 성공 메시지는 5초 후 자동으로 숨김
-            if (type === 'success') {
-                setTimeout(() => {
-                    statusEl.classList.remove('show');
-                }, 5000);
-            }
-        }
-
-        function hideStatus() {
-            const statusEl = document.getElementById('statusMessage');
-            statusEl.classList.remove('show');
-        }
-
-        // ====================================
-        // 로딩 상태 표시
-        // ====================================
-
-        function showLoading(show) {
-            const loadingEl = document.getElementById('loading');
-            const formEl = document.getElementById('attendanceForm');
-            
-            if (show) {
-                loadingEl.classList.add('show');
-                formEl.style.display = 'none';
-            } else {
-                loadingEl.classList.remove('show');
-                formEl.style.display = 'block';
-            }
-        }
-
-        // ====================================
-        // 폼 비활성화
-        // ====================================
-
-        function disableForm() {
-            const buttons = document.querySelectorAll('.btn');
-            buttons.forEach(btn => {
-                btn.disabled = true;
-            });
-        }
-    </script>
-</body>
-</html>
+// ── 헬퍼 ─────────────────────────────────────────────────────
+function err400(msg) {
+  return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: msg }) };
+}
