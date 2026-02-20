@@ -2,11 +2,14 @@
 // 계약서 생성/발송/상태변경 API
 // POST /.netlify/functions/contracts-create
 // Phase 6 - 전자계약 (UCanSign)
+// Phase 9-A - 플랜 사용량 제한 연동
 // =====================================================
 
 const { verifyToken } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
 const { ucansignRequest, UCANSIGN_BASE_URL } = require('./ucansign-auth');
+// Phase 9-A: 요금제 한도 체크 미들웨어 (놀이공원 입장권 확인기)
+const { checkPlanLimit, incrementUsage, FEATURES } = require('./lib/plan-check');
 
 function getSupabaseClient() {
   const url = process.env.SUPABASE_URL;
@@ -46,7 +49,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 인증 확인
     const authHeader = event.headers.authorization || event.headers.Authorization;
     let userInfo;
     try {
@@ -56,315 +58,162 @@ exports.handler = async (event) => {
         statusCode: 401,
         headers: CORS_HEADERS,
         body: JSON.stringify({ success: false, error: '인증 실패: ' + err.message })
-      };
+      });
     }
 
     const supabase = getSupabaseClient();
     const body = JSON.parse(event.body || '{}');
 
-    // ============================
-    // DELETE: 계약서 삭제 (draft만)
-    // ============================
     if (event.httpMethod === 'DELETE') {
       const { id } = body;
       if (!id) {
-        return {
-          statusCode: 400,
-          headers: CORS_HEADERS,
-          body: JSON.stringify({ success: false, error: '계약서 ID가 필요합니다' })
-        };
+        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '계약서 ID가 필요합니다' }) };
       }
 
-      const { data: existing } = await supabase
-        .from('contracts')
-        .select('status')
-        .eq('id', id)
-        .eq('company_id', userInfo.companyId)
-        .single();
+      const { data: existing } = await supabase.from('contracts').select('status').eq('id', id).eq('company_id', userInfo.companyId).single();
 
       if (!existing) {
-        return {
-          statusCode: 404,
-          headers: CORS_HEADERS,
-          body: JSON.stringify({ success: false, error: '계약서를 찾을 수 없습니다' })
-        };
+        return { statusCode: 404, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '계약서를 찾을 수 없습니다' }) };
       }
 
       if (existing.status !== 'draft') {
-        return {
-          statusCode: 400,
-          headers: CORS_HEADERS,
-          body: JSON.stringify({ success: false, error: '작성중인 계약서만 삭제 가능합니다' })
-        };
+        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '작성중인 계약서만 삭제 가능합니다' }) };
       }
 
-      const { error } = await supabase
-        .from('contracts')
-        .delete()
-        .eq('id', id)
-        .eq('company_id', userInfo.companyId);
-
+      const { error } = await supabase.from('contracts').delete().eq('id', id).eq('company_id', userInfo.companyId);
       if (error) throw error;
 
-      return {
-        statusCode: 200,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ success: true, data: { message: '계약서가 삭제되었습니다' } })
-      };
+      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, data: { message: '계약서가 삭제되었습니다' } }) };
     }
 
-    // ============================
-    // PUT: 계약서 상태 변경 / 재발송
-    // ============================
     if (event.httpMethod === 'PUT') {
       const { id, action } = body;
       if (!id || !action) {
-        return {
-          statusCode: 400,
-          headers: CORS_HEADERS,
-          body: JSON.stringify({ success: false, error: 'id와 action이 필요합니다' })
-        };
+        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: 'id와 action이 필요합니다' }) };
       }
 
-      // 계약서 발송 (draft → sent)
-      if (action === 'send') {
-        return await sendContract(supabase, id, userInfo.companyId);
-      }
+      if (action === 'send') return await sendContract(supabase, id, userInfo.companyId);
+      if (action === 'resend') return await resendContract(supabase, id, userInfo.companyId);
 
-      // 재발송
-      if (action === 'resend') {
-        return await resendContract(supabase, id, userInfo.companyId);
-      }
-
-      // 취소
       if (action === 'cancel') {
-        const { error } = await supabase
-          .from('contracts')
-          .update({ status: 'rejected', updated_at: new Date().toISOString() })
-          .eq('id', id)
-          .eq('company_id', userInfo.companyId)
-          .in('status', ['draft', 'sent', 'viewed']);
-
+        const { error } = await supabase.from('contracts').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', id).eq('company_id', userInfo.companyId).in('status', ['draft', 'sent', 'viewed']);
         if (error) throw error;
-
-        return {
-          statusCode: 200,
-          headers: CORS_HEADERS,
-          body: JSON.stringify({ success: true, data: { message: '계약이 취소되었습니다' } })
-        };
+        return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, data: { message: '계약이 취소되었습니다' } }) };
       }
 
-      return {
-        statusCode: 400,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ success: false, error: '알 수 없는 action: ' + action })
-      };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '알 수 없는 action: ' + action }) };
     }
 
-    // ============================
     // POST: 새 계약서 생성
-    // ============================
-    const {
-      employee_id,
-      contract_type = '근로계약서',
-      title,
-      template_id,
-      signer_name,
-      signer_email,
-      signer_phone,
-      contract_data = {},
-      auto_send = false
-    } = body;
+    const { employee_id, contract_type = '근로계약서', title, template_id, signer_name, signer_email, signer_phone, contract_data = {}, auto_send = false } = body;
 
-    // 필수값 검증
     if (!employee_id) {
-      return {
-        statusCode: 400,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ success: false, error: '직원을 선택해주세요' })
-      };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '직원을 선택해주세요' }) };
     }
 
-    // 직원 정보 조회 (users 테이블 JOIN + 확장 필드)
-    const { data: empData } = await supabase
-      .from('employees')
-      .select(`
-        id, position, department, base_salary, salary_type,
-        monthly_wage, annual_salary,
-        work_start_time, work_end_time, break_time_minutes,
-        weekly_holiday, work_location, hire_date,
-        contract_start_date, contract_end_date, probation_months,
-        address, birth_date,
-        users:user_id(name, email, phone)
-      `)
-      .eq('id', employee_id)
-      .eq('company_id', userInfo.companyId)
-      .single();
+    const { data: empData } = await supabase.from('employees').select(`
+      id, position, department, base_salary, salary_type,
+      monthly_wage, annual_salary,
+      work_start_time, work_end_time, break_time_minutes,
+      weekly_holiday, work_location, hire_date,
+      contract_start_date, contract_end_date, probation_months,
+      address, birth_date,
+      users:user_id(name, email, phone)
+    `).eq('id', employee_id).eq('company_id', userInfo.companyId).single();
 
     if (!empData) {
-      return {
-        statusCode: 404,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ success: false, error: '직원 정보를 찾을 수 없습니다' })
-      };
+      return { statusCode: 404, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '직원 정보를 찾을 수 없습니다' }) };
     }
 
     const empUser = Array.isArray(empData.users) ? empData.users[0] : empData.users;
-    const employee = {
-      id: empData.id,
-      name: empUser?.name || '이름없음',
-      email: empUser?.email || '',
-      phone: empUser?.phone || '',
-      position: empData.position,
-      department: empData.department
-    };
+    const employee = { id: empData.id, name: empUser?.name || '이름없음', email: empUser?.email || '', phone: empUser?.phone || '', position: empData.position, department: empData.department };
 
     const typeConfig = CONTRACT_TYPES[contract_type] || CONTRACT_TYPES['기타'];
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + typeConfig.expireDays);
 
-    // DB에 계약서 저장
     const contractRecord = {
-      company_id: userInfo.companyId,
-      employee_id,
-      contract_type,
+      company_id: userInfo.companyId, employee_id, contract_type,
       title: title || `${employee.name} ${typeConfig.label}`,
       ucansign_template_id: template_id || null,
       signer_name: signer_name || employee.name,
       signer_email: signer_email || employee.email,
       signer_phone: signer_phone || employee.phone,
-      status: 'draft',
-      contract_data,
-      expires_at: expiresAt.toISOString()
+      status: 'draft', contract_data, expires_at: expiresAt.toISOString()
     };
 
-    const { data: newContract, error: insertError } = await supabase
-      .from('contracts')
-      .insert(contractRecord)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('[contracts-create] DB 저장 오류:', insertError);
-      throw insertError;
-    }
+    const { data: newContract, error: insertError } = await supabase.from('contracts').insert(contractRecord).select().single();
+    if (insertError) { console.error('[contracts-create] DB 저장 오류:', insertError); throw insertError; }
 
     console.log('[contracts-create] 계약서 생성 완료:', newContract.id);
 
-    // 자동 발송 옵션
-    if (auto_send) {
-      const sendResult = await sendContract(supabase, newContract.id, userInfo.companyId);
-      return sendResult;
-    }
+    if (auto_send) return await sendContract(supabase, newContract.id, userInfo.companyId);
 
-    return {
-      statusCode: 201,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ success: true, data: newContract })
-    };
+    return { statusCode: 201, headers: CORS_HEADERS, body: JSON.stringify({ success: true, data: newContract }) };
 
   } catch (error) {
     console.error('[contracts-create] 서버 오류:', error);
-    return {
-      statusCode: 500,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ success: false, error: '서버 오류: ' + error.message })
-    };
+    return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '서버 오류: ' + error.message }) };
   }
 };
 
-// ============================
-// UCanSign으로 계약서 발송
-// ============================
 async function sendContract(supabase, contractId, companyId) {
-  // 계약서 조회 (직원 확장 필드 포함)
-  const { data: contract, error: fetchErr } = await supabase
-    .from('contracts')
-    .select(`
-      *,
-      employees(
-        position, department, base_salary, salary_type,
-        monthly_wage, annual_salary,
-        work_start_time, work_end_time, break_time_minutes,
-        weekly_holiday, work_location, hire_date,
-        contract_start_date, contract_end_date, probation_months,
-        address, birth_date,
-        users:user_id(name, email, phone)
-      )
-    `)
-    .eq('id', contractId)
-    .eq('company_id', companyId)
-    .single();
+  const { data: contract, error: fetchErr } = await supabase.from('contracts').select(`
+    *,
+    employees(
+      position, department, base_salary, salary_type,
+      monthly_wage, annual_salary,
+      work_start_time, work_end_time, break_time_minutes,
+      weekly_holiday, work_location, hire_date,
+      contract_start_date, contract_end_date, probation_months,
+      address, birth_date,
+      users:user_id(name, email, phone)
+    )
+  `).eq('id', contractId).eq('company_id', companyId).single();
 
   if (fetchErr || !contract) {
-    return {
-      statusCode: 404,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ success: false, error: '계약서를 찾을 수 없습니다' })
-    };
+    return { statusCode: 404, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '계약서를 찾을 수 없습니다' }) };
   }
 
   if (contract.status !== 'draft') {
-    return {
-      statusCode: 400,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ success: false, error: '작성중인 계약서만 발송 가능합니다' })
-    };
+    return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '작성중인 계약서만 발송 가능합니다' }) };
   }
 
-  // 사업장 정보 조회 (companies)
-  const { data: company } = await supabase
-    .from('companies')
-    .select('company_name, representative_name, business_number, address, pay_day, business_phone')
-    .eq('id', companyId)
-    .single();
+  // ── Phase 9-A: 플랜 한도 확인 ─────────────────────────────────
+  // Free 1건 / Pro 15건 / Business 무제한 (스탬프 카드 확인)
+  const planCheck = await checkPlanLimit(supabase, companyId, FEATURES.E_CONTRACT);
+  if (!planCheck.allowed) {
+    console.log(`[contracts-create] 플랜 한도 초과: ${planCheck.plan} (${planCheck.used}/${planCheck.limit})`);
+    return { statusCode: 402, headers: CORS_HEADERS, body: JSON.stringify({ success: false, ...planCheck }) };
+  }
+  // ──────────────────────────────────────────────────────────────
+
+  const { data: company } = await supabase.from('companies').select('company_name, representative_name, business_number, address, pay_day, business_phone').eq('id', companyId).single();
 
   try {
-    // UCanSign API - 템플릿 기반 서명문서 생성
     const templateId = contract.ucansign_template_id;
     if (!templateId) {
-      return {
-        statusCode: 400,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ success: false, error: '템플릿 ID가 없습니다. 템플릿을 먼저 지정해주세요.' })
-      };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '템플릿 ID가 없습니다. 템플릿을 먼저 지정해주세요.' }) };
     }
 
-    // === 전화번호 정규화 헬퍼 ===
     function normalizePhone(raw) {
       if (!raw) return null;
       let phone = raw.replace(/[^0-9]/g, '');
-      // +82 국제번호 → 0으로 변환
-      if (phone.startsWith('82') && phone.length >= 11) {
-        phone = '0' + phone.slice(2);
-      }
-      // 한국 휴대폰 번호 형식 체크
+      if (phone.startsWith('82') && phone.length >= 11) phone = '0' + phone.slice(2);
       return /^01[0-9]{8,9}$/.test(phone) ? phone : null;
     }
 
-    // === 참여자1: 직원(서명자) ===
     const rawPhone = contract.signer_phone || contract.employees?.users?.phone;
     const signerEmail = contract.signer_email || contract.employees?.users?.email;
     const signerPhone = normalizePhone(rawPhone);
-
     let empMethod = signerPhone ? 'kakao' : 'email';
     let empContact = signerPhone || signerEmail;
 
     if (!empContact) {
-      return {
-        statusCode: 400,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ success: false, error: '서명자 연락처(전화번호 또는 이메일)가 필요합니다.' })
-      };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '서명자 연락처(전화번호 또는 이메일)가 필요합니다.' }) };
     }
 
-    // === 참여자2: 사업주(회사 대표) ===
-    const { data: ownerData } = await supabase
-      .from('users')
-      .select('name, email, phone')
-      .eq('company_id', companyId)
-      .eq('role', 'owner')
-      .single();
+    const { data: ownerData } = await supabase.from('users').select('name, email, phone').eq('company_id', companyId).eq('role', 'owner').single();
 
     let ownerMethod, ownerContact, ownerName;
     if (ownerData) {
@@ -373,20 +222,9 @@ async function sendContract(supabase, contractId, companyId) {
       ownerMethod = ownerPhone ? 'kakao' : 'email';
       ownerContact = ownerPhone || ownerData.email;
     } else {
-      // owner 못 찾으면 companies 테이블에서 created_by로 조회
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('created_by')
-        .eq('id', companyId)
-        .single();
-      
+      const { data: companyData } = await supabase.from('companies').select('created_by').eq('id', companyId).single();
       if (companyData?.created_by) {
-        const { data: creatorData } = await supabase
-          .from('users')
-          .select('name, email, phone')
-          .eq('id', companyData.created_by)
-          .single();
-        
+        const { data: creatorData } = await supabase.from('users').select('name, email, phone').eq('id', companyData.created_by).single();
         if (creatorData) {
           ownerName = creatorData.name || '대표자';
           const ownerPhone = normalizePhone(creatorData.phone);
@@ -396,69 +234,40 @@ async function sendContract(supabase, contractId, companyId) {
       }
     }
 
-    // 사업주 정보 없으면 에러
     if (!ownerContact) {
-      return {
-        statusCode: 400,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ success: false, error: '사업주(대표자) 연락처를 찾을 수 없습니다. 설정에서 대표자 정보를 확인해주세요.' })
-      };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: '사업주(대표자) 연락처를 찾을 수 없습니다. 설정에서 대표자 정보를 확인해주세요.' }) };
     }
 
-    console.log('[contracts-create] 참여자1(직원):', empMethod, empContact);
-    console.log('[contracts-create] 참여자2(사업주):', ownerMethod, ownerContact);
-
     const signRequestBody = {
-      documentName: contract.title,
-      processType: 'PROCEDURE',
-      isSequential: true,
-      isSendMessage: true,
+      documentName: contract.title, processType: 'PROCEDURE', isSequential: true, isSendMessage: true,
       participants: [
-        {
-          name: contract.signer_name,
-          signingMethodType: empMethod,
-          signingContactInfo: empContact,
-          signingOrder: 1
-        },
-        {
-          name: ownerName,
-          signingMethodType: ownerMethod,
-          signingContactInfo: ownerContact,
-          signingOrder: 2
-        }
+        { name: contract.signer_name, signingMethodType: empMethod, signingContactInfo: empContact, signingOrder: 1 },
+        { name: ownerName, signingMethodType: ownerMethod, signingContactInfo: ownerContact, signingOrder: 2 }
       ],
       callbackUrl: 'https://staffmanager.io/.netlify/functions/contracts-webhook',
-      customValue: String(companyId),
-      customValue1: String(contract.employee_id || ''),
-      customValue2: contract.contract_type || 'employment'
+      customValue: String(companyId), customValue1: String(contract.employee_id || ''), customValue2: contract.contract_type || 'employment'
     };
 
-    // 템플릿 변수 자동 매핑 (사업장 + 직원 정보 → 계약서 필드)
     const emp = contract.employees || {};
     const empUser = Array.isArray(emp.users) ? emp.users[0] : emp.users;
 
-    // 급여 포맷팅
-    function formatWage(emp) {
+    function formatWage(e) {
       const fmt = (n) => n ? Number(n).toLocaleString('ko-KR') : '';
-      switch (emp.salary_type) {
-        case 'hourly': return `시급 ${fmt(emp.base_salary)}원`;
-        case 'monthly': return `월 ${fmt(emp.monthly_wage || emp.base_salary)}원`;
-        case 'annual': return `연봉 ${fmt(emp.annual_salary || emp.base_salary)}원`;
-        default: return `${fmt(emp.base_salary)}원`;
+      switch (e.salary_type) {
+        case 'hourly': return `시급 ${fmt(e.base_salary)}원`;
+        case 'monthly': return `월 ${fmt(e.monthly_wage || e.base_salary)}원`;
+        case 'annual': return `연봉 ${fmt(e.annual_salary || e.base_salary)}원`;
+        default: return `${fmt(e.base_salary)}원`;
       }
     }
 
-    // 계약기간 포맷팅
-    function formatPeriod(emp) {
-      if (!emp.contract_start_date) return '';
-      if (!emp.contract_end_date) return `${emp.contract_start_date} ~ 무기한`;
-      return `${emp.contract_start_date} ~ ${emp.contract_end_date}`;
+    function formatPeriod(e) {
+      if (!e.contract_start_date) return '';
+      if (!e.contract_end_date) return `${e.contract_start_date} ~ 무기한`;
+      return `${e.contract_start_date} ~ ${e.contract_end_date}`;
     }
 
-    // 자동매핑 필드 구성
     const autoFields = {};
-
-    // 갑 (사업장 정보)
     if (company) {
       if (company.company_name) autoFields.company_name = company.company_name;
       if (company.representative_name) autoFields.representative = company.representative_name;
@@ -467,16 +276,12 @@ async function sendContract(supabase, contractId, companyId) {
       if (company.pay_day) autoFields.pay_day = `매월 ${company.pay_day}일`;
       if (company.business_phone) autoFields.company_phone = company.business_phone;
     }
-
-    // 을 (직원 정보)
     if (empUser?.name) autoFields.employee_name = empUser.name;
     if (empUser?.phone) autoFields.employee_phone = empUser.phone;
     if (emp.address) autoFields.employee_address = emp.address;
     if (emp.hire_date) autoFields.hire_date = emp.hire_date;
     if (emp.position) autoFields.position = emp.position;
     if (emp.department) autoFields.department = emp.department;
-
-    // 근로조건
     if (emp.salary_type) autoFields.wage_type = emp.salary_type === 'hourly' ? '시급' : emp.salary_type === 'monthly' ? '월급' : '연봉';
     autoFields.wage_amount = formatWage(emp);
     if (emp.work_start_time && emp.work_end_time) autoFields.work_hours = `${emp.work_start_time} ~ ${emp.work_end_time}`;
@@ -486,83 +291,41 @@ async function sendContract(supabase, contractId, companyId) {
     if (emp.contract_end_date) autoFields.contract_end = emp.contract_end_date;
     autoFields.contract_period = formatPeriod(emp);
 
-    // 사용자가 직접 지정한 contract_data로 오버라이드
     const mergedFields = { ...autoFields, ...(contract.contract_data || {}) };
-
-    // fields 배열 생성
-    signRequestBody.fields = Object.entries(mergedFields)
-      .filter(([_, value]) => value !== null && value !== undefined && value !== '')
-      .map(([key, value]) => ({
-        fieldName: key,
-        value: String(value)
-      }));
+    signRequestBody.fields = Object.entries(mergedFields).filter(([_, v]) => v !== null && v !== undefined && v !== '').map(([key, value]) => ({ fieldName: key, value: String(value) }));
 
     console.log('[contracts-create] 자동매핑 필드:', signRequestBody.fields.length, '개');
-    console.log('[contracts-create] 필드 목록:', signRequestBody.fields.map(f => f.fieldName).join(', '));
+    console.log('[contracts-create] UCanSign 요청:', templateId);
 
-    console.log('[contracts-create] UCanSign 템플릿 서명문서 생성:', templateId);
-    console.log('[contracts-create] 요청 body:', JSON.stringify(signRequestBody));
-
-    // ✅ 수정: /sign-request/create → /templates/:documentId
     const ucansignResult = await ucansignRequest('POST', `/templates/${templateId}`, signRequestBody);
-
     console.log('[contracts-create] UCanSign 응답:', JSON.stringify(ucansignResult));
 
-    // DB 업데이트 - UCanSign 응답 필드 매핑
     const ucDoc = ucansignResult.result || {};
     const updateData = {
-      status: 'sent',
-      sent_at: new Date().toISOString(),
+      status: 'sent', sent_at: new Date().toISOString(),
       ucansign_document_id: String(ucDoc.documentId || ucDoc.id || ''),
       ucansign_request_id: String(ucDoc.documentId || ucDoc.requestId || ucDoc.id || ''),
       ucansign_status: ucDoc.status || 'sent'
     };
 
-    const { data: updated, error: updateErr } = await supabase
-      .from('contracts')
-      .update(updateData)
-      .eq('id', contractId)
-      .select()
-      .single();
-
+    const { data: updated, error: updateErr } = await supabase.from('contracts').update(updateData).eq('id', contractId).select().single();
     if (updateErr) throw updateErr;
 
-    return {
-      statusCode: 200,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({
-        success: true,
-        data: updated,
-        message: '계약서가 발송되었습니다'
-      })
-    };
+    // ── Phase 9-A: 발송 성공 → 사용량 +1 ─────────────────────────
+    // 성공 후에만 카운트 (실패 시 카운트 안 함)
+    await incrementUsage(supabase, companyId, FEATURES.E_CONTRACT);
+    console.log(`[contracts-create] 사용량 +1: ${planCheck.plan} (${planCheck.used + 1}/${planCheck.limit === -1 ? '무제한' : planCheck.limit})`);
+    // ──────────────────────────────────────────────────────────────
+
+    return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, data: updated, message: '계약서가 발송되었습니다' }) };
 
   } catch (ucansignError) {
     console.error('[contracts-create] UCanSign 발송 실패:', ucansignError);
-
-    // UCanSign 실패해도 DB 상태는 유지 (재발송 가능)
-    return {
-      statusCode: 500,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({
-        success: false,
-        error: 'UCanSign 발송 실패: ' + ucansignError.message
-      })
-    };
+    return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: 'UCanSign 발송 실패: ' + ucansignError.message }) };
   }
 }
 
-// ============================
-// 계약서 재발송
-// ============================
 async function resendContract(supabase, contractId, companyId) {
-  // 상태를 draft로 되돌린 후 재발송
-  await supabase
-    .from('contracts')
-    .update({ status: 'draft' })
-    .eq('id', contractId)
-    .eq('company_id', companyId)
-    .in('status', ['sent', 'viewed']);
-
+  await supabase.from('contracts').update({ status: 'draft' }).eq('id', contractId).eq('company_id', companyId).in('status', ['sent', 'viewed']);
   return await sendContract(supabase, contractId, companyId);
 }
