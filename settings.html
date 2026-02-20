@@ -1,3 +1,7 @@
+
+Settings · HTML
+복사
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -446,8 +450,7 @@
                             </div>
 
                             <div class="button-group">
-                                <button class="btn btn-primary" onclick="downloadQRCode();
-    loadWifiSettings();">
+                                <button class="btn btn-primary" onclick="downloadQRCode()">
                                     <span>💾</span>
                                     <span>QR코드 다운로드 (PNG)</span>
                                 </button>
@@ -533,6 +536,9 @@
 
             // QR코드 생성
             await generateQRCode();
+
+            // WiFi 출퇴근 설정 로드
+            loadWifiSettings();
         });
 
         // ====================================
