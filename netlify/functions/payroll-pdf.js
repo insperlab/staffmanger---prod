@@ -31,7 +31,7 @@ async function loadKoreanFont() {
   return res.arrayBuffer();
 }
 
-function fmt(n) { return Number(n || 0).toLocaleString('ko-KR') + '원'; }
+function fmt(n) { return Math.round(Number(n || 0)).toLocaleString('ko-KR') + '원'; }
 function fmtDate(s) {
   if (!s) return '-';
   const d = new Date(s);
