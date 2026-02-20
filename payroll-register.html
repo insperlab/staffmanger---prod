@@ -83,6 +83,7 @@
         .empty-state { text-align: center; padding: 60px 20px; color: #999; }
         .empty-state .icon { font-size: 52px; margin-bottom: 16px; }
         .empty-state p { font-size: 15px; line-height: 1.6; }
+        .btn-purple { background: #7B1FA2; color: white; }
         .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 999; justify-content: center; align-items: center; flex-direction: column; gap: 16px; }
         .loading-overlay.show { display: flex; }
         .spinner { width: 48px; height: 48px; border: 4px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -129,6 +130,7 @@
         <button class="btn btn-primary" onclick="batchCalculate()">⚡ 일괄 급여 계산</button>
         <div class="filter-spacer"></div>
         <button class="btn btn-green" id="excelBtn" onclick="downloadExcel()" disabled>📄 엑셀 다운로드</button>
+        <button class="btn btn-purple" id="pdfBatchBtn" onclick="downloadPDFBatch()" disabled>📥 명세서 일괄 PDF</button>
         <button class="btn btn-orange" id="bankBtn" onclick="downloadBankFile()" disabled>🏦 은행 이체</button>
     </div>
 
@@ -234,6 +236,7 @@ async function loadPayrollData() {
         renderSummary(payrollData);
         renderWarnings(payrollData);
         document.getElementById('excelBtn').disabled = payrollData.length === 0;
+        document.getElementById('pdfBatchBtn').disabled = payrollData.length === 0;
         document.getElementById('bankBtn').disabled = payrollData.length === 0;
     } catch (err) {
         console.error('급여 대장 조회 실패:', err);
@@ -333,6 +336,66 @@ function downloadExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, year+'년'+month+'월');
     XLSX.writeFile(wb, `급여대장_${year}년${month}월.xlsx`);
+}
+
+/* ── PDF 일괄 다운로드 ──────────────────────────────────────── */
+async function downloadPDFBatch() {
+    if (payrollData.length === 0) return;
+
+    const year  = document.getElementById('filterYear').value;
+    const month = document.getElementById('filterMonth').value;
+    const bizId = document.getElementById('filterBusiness').value;
+
+    // 직원 수 사전 경고 (30명 초과)
+    if (payrollData.length > 30) {
+        alert(`직원이 ${payrollData.length}명입니다.\n사업장 필터로 30명 이하 단위로 분할 출력해주세요.`);
+        return;
+    }
+
+    const btn = document.getElementById('pdfBatchBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ PDF 생성 중...';
+    showLoading('📥 급여명세서 일괄 PDF 생성 중...', `${payrollData.length}명 · ${year}년 ${month}월`);
+
+    try {
+        const body = { year: parseInt(year), month: parseInt(month) };
+        if (bizId && bizId !== 'all') body.businessId = bizId;
+
+        const res = await fetch('/.netlify/functions/payroll-pdf-batch', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        // Content-Type 확인 — PDF면 다운로드, JSON이면 에러 메시지
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok || !contentType.includes('pdf')) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `PDF 생성 실패 (${res.status})`);
+        }
+
+        // Blob 다운로드
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url;
+        a.download = `급여명세서_일괄_${year}년${month}월.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+        console.error('PDF 일괄 생성 오류:', err);
+        alert('PDF 생성 실패: ' + err.message);
+    } finally {
+        hideLoading();
+        btn.disabled  = false;
+        btn.textContent = '📥 명세서 일괄 PDF';
+    }
 }
 
 function downloadBankFile() {
