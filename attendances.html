@@ -1,3 +1,7 @@
+
+Attendances · HTML
+복사
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -243,7 +247,7 @@
         var tr=document.createElement('tr');
         
         // 출퇴근 방식 뱃지 생성
-        var method = att.checkMethod || att.check_method || 'qr';
+        var method = record.checkMethod || record.check_method || 'qr';
         var methodLabel = {qr:'📱 QR', gps:'📍 GPS', wifi:'📶 WiFi', manual:'✏️ 수동'}[method] || method.toUpperCase();
         var methodBadge = '<span class="method-badge '+method+'">'+methodLabel+'</span>';
         
