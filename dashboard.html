@@ -73,6 +73,37 @@
             .biz-filter-bar{flex-direction:column;align-items:flex-start}
             .biz-filter-select{width:100%}
         }
+    
+        /* ── 알림 이력 패널 ── */
+        .notif-panel{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-top:25px}
+        .notif-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+        .notif-tabs{display:flex;gap:8px;flex-wrap:wrap}
+        .notif-tab{padding:5px 14px;border:1.5px solid #e0e0e0;border-radius:20px;font-size:13px;cursor:pointer;background:#fff;color:#666;font-weight:500;transition:all .2s}
+        .notif-tab.active{background:#667eea;color:#fff;border-color:#667eea}
+        .notif-mark-all{font-size:12px;color:#667eea;cursor:pointer;white-space:nowrap;padding:5px 0;font-weight:500}
+        .notif-mark-all:hover{text-decoration:underline}
+        .notif-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;background:#e74c3c;color:#fff;border-radius:9px;font-size:11px;font-weight:700;padding:0 4px;margin-left:5px;vertical-align:middle}
+        .notif-list{list-style:none;max-height:380px;overflow-y:auto}
+        .notif-item{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid #f5f5f5;align-items:flex-start;cursor:pointer;transition:background .15s;border-radius:8px;padding-left:6px;padding-right:6px}
+        .notif-item:hover{background:#f9f9ff}
+        .notif-item:last-child{border-bottom:none}
+        .notif-item.unread{background:#f7f7ff}
+        .notif-dot{width:8px;height:8px;border-radius:50%;background:#667eea;margin-top:6px;flex-shrink:0}
+        .notif-dot.read{background:transparent}
+        .notif-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+        .notif-icon.payroll{background:#e8f5e9}.notif-icon.contract{background:#f3e5f5}.notif-icon.attendance{background:#e3f2fd}.notif-icon.vacation{background:#fff3e0}.notif-icon.default{background:#f5f5f5}
+        .notif-body{flex:1;min-width:0}
+        .notif-title{font-size:14px;font-weight:600;color:#333;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .notif-msg{font-size:12px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .notif-meta{display:flex;justify-content:space-between;align-items:center;margin-top:3px}
+        .notif-time{font-size:11px;color:#bbb;white-space:nowrap}
+        .notif-channel{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500}
+        .notif-channel.sms{background:#e3f2fd;color:#1565c0}
+        .notif-channel.kakao{background:#fff9c4;color:#856404}
+        .notif-channel.email{background:#f3e5f5;color:#6a1b9a}
+        .notif-empty{text-align:center;padding:40px;color:#bbb;font-size:14px}
+        .notif-load-more{text-align:center;padding:12px;color:#667eea;font-size:13px;cursor:pointer;font-weight:500}
+        .notif-load-more:hover{text-decoration:underline}
     </style>
 </head>
 <body>
@@ -187,6 +218,32 @@
                 </div>
             </div>
         </div>
+
+            <!-- ── 알림 이력 패널 ── -->
+            <div class="notif-panel">
+                <div class="notif-header">
+                    <h2 class="section-title" style="margin-bottom:0">
+                        📬 알림 발송 이력
+                        <span class="notif-badge" id="notifUnreadBadge" style="display:none">0</span>
+                    </h2>
+                    <div style="display:flex;align-items:center;gap:16px">
+                        <div class="notif-tabs">
+                            <button class="notif-tab active" onclick="setNotifType('',this)">전체</button>
+                            <button class="notif-tab" onclick="setNotifType('payroll',this)">💰 급여</button>
+                            <button class="notif-tab" onclick="setNotifType('contract',this)">📜 계약</button>
+                            <button class="notif-tab" onclick="setNotifType('attendance',this)">⏰ 출근</button>
+                            <button class="notif-tab" onclick="setNotifType('vacation',this)">🗓️ 휴가</button>
+                        </div>
+                        <span class="notif-mark-all" onclick="markAllRead()">모두 읽음</span>
+                    </div>
+                </div>
+                <ul class="notif-list" id="notifList">
+                    <li class="notif-empty">알림 이력을 불러오는 중...</li>
+                </ul>
+                <div class="notif-load-more" id="notifLoadMore" style="display:none" onclick="loadMoreNotifs()">더 보기 ↓</div>
+            </div>
+
+        </div>
     </div>
 
 <!-- ✅ [핵심수정] businesses-filter.js (s 추가) - 이전에 business-filter.js로 잘못 작성되어 BusinessFilter 객체 로드 실패 -->
@@ -220,6 +277,7 @@ window.addEventListener('DOMContentLoaded', async function() {
     await loadBusinesses();
     await loadAllData();      /* ✅ 전체 데이터 한 번만 로드 */
     renderDashboard();        /* ✅ 렌더링 분리 */
+    loadNotifs(true);          /* 알림 이력 초기 로드 */
 });
 
 /* 사업장 목록 로드 */
@@ -433,6 +491,141 @@ function formatTimeAgo(date) {
     if (diff < 86400) return Math.floor(diff/3600) + '시간 전';
     if (diff < 604800) return Math.floor(diff/86400) + '일 전';
     return date.toLocaleDateString('ko-KR');
+}
+
+
+/* ═══════════════════════════════════════════
+   알림 이력 뷰 로직
+═══════════════════════════════════════════ */
+var notifType = '';       // 현재 필터 타입
+var notifOffset = 0;      // 페이지네이션 오프셋
+var notifTotal = 0;       // 전체 알림 수
+var NOTIF_LIMIT = 10;     // 1회 로딩 건수
+
+/* 타입 아이콘 매핑 */
+function notifIcon(type) {
+    var map = { payroll: '💰', contract: '📜', attendance: '⏰', vacation: '🗓️' };
+    return map[type] || '🔔';
+}
+
+/* 채널 배지 */
+function notifChannelBadge(n) {
+    if (n.kakao_sent) return '<span class="notif-channel kakao">카카오톡</span>';
+    return '<span class="notif-channel sms">SMS</span>';
+}
+
+/* 알림 탭 변경 */
+function setNotifType(type, el) {
+    notifType = type;
+    notifOffset = 0;
+    document.querySelectorAll('.notif-tab').forEach(function(t){ t.classList.remove('active'); });
+    if (el) el.classList.add('active');
+    loadNotifs(true);
+}
+
+/* 더 보기 */
+function loadMoreNotifs() {
+    notifOffset += NOTIF_LIMIT;
+    loadNotifs(false);
+}
+
+/* 알림 목록 로드 */
+async function loadNotifs(reset) {
+    try {
+        var url = '/.netlify/functions/notifications-list?limit=' + NOTIF_LIMIT + '&offset=' + notifOffset;
+        if (notifType) url += '&type=' + notifType;
+
+        var res = await apiFetch(url);
+        if (!res || !res.success) return;
+
+        notifTotal = res.pagination.total;
+
+        /* 읽지 않은 배지 */
+        var badge = document.getElementById('notifUnreadBadge');
+        if (res.unread_count > 0) {
+            badge.textContent = res.unread_count;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        var listEl = document.getElementById('notifList');
+        var items = res.data || [];
+
+        if (reset) {
+            if (items.length === 0) {
+                listEl.innerHTML = '<li class="notif-empty">알림 이력이 없습니다.</li>';
+                document.getElementById('notifLoadMore').style.display = 'none';
+                return;
+            }
+            listEl.innerHTML = '';
+        }
+
+        items.forEach(function(n) {
+            var empName = (n.users && n.users.name) || '직원';
+            var li = document.createElement('li');
+            li.className = 'notif-item' + (n.read ? '' : ' unread');
+            li.dataset.id = n.id;
+            li.innerHTML =
+                '<div class="notif-dot' + (n.read ? ' read' : '') + '"></div>' +
+                '<div class="notif-icon ' + (n.type || 'default') + '">' + notifIcon(n.type) + '</div>' +
+                '<div class="notif-body">' +
+                    '<div class="notif-title">' + (n.title || '') + '</div>' +
+                    '<div class="notif-msg">' + empName + ' · ' + (n.message || '') + '</div>' +
+                    '<div class="notif-meta">' +
+                        '<span class="notif-time">' + formatTimeAgo(new Date(n.created_at)) + '</span>' +
+                        notifChannelBadge(n) +
+                    '</div>' +
+                '</div>';
+            li.onclick = function() { markRead([n.id], li); };
+            listEl.appendChild(li);
+        });
+
+        /* 더 보기 버튼 표시 여부 */
+        var loaded = notifOffset + items.length;
+        document.getElementById('notifLoadMore').style.display =
+            loaded < notifTotal ? 'block' : 'none';
+
+    } catch(e) { console.error('알림 이력 로드 실패:', e); }
+}
+
+/* 단건 읽음 처리 */
+function markRead(ids, liEl) {
+    apiFetchPatch('/.netlify/functions/notifications-list', { ids: ids });
+    if (liEl) {
+        liEl.classList.remove('unread');
+        var dot = liEl.querySelector('.notif-dot');
+        if (dot) dot.classList.add('read');
+    }
+    /* 배지 감소 */
+    var badge = document.getElementById('notifUnreadBadge');
+    var cur = parseInt(badge.textContent) || 0;
+    var next = Math.max(0, cur - ids.length);
+    badge.textContent = next;
+    badge.style.display = next > 0 ? 'inline-flex' : 'none';
+}
+
+/* 전체 읽음 처리 */
+function markAllRead() {
+    apiFetchPatch('/.netlify/functions/notifications-list', {});
+    document.querySelectorAll('.notif-item').forEach(function(li) {
+        li.classList.remove('unread');
+        var dot = li.querySelector('.notif-dot');
+        if (dot) dot.classList.add('read');
+    });
+    var badge = document.getElementById('notifUnreadBadge');
+    badge.style.display = 'none';
+}
+
+/* PATCH 헬퍼 */
+async function apiFetchPatch(url, body) {
+    try {
+        await fetch(url, {
+            method: 'PATCH',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+    } catch(e) { console.error('PATCH 실패:', e); }
 }
 
 function handleLogout() {
