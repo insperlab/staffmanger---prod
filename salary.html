@@ -1,3 +1,7 @@
+
+Salary · HTML
+복사
+
 !DOCTYPE html>
 <html lang="ko">
 <head>
@@ -5,6 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>급여 관리 - StaffManager</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Noto Sans KR',sans-serif;background:#f5f7fa;min-height:100vh}
@@ -412,169 +417,56 @@ async function sendPayrollNotification() {
 }
 
 function downloadPDF() {
+    // 급여 데이터 및 직원 정보 확인
     if (!currentData || !currentEmployee) { alert('급여 데이터가 없습니다.'); return; }
-    var d = currentData;
-    var emp = currentEmployee;
+
+    var emp  = currentEmployee;
     var year = document.getElementById('yearSelect').value;
-    var month = document.getElementById('monthSelect').value;
-    var jsPDF = window.jspdf.jsPDF;
-    var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    var month= document.getElementById('monthSelect').value;
 
-    var pageW = 210, margin = 15, contentW = pageW - margin * 2;
-    var y = margin;
+    // PDF 버튼 로딩 상태로 변경
+    var btn = document.querySelector('.btn-pdf');
+    var originalText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = '⏳ 생성 중...'; btn.disabled = true; }
 
-    doc.setFillColor(102, 126, 234);
-    doc.rect(0, 0, pageW, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.text('PAYSLIP / ' + year + '.' + month, margin, 18);
-    doc.setFontSize(12);
-    doc.text((emp.name || 'Employee') + ' | ' + (emp.position || ''), margin, 30);
-    doc.text('StaffManager', pageW - margin, 30, { align: 'right' });
+    // 명세서 영역 캡처 (화면에 보이는 그대로)
+    var target = document.getElementById('payslip') || document.body;
 
-    y = 50;
-    doc.setTextColor(0, 0, 0);
+    html2canvas(target, {
+        scale: 2,            // 고해상도 (레티나 대응)
+        useCORS: true,       // 외부 이미지 허용
+        backgroundColor: '#ffffff',
+        logging: false
+    }).then(function(canvas) {
+        var jsPDF = window.jspdf.jsPDF;
+        var imgData = canvas.toDataURL('image/png');
 
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('Work Summary', margin, y);
-    doc.setFont(undefined, 'normal');
-    y += 8;
-    var workInfo = [
-        ['Work Days', (d.total_work_days || 0) + ' days'],
-        ['Regular Hours', (d.regular_work_hours || 0).toFixed(1) + 'h'],
-        ['Overtime Hours', (d.overtime_hours || 0).toFixed(1) + 'h'],
-        ['Night Hours', (d.night_work_hours || 0).toFixed(1) + 'h']
-    ];
-    workInfo.forEach(function(row) {
-        doc.text(row[0], margin + 2, y);
-        doc.text(row[1], margin + contentW / 2, y, { align: 'right' });
-        y += 6;
+        // A4 크기에 맞게 비율 계산
+        var pageW = 210, pageH = 297;  // A4 mm
+        var canvasW = canvas.width;
+        var canvasH = canvas.height;
+        var ratio = pageW / (canvasW / 2);  // scale=2 보정
+        var imgH = (canvasH / 2) * ratio;
+
+        // 페이지 높이 초과 시 여러 페이지로 분할
+        var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        var posY = 0;
+        while (posY < imgH) {
+            if (posY > 0) doc.addPage();
+            doc.addImage(imgData, 'PNG', 0, -posY, pageW, imgH);
+            posY += pageH;
+        }
+
+        // 파일명: 직원명_연월.pdf
+        var fileName = (emp.name || '급여명세서') + '_' + year + '_' + month + '.pdf';
+        doc.save(fileName);
+    }).catch(function(err) {
+        console.error('PDF 생성 오류:', err);
+        alert('PDF 생성 중 오류가 발생했습니다: ' + err.message);
+    }).finally(function() {
+        // 버튼 원래 상태로 복구
+        if (btn) { btn.textContent = originalText; btn.disabled = false; }
     });
-
-    y += 5;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, y, pageW - margin, y);
-    y += 8;
-
-    doc.setFont(undefined, 'bold');
-    doc.text('Earnings (Payment)', margin, y);
-    doc.setFont(undefined, 'normal');
-    y += 7;
-    var payRows = [
-        ['Basic Pay', d.basic_pay],
-        ['Weekly Holiday Pay', d.weekly_holiday_pay],
-        ['Overtime Pay', d.overtime_pay],
-        ['Night Pay', d.night_pay],
-        ['Holiday Pay', d.holiday_pay]
-    ].filter(function(r) { return (r[1] || 0) > 0; });
-    payRows.forEach(function(row) {
-        doc.text(row[0], margin + 2, y);
-        doc.text(fmtNum(row[1]), pageW - margin, y, { align: 'right' });
-        y += 6;
-    });
-    doc.setFont(undefined, 'bold');
-    doc.text('Total Payment', margin + 2, y);
-    doc.text(fmtNum(d.total_payment), pageW - margin, y, { align: 'right' });
-    doc.setFont(undefined, 'normal');
-    y += 8;
-
-    if ((d.non_taxable_amount || 0) > 0) {
-        doc.setFont(undefined, 'bold');
-        doc.text('Non-Taxable Allowances', margin, y);
-        doc.setFont(undefined, 'normal');
-        y += 7;
-        [['Meal', d.meal_allowance], ['Vehicle', d.car_allowance], ['Childcare', d.childcare_allowance]]
-        .filter(function(r) { return (r[1] || 0) > 0; })
-        .forEach(function(row) {
-            doc.text(row[0], margin + 2, y);
-            doc.text(fmtNum(row[1]), pageW - margin, y, { align: 'right' });
-            y += 6;
-        });
-        doc.setFont(undefined, 'bold');
-        doc.text('Total Non-Taxable', margin + 2, y);
-        doc.text(fmtNum(d.non_taxable_amount), pageW - margin, y, { align: 'right' });
-        doc.setFont(undefined, 'normal');
-        y += 8;
-    }
-
-    doc.line(margin, y, pageW - margin, y);
-    y += 8;
-
-    doc.setFont(undefined, 'bold');
-    doc.text('Deductions', margin, y);
-    doc.setFont(undefined, 'normal');
-    y += 7;
-    [['National Pension', d.national_pension], ['Health Insurance', d.health_insurance],
-     ['Long-term Care', d.long_term_care], ['Employment Insurance', d.employment_insurance],
-     ['Income Tax', d.income_tax], ['Local Tax', d.local_tax]]
-    .filter(function(r) { return (r[1] || 0) > 0; })
-    .forEach(function(row) {
-        doc.text(row[0], margin + 2, y);
-        doc.text('-' + fmtNum(row[1]), pageW - margin, y, { align: 'right' });
-        y += 6;
-    });
-    doc.setFont(undefined, 'bold');
-    doc.text('Total Deductions', margin + 2, y);
-    doc.text('-' + fmtNum(d.total_deductions), pageW - margin, y, { align: 'right' });
-    doc.setFont(undefined, 'normal');
-    y += 8;
-
-    var empTotal = (d.employer_national_pension || 0) + (d.employer_health_insurance || 0) +
-                   (d.employer_long_term_care || 0) + (d.employer_employment_insurance || 0) +
-                   (d.employer_industrial_accident || 0);
-    if (empTotal > 0) {
-        doc.line(margin, y, pageW - margin, y);
-        y += 8;
-        doc.setFont(undefined, 'bold');
-        doc.text('Employer Contributions', margin, y);
-        doc.setFont(undefined, 'normal');
-        y += 7;
-        [['National Pension', d.employer_national_pension], ['Health Insurance', d.employer_health_insurance],
-         ['Long-term Care', d.employer_long_term_care], ['Employment Insurance', d.employer_employment_insurance],
-         ['Industrial Accident', d.employer_industrial_accident]]
-        .filter(function(r) { return (r[1] || 0) > 0; })
-        .forEach(function(row) {
-            doc.text(row[0], margin + 2, y);
-            doc.text(fmtNum(row[1]), pageW - margin, y, { align: 'right' });
-            y += 6;
-        });
-        doc.setFont(undefined, 'bold');
-        doc.text('Total Employer Cost', margin + 2, y);
-        doc.text(fmtNum(empTotal), pageW - margin, y, { align: 'right' });
-        doc.setFont(undefined, 'normal');
-        y += 8;
-    }
-
-    y += 5;
-    doc.setFillColor(102, 126, 234);
-    doc.roundedRect(margin, y, contentW, 20, 3, 3, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('NET PAYMENT', margin + 10, y + 13);
-    doc.text(fmtNum(d.net_payment), pageW - margin - 10, y + 13, { align: 'right' });
-    y += 28;
-
-    var warnings = d.warnings || [];
-    if (warnings.length > 0) {
-        doc.setTextColor(200, 0, 0);
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.text('WARNINGS', margin, y);
-        doc.setFont(undefined, 'normal');
-        y += 6;
-        warnings.forEach(function(w) {
-            doc.text('- ' + w.message, margin + 2, y);
-            y += 5;
-        });
-    }
-
-    doc.setTextColor(150, 150, 150);
-    doc.setFontSize(8);
-    doc.text('Generated by StaffManager | ' + new Date().toISOString().split('T')[0], pageW / 2, 285, { align: 'center' });
-
-    doc.save((emp.name || 'payslip') + '_' + year + '_' + month + '.pdf');
 }
 
 function fmtNum(n) {
