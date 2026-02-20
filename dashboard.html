@@ -189,12 +189,19 @@
         </div>
     </div>
 
-<!-- ✅ [변경1] business-filter.js 공통 모듈 로드 -->
-<script src="/business-filter.js"></script>
+<!-- ✅ [핵심수정] businesses-filter.js (s 추가) - 이전에 business-filter.js로 잘못 작성되어 BusinessFilter 객체 로드 실패 -->
+<script src="/businesses-filter.js"></script>
 <script>
 var authToken = null, userInfo = null;
 var selectedBizId = 'all';
 var businessList = [];
+
+/* ✅ 전체 데이터를 한 번만 로드해서 저장 (employees.html과 동일한 방식) */
+var allEmployees = [];
+var allAttendances = [];
+var allVacations = [];
+var allContracts = [];
+var allConStats = {};
 
 window.addEventListener('DOMContentLoaded', async function() {
     authToken = localStorage.getItem('authToken');
@@ -211,10 +218,11 @@ window.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('dateInfo').textContent = today.getFullYear() + '년 ' + (today.getMonth()+1) + '월 ' + today.getDate() + '일 (' + days[today.getDay()] + ')';
 
     await loadBusinesses();
-    await loadDashboardData();
+    await loadAllData();      /* ✅ 전체 데이터 한 번만 로드 */
+    renderDashboard();        /* ✅ 렌더링 분리 */
 });
 
-/* ✅ [변경2] businesses-list 엔드포인트 사용 + localStorage 복원 */
+/* 사업장 목록 로드 */
 async function loadBusinesses() {
     try {
         var r = await fetch('/.netlify/functions/businesses-list', {
@@ -230,26 +238,49 @@ async function loadBusinesses() {
                 opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
                 sel.appendChild(opt);
             });
-            /* ✅ localStorage에서 이전 선택값 복원 (다른 페이지에서 선택한 값 유지) */
-            var saved = BusinessFilter.getSelected();
-            if (saved && saved !== 'all') {
-                sel.value = saved;
-                selectedBizId = saved;
-                var biz = businessList.find(function(b) { return b.id === saved; });
-                if (biz) {
-                    var badge = document.getElementById('bizFilterBadge');
-                    badge.textContent = biz.name;
-                    badge.style.display = 'inline-block';
+            /* localStorage에서 이전 선택값 복원 */
+            try {
+                var saved = BusinessFilter.getSelected();
+                if (saved && saved !== 'all') {
+                    sel.value = saved;
+                    selectedBizId = saved;
+                    var biz = businessList.find(function(b) { return b.id === saved; });
+                    if (biz) {
+                        var badge = document.getElementById('bizFilterBadge');
+                        badge.textContent = biz.name;
+                        badge.style.display = 'inline-block';
+                    }
                 }
-            }
+            } catch(e) { /* BusinessFilter 없어도 계속 동작 */ }
         }
     } catch (e) { console.error('사업장 목록 오류:', e); }
 }
 
-/* ✅ [변경3] 선택 변경 시 BusinessFilter.setSelected()로 localStorage 저장 */
+/* ✅ 전체 데이터 한 번에 로드 (필터 없이 전체) */
+async function loadAllData() {
+    var todayStr = new Date().toISOString().split('T')[0];
+    var monthStart = todayStr.substring(0,8) + '01';
+
+    var [empRes, attRes, vacRes, conRes] = await Promise.all([
+        apiFetch('/.netlify/functions/employees-list'),                            /* 전체 직원 */
+        apiFetch('/.netlify/functions/attendances-list?startDate=' + todayStr + '&endDate=' + todayStr), /* 오늘 출근 */
+        apiFetch('/.netlify/functions/vacations-list?start_date=' + monthStart + '&end_date=' + todayStr), /* 이번달 휴가 */
+        apiFetch('/.netlify/functions/contracts-list')                             /* 계약 (필터 없음) */
+    ]);
+
+    allEmployees  = (empRes && empRes.success) ? (empRes.data.employees || []) : [];
+    allAttendances = (attRes && attRes.success) ? (attRes.data.attendances || []) : [];
+    allVacations  = (vacRes && vacRes.success) ? (vacRes.vacations || []) : [];
+    allContracts  = (conRes && conRes.success) ? (conRes.data || []) : [];
+    allConStats   = (conRes && conRes.success) ? (conRes.stats || {}) : {};
+}
+
+/* ✅ 사업장 선택 변경 → 클라이언트 필터링만 (API 재호출 없음) */
 function onBizFilterChange() {
     selectedBizId = document.getElementById('bizFilterSelect').value;
-    BusinessFilter.setSelected(selectedBizId); /* 전 페이지 공유 저장 */
+
+    /* BusinessFilter가 로드됐을 때만 저장 시도 */
+    try { BusinessFilter.setSelected(selectedBizId); } catch(e) {}
 
     var badge = document.getElementById('bizFilterBadge');
     if (selectedBizId === 'all') {
@@ -259,41 +290,49 @@ function onBizFilterChange() {
         badge.textContent = biz ? biz.name : '';
         badge.style.display = 'inline-block';
     }
-    document.getElementById('dashboardContent').style.display = 'none';
-    document.getElementById('loadingState').style.display = 'block';
-    loadDashboardData();
+
+    renderDashboard(); /* ✅ API 재호출 없이 바로 렌더링 */
 }
 
-async function apiFetch(url) {
-    try {
-        var r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' } });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return await r.json();
-    } catch (e) { console.error('API 에러 (' + url + '):', e); return null; }
-}
-
-async function loadDashboardData() {
-    var todayStr = new Date().toISOString().split('T')[0];
-    var monthStart = todayStr.substring(0,8) + '01';
-    var bizParam = (selectedBizId !== 'all') ? '&business_id=' + selectedBizId : '';
-
-    var [empRes, attRes, vacRes, conRes] = await Promise.all([
-        apiFetch('/.netlify/functions/employees-list' + (bizParam ? '?' + bizParam.slice(1) : '')),
-        apiFetch('/.netlify/functions/attendances-list?startDate=' + todayStr + '&endDate=' + todayStr + bizParam),
-        apiFetch('/.netlify/functions/vacations-list?start_date=' + monthStart + '&end_date=' + todayStr + bizParam),
-        apiFetch('/.netlify/functions/contracts-list')
-    ]);
-
-    var employees = (empRes && empRes.success) ? (empRes.data.employees || []) : [];
+/* ✅ 데이터 렌더링 (클라이언트 필터 적용) */
+function renderDashboard() {
+    /* 직원 필터링 */
+    var employees = allEmployees;
     if (selectedBizId !== 'all') {
-        employees = employees.filter(function(e) {
+        employees = allEmployees.filter(function(e) {
             return (e.businessId || e.business_id) === selectedBizId;
         });
     }
 
+    /* 출근 필터링 */
+    var attendances = allAttendances;
+    if (selectedBizId !== 'all') {
+        attendances = allAttendances.filter(function(a) {
+            var empBizId = a.employee && (a.employee.businessId || a.employee.business_id);
+            /* 출근 기록에 business_id 없으면 직원 목록에서 조회 */
+            if (!empBizId && a.employee && a.employee.id) {
+                var emp = allEmployees.find(function(e) { return e.id === a.employee.id; });
+                empBizId = emp && (emp.businessId || emp.business_id);
+            }
+            return empBizId === selectedBizId;
+        });
+    }
+
+    /* 휴가 필터링 */
+    var vacations = allVacations;
+    if (selectedBizId !== 'all') {
+        vacations = allVacations.filter(function(v) {
+            var empId = v.employee_id || (v.employee && v.employee.id);
+            var emp = allEmployees.find(function(e) { return e.id === empId; });
+            return emp && (emp.businessId || emp.business_id) === selectedBizId;
+        });
+    }
+
+    var todayStr = new Date().toISOString().split('T')[0];
+
+    /* ---- 직원 카드 ---- */
     var activeEmps = employees.filter(function(e) { return e.status === 'active'; });
     document.getElementById('totalEmployees').textContent = activeEmps.length + '명';
-
     var thisMonth = todayStr.substring(0,7);
     var newThisMonth = employees.filter(function(e) {
         return e.hireDate && e.hireDate.substring(0,7) === thisMonth;
@@ -304,14 +343,16 @@ async function loadDashboardData() {
         changeEl.className = 'stat-change positive';
     } else {
         changeEl.textContent = '현재 ' + activeEmps.length + ' / ' + employees.length + '명 재직';
+        changeEl.className = 'stat-change';
     }
 
+    /* ---- 급여 카드 ---- */
     var totalWage = 0;
     activeEmps.forEach(function(e) { totalWage += (e.monthlyWage || e.baseSalary || 0); });
     document.getElementById('totalSalary').textContent = '₩' + totalWage.toLocaleString('ko-KR');
     document.getElementById('salaryInfo').textContent = '현재 ' + activeEmps.length + '명 급여';
 
-    var attendances = (attRes && attRes.success) ? (attRes.data.attendances || []) : [];
+    /* ---- 출근 카드 ---- */
     var todayCheckins = attendances.length;
     document.getElementById('todayAttendance').textContent = todayCheckins + '명';
     var attInfo = document.getElementById('attendanceInfo');
@@ -321,35 +362,37 @@ async function loadDashboardData() {
         attInfo.className = rate >= 80 ? 'stat-change positive' : 'stat-change negative';
     } else {
         attInfo.textContent = '아직 등록된 직원이 없습니다';
+        attInfo.className = 'stat-change';
     }
 
-    var contracts = (conRes && conRes.success) ? (conRes.data || []) : [];
-    var conStats = (conRes && conRes.success) ? (conRes.stats || {}) : {};
-    var completed = conStats.completed || conStats.signed || 0;
-    var pending = (conStats.sent || 0) + (conStats.viewed || 0);
-    document.getElementById('contractSummary').textContent = (conStats.total || 0) + '건';
+    /* ---- 계약 카드 (사업장 필터 미적용 - 계약은 전사 기준) ---- */
+    var completed = allConStats.completed || allConStats.signed || 0;
+    var pending = (allConStats.sent || 0) + (allConStats.viewed || 0);
+    document.getElementById('contractSummary').textContent = (allConStats.total || 0) + '건';
     var conInfo = document.getElementById('contractInfo');
     var parts = [];
     if (completed > 0) parts.push('완료 ' + completed);
     if (pending > 0) parts.push('진행 ' + pending);
     conInfo.textContent = parts.length > 0 ? parts.join('건, ') + '건' : '계약 내역이 없습니다';
     if (pending > 0) conInfo.className = 'stat-change negative';
+    else conInfo.className = 'stat-change';
 
-    var vacations = (vacRes && vacRes.success) ? (vacRes.vacations || []) : [];
+    /* ---- 계약 요약 패널 ---- */
     var summaryHtml = '';
     summaryHtml += '<div class="summary-row"><span class="summary-label">전체 직원</span><span class="summary-value">' + activeEmps.length + '명</span></div>';
     summaryHtml += '<div class="summary-row"><span class="summary-label">이번 달 휴가</span><span class="summary-value ' + (vacations.length > 0 ? 'warn' : '') + '">' + vacations.length + '건</span></div>';
-    summaryHtml += '<div class="summary-row"><span class="summary-label">전체 계약</span><span class="summary-value">' + (conStats.total || 0) + '건</span></div>';
+    summaryHtml += '<div class="summary-row"><span class="summary-label">전체 계약</span><span class="summary-value">' + (allConStats.total || 0) + '건</span></div>';
     summaryHtml += '<div class="summary-row"><span class="summary-label">완료 계약</span><span class="summary-value ok">' + completed + '건</span></div>';
     summaryHtml += '<div class="summary-row"><span class="summary-label">진행 계약</span><span class="summary-value ' + (pending > 0 ? 'warn' : '') + '">' + pending + '건</span></div>';
     summaryHtml += '<div class="summary-row"><span class="summary-label">이번달 급여 예정</span><span class="summary-value">₩' + totalWage.toLocaleString('ko-KR') + '</span></div>';
     document.getElementById('summaryContent').innerHTML = summaryHtml;
 
+    /* ---- 최근 활동 ---- */
     var activities = [];
     attendances.forEach(function(a) {
         activities.push({ icon: '⏰', cls: 'att', text: (a.employee ? a.employee.name : '직원') + ' 출근 기록', sub: a.checkInTime ? new Date(a.checkInTime).toLocaleString('ko-KR', {hour:'2-digit',minute:'2-digit'}) : '', time: new Date(a.checkInTime) || new Date() });
     });
-    contracts.slice(0, 5).forEach(function(c) {
+    allContracts.slice(0, 5).forEach(function(c) {
         var statusMap = { completed:'계약 완료', signed:'계약 완료', sent:'발송 대기', viewed:'열람', draft:'초안' };
         var empName = c.employees ? c.employees.name : '직원';
         activities.push({ icon: '📜', cls: 'con', text: empName + '의 계약 ' + (statusMap[c.status] || c.status), sub: c.contract_type === 'standard_labor' ? '표준 근로 계약' : (c.contract_type || ''), time: new Date(c.created_at) });
@@ -374,6 +417,14 @@ async function loadDashboardData() {
     document.getElementById('dashboardContent').style.display = 'block';
 }
 
+async function apiFetch(url) {
+    try {
+        var r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' } });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return await r.json();
+    } catch (e) { console.error('API 에러 (' + url + '):', e); return null; }
+}
+
 function formatTimeAgo(date) {
     var now = new Date();
     var diff = Math.floor((now - date) / 1000);
@@ -388,7 +439,7 @@ function handleLogout() {
     if (confirm('로그아웃 하시겠습니까?')) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userInfo');
-        localStorage.removeItem('sm_selected_business'); /* 사업장 선택값도 초기화 */
+        try { localStorage.removeItem('sm_selected_business'); } catch(e) {}
         sessionStorage.clear();
         window.location.href = '/login.html';
     }
