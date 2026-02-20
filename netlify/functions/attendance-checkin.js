@@ -62,19 +62,31 @@ exports.handler = async (event) => {
     const checkTime = timestamp ? new Date(timestamp) : new Date();
     if (isNaN(checkTime)) return err400('timestamp 형식 오류');
 
-    // ── 1) QR 토큰 → 회사 조회 ───────────────────────────────
-    // attendance_tokens 테이블 또는 companies 테이블의 qr_token 컬럼 확인
+    // ── 1) QR 토큰 → companyId 파싱 ─────────────────────────
+    // 토큰 형식: ATT_{companyId}_{timestamp}
+    // DB 조회 없이 직접 파싱 (settings.html이 클라이언트에서 생성하는 구조)
+    if (!token.startsWith('ATT_')) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드입니다.' }) };
+    }
+    // ATT_ 제거 후 첫 번째 UUID (companyId) 추출
+    // 형식: ATT_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx_1234567890
+    const tokenBody = token.slice(4); // "ATT_" 제거
+    // UUID는 36자 (8-4-4-4-12)
+    const companyId = tokenBody.slice(0, 36);
+    if (!companyId || companyId.length !== 36) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드 형식입니다.' }) };
+    }
+
+    // companyId 실존 여부 확인
     const { data: company, error: compErr } = await supabase
       .from('companies')
       .select('id, company_name')
-      .eq('qr_token', token)
-      .eq('status', 'active')
+      .eq('id', companyId)
       .single();
 
     if (compErr || !company) {
-      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드입니다.' }) };
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '등록되지 않은 회사입니다.' }) };
     }
-    const companyId = company.id;
 
     // ── 2) 전화번호 → 직원 조회 ──────────────────────────────
     const phone = normalizePhone(phoneNumber);
