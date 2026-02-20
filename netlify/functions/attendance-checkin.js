@@ -1,6 +1,23 @@
 // netlify/functions/attendance-checkin.js
 // M4: 출퇴근 체크인 핵심 API
+//
 // POST /.netlify/functions/attendance-checkin
+// Body: {
+//   token: "ATT_xxx",           // QR 코드 토큰 (회사 식별)
+//   phoneNumber: "010-1234-5678", // 직원 식별
+//   type: "check-in" | "check-out",
+//   timestamp: ISO8601,
+//   location: { latitude, longitude } | null  // GPS (항상 수집)
+// }
+//
+// 처리 순서:
+//  1) 토큰 → companyId 조회
+//  2) 전화번호 → 직원 조회
+//  3) 직원의 businessId → businesses WiFi 설정 조회
+//  4) 서버가 X-Forwarded-For 에서 client_ip 추출 (위조 불가)
+//  5) wifi_enabled = true → 등록 IP vs client_ip 비교
+//  6) 불일치 → businesses.wifi_ip_mismatch_detected 업데이트
+//  7) attendances INSERT (check_method, client_ip, wifi_matched 포함)
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -10,16 +27,18 @@ const supabase = createClient(
 );
 
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': '*', // QR 체크인은 외부 기기에서 접속 가능하도록 허용
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
 };
 
+// ── 전화번호 정규화: "010-1234-5678" → "01012345678" ────────────
 function normalizePhone(phone) {
   return (phone || '').replace(/[^0-9]/g, '');
 }
 
+// ── X-Forwarded-For 에서 실제 클라이언트 IP 추출 ──────────────
 function extractClientIp(headers) {
   const fwd = headers['x-forwarded-for'] || headers['X-Forwarded-For'] || '';
   return fwd.split(',')[0].trim() || 'unknown';
@@ -35,6 +54,7 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const { token, phoneNumber, type, timestamp, location } = body;
 
+    // ── 입력값 검증 ───────────────────────────────────────────
     if (!token)       return err400('token 필수');
     if (!phoneNumber) return err400('phoneNumber 필수');
     if (!type || !['check-in', 'check-out'].includes(type)) return err400('type은 check-in 또는 check-out');
@@ -42,7 +62,8 @@ exports.handler = async (event) => {
     const checkTime = timestamp ? new Date(timestamp) : new Date();
     if (isNaN(checkTime)) return err400('timestamp 형식 오류');
 
-    // 1) QR 토큰 → 회사 조회
+    // ── 1) QR 토큰 → 회사 조회 ───────────────────────────────
+    // attendance_tokens 테이블 또는 companies 테이블의 qr_token 컬럼 확인
     const { data: company, error: compErr } = await supabase
       .from('companies')
       .select('id, company_name')
@@ -55,7 +76,7 @@ exports.handler = async (event) => {
     }
     const companyId = company.id;
 
-    // 2) 전화번호 → 직원 조회
+    // ── 2) 전화번호 → 직원 조회 ──────────────────────────────
     const phone = normalizePhone(phoneNumber);
     const { data: employee, error: empErr } = await supabase
       .from('employees')
@@ -71,36 +92,37 @@ exports.handler = async (event) => {
       return { statusCode: 403, headers: CORS, body: JSON.stringify({ success: false, error: '재직 중인 직원만 체크인할 수 있습니다.' }) };
     }
 
-    // 3) 사업장 WiFi 설정 조회
+    // ── 3) 사업장 WiFi 설정 조회 ─────────────────────────────
     let bizSettings = null;
     if (employee.business_id) {
       const { data: biz } = await supabase
         .from('businesses')
-        .select('id, checkin_method, wifi_enabled, wifi_registered_ip, wifi_ip_mismatch_detected')
+        .select('id, checkin_method, wifi_enabled, wifi_registered_ip')
         .eq('id', employee.business_id)
         .single();
       bizSettings = biz;
     }
 
-    // 4) 서버에서 클라이언트 IP 추출 (위조 불가)
+    // ── 4) 서버에서 클라이언트 IP 추출 (위조 불가) ────────────
     const clientIp = extractClientIp(event.headers);
 
-    // 5) WiFi IP 매칭
-    let wifiMatched = null;
+    // ── 5) WiFi IP 매칭 ───────────────────────────────────────
+    let wifiMatched = null; // null = WiFi 인증 미사용
     const wifiEnabled = bizSettings?.wifi_enabled === true;
     const registeredIp = bizSettings?.wifi_registered_ip || null;
 
     if (wifiEnabled && registeredIp) {
       wifiMatched = (clientIp === registeredIp);
 
-      // 6) IP 불일치 → 사업장 알림 플래그 저장
+      // ── 6) IP 불일치 → 사업장에 알림 플래그 저장 ────────────
       if (!wifiMatched) {
+        // 이미 같은 IP로 감지된 경우는 중복 업데이트 방지
         const alreadyFlagged = bizSettings?.wifi_ip_mismatch_detected === clientIp;
         if (!alreadyFlagged) {
           await supabase
             .from('businesses')
             .update({
-              wifi_ip_mismatch_detected: clientIp,
+              wifi_ip_mismatch_detected: clientIp,   // 감지된 새 IP
               wifi_ip_mismatch_at: new Date().toISOString(),
             })
             .eq('id', employee.business_id);
@@ -108,11 +130,12 @@ exports.handler = async (event) => {
       }
     }
 
-    // 7) 출퇴근 기록 저장
-    const today = checkTime.toISOString().slice(0, 10);
+    // ── 7) 출퇴근 기록 저장 ──────────────────────────────────
+    const today = checkTime.toISOString().slice(0, 10); // YYYY-MM-DD
     const checkinMethod = bizSettings?.checkin_method || 'qr';
 
     if (type === 'check-in') {
+      // 오늘 이미 출근 기록이 있는지 확인
       const { data: existing } = await supabase
         .from('attendances')
         .select('id, check_in_time')
@@ -133,17 +156,19 @@ exports.handler = async (event) => {
         };
       }
 
+      // 출근 기록 INSERT
       const { data: att, error: attErr } = await supabase
         .from('attendances')
         .insert({
-          employee_id:            employee.id,
-          company_id:             companyId,
-          check_in_time:          checkTime.toISOString(),
-          status:                 'in_progress',
-          check_method:           checkinMethod,
-          client_ip:              clientIp,
-          wifi_matched:           wifiMatched,
-          registered_ip_snapshot: registeredIp,
+          employee_id:              employee.id,
+          company_id:               companyId,
+          check_in_time:            checkTime.toISOString(),
+          status:                   'in_progress',
+          check_method:             checkinMethod,
+          client_ip:                clientIp,
+          wifi_matched:             wifiMatched,
+          registered_ip_snapshot:   registeredIp,
+          // GPS 위치 (항상 기록 — 법적 분쟁 대비)
           ...(location?.latitude ? {
             check_in_latitude:  location.latitude,
             check_in_longitude: location.longitude,
@@ -162,14 +187,16 @@ exports.handler = async (event) => {
           type: 'check-in',
           employeeName: employee.name,
           checkinTime: att.check_in_time,
-          wifiMatched,
+          wifiMatched,           // null=미사용, true=일치, false=불일치
           checkinMethod,
           message: `${employee.name}님 출근이 기록되었습니다.`,
         }),
       };
 
     } else {
-      const { data: existing } = await supabase
+      // ── 퇴근 처리 ───────────────────────────────────────────
+      // 오늘 출근 기록 조회
+      const { data: existing, error: findErr } = await supabase
         .from('attendances')
         .select('id, check_in_time')
         .eq('employee_id', employee.id)
@@ -184,9 +211,10 @@ exports.handler = async (event) => {
           statusCode: 404,
           headers: CORS,
           body: JSON.stringify({ success: false, error: '오늘 출근 기록을 찾을 수 없습니다.' }),
-        });
+        };
       }
 
+      // 근무 시간 계산
       const checkIn  = new Date(existing.check_in_time);
       const checkOut = checkTime;
       const workMinutes = Math.max(0, (checkOut - checkIn) / 60000);
@@ -198,6 +226,7 @@ exports.handler = async (event) => {
           check_out_time: checkOut.toISOString(),
           work_hours:     workHours,
           status:         'completed',
+          // 퇴근 시 WiFi/IP 도 기록 (client_ip는 출근 때 이미 저장됨)
           ...(location?.latitude ? {
             check_out_latitude:  location.latitude,
             check_out_longitude: location.longitude,
@@ -231,6 +260,7 @@ exports.handler = async (event) => {
   }
 };
 
+// ── 헬퍼 ─────────────────────────────────────────────────────
 function err400(msg) {
   return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: msg }) };
 }
