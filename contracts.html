@@ -438,6 +438,19 @@
             loadContracts();
         }
 
+
+        // 계약 유형 한글 변환
+        function contractTypeLabel(t) {
+            var map = {
+                'standard_labor': '근로계약서',
+                'part_time':      '단시간 근로계약서',
+                'fixed_term':     '기간제 근로계약서',
+                'freelance':      '프리랜서 계약서',
+                'dispatch':       '파견근로계약서'
+            };
+            return map[t] || t;
+        }
+
         function renderContracts() {
             var tableEl = document.getElementById('contractsTable');
             var emptyEl = document.getElementById('emptyState');
@@ -455,7 +468,7 @@
 
                 return '<tr data-name="' + empName + '">' +
                     '<td><div class="employee-info"><div class="employee-avatar">' + initial + '</div><div><div style="font-weight:600;">' + empName + '</div><div style="font-size:12px;color:#999;">' + empPos + ' ' + empDept + '</div></div></div></td>' +
-                    '<td>' + c.contract_type + '</td>' +
+                    '<td>' + contractTypeLabel(c.contract_type) + '</td>' +
                     '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.title + '</td>' +
                     '<td><span class="status-badge status-' + c.status + '">' + statusLabel + '</span></td>' +
                     '<td>' + createdDate + '</td>' +
@@ -570,7 +583,7 @@
                     var empPosition = empInfo.position ? ' (' + empInfo.position + ')' : '';
 
                     var html = '<div class="detail-row"><div class="detail-label">제목</div><div class="detail-value">' + c.title + '</div></div>' +
-                        '<div class="detail-row"><div class="detail-label">유형</div><div class="detail-value">' + c.contract_type + '</div></div>' +
+                        '<div class="detail-row"><div class="detail-label">유형</div><div class="detail-value">' + contractTypeLabel(c.contract_type) + '</div></div>' +
                         '<div class="detail-row"><div class="detail-label">직원</div><div class="detail-value">' + empName + empPosition + '</div></div>' +
                         '<div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value">' + empEmail + '</div></div>' +
                         '<div class="detail-row"><div class="detail-label">전화번호</div><div class="detail-value">' + empPhone + '</div></div>' +

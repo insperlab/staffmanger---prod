@@ -1,484 +1,449 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <link rel="icon" href="/favicon.ico">
-  <title>Staff Manager</title>
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
-  <!-- IonIcons -->
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  <!-- Theme style -->
-  <link rel="stylesheet" href="/dist/css/adminlte.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리 - StaffManager</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Noto Sans KR',sans-serif;background:#f5f7fa;min-height:100vh}
+        .navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+        .navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;color:#667eea;text-decoration:none}
+        .navbar-menu{display:flex;gap:30px;align-items:center}
+        .navbar-menu a{text-decoration:none;color:#666;font-weight:500;transition:color .3s}
+        .navbar-menu a:hover,.navbar-menu a.active{color:#667eea;font-weight:600}
+        .user-menu{display:flex;align-items:center;gap:15px}
+        .user-info{text-align:right}
+        .user-name{font-weight:600;color:#333;font-size:14px}
+        .company-name{font-size:12px;color:#999}
+        .logout-btn{padding:8px 20px;background:#f5f7fa;border:none;border-radius:6px;color:#666;cursor:pointer;font-weight:600;transition:all .3s}
+        .logout-btn:hover{background:#667eea;color:#fff}
+        .container{max-width:1400px;margin:0 auto;padding:40px 30px}
+        .page-header{margin-bottom:20px}
+        .page-title{font-size:32px;color:#333;margin-bottom:8px}
+        .page-subtitle{color:#999;font-size:16px}
+        .biz-filter-bar{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:30px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        .biz-filter-label{font-size:14px;font-weight:600;color:#555;white-space:nowrap}
+        .biz-filter-select{padding:9px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;cursor:pointer;background:#fff;min-width:180px;color:#333}
+        .biz-filter-select:focus{outline:none;border-color:#667eea}
+        .biz-filter-badge{font-size:12px;color:#667eea;background:#f0f0ff;padding:4px 10px;border-radius:10px;font-weight:500}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:25px;margin-bottom:40px}
+        .stat-card{background:#fff;border-radius:12px;padding:25px;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:transform .3s,box-shadow .3s;cursor:pointer;text-decoration:none;color:inherit;display:block}
+        .stat-card:hover{transform:translateY(-4px);box-shadow:0 8px 16px rgba(0,0,0,.12)}
+        .stat-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+        .stat-icon{width:50px;height:50px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px}
+        .stat-icon.blue{background:#e3f2fd}.stat-icon.green{background:#e8f5e9}.stat-icon.orange{background:#fff3e0}.stat-icon.purple{background:#f3e5f5}
+        .stat-label{font-size:14px;color:#999;margin-bottom:8px}
+        .stat-value{font-size:36px;font-weight:700;color:#333}
+        .stat-change{font-size:13px;margin-top:10px;color:#999}
+        .stat-change.positive{color:#27ae60}
+        .stat-change.negative{color:#e74c3c}
+        .quick-actions{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:40px}
+        .section-title{font-size:20px;font-weight:600;color:#333;margin-bottom:20px}
+        .action-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px}
+        .action-btn{padding:16px 24px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:10px;justify-content:center;text-decoration:none}
+        .action-btn:hover{transform:translateY(-2px);box-shadow:0 8px 16px rgba(102,126,234,.3)}
+        .action-btn.secondary{background:#fff;color:#667eea;border:2px solid #667eea}
+        .action-btn.secondary:hover{background:#f5f7fa}
+        .bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px}
+        .recent-activity,.contract-summary{background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+        .activity-list{list-style:none}
+        .activity-item{padding:14px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center}
+        .activity-item:last-child{border-bottom:none}
+        .activity-content{display:flex;align-items:center;gap:12px}
+        .activity-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+        .activity-icon.att{background:#e3f2fd}.activity-icon.vac{background:#e8f5e9}.activity-icon.con{background:#f3e5f5}.activity-icon.emp{background:#fff3e0}
+        .activity-text{color:#333;font-size:14px}
+        .activity-sub{color:#999;font-size:12px;margin-top:2px}
+        .activity-time{color:#bbb;font-size:12px;white-space:nowrap;margin-left:10px}
+        .summary-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f0f0f0}
+        .summary-row:last-child{border-bottom:none}
+        .summary-label{color:#666;font-size:14px}
+        .summary-value{font-weight:700;font-size:16px;color:#333}
+        .summary-value.warn{color:#e67e22}
+        .summary-value.ok{color:#27ae60}
+        .loading{text-align:center;padding:60px 20px}
+        .spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 20px}
+        @keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}
+        .empty-state{text-align:center;padding:40px 20px;color:#999}
+        @media(max-width:768px){
+            .container{padding:20px 15px}
+            .bottom-grid{grid-template-columns:1fr}
+            .navbar-menu{display:none}
+            .biz-filter-bar{flex-direction:column;align-items:flex-start}
+            .biz-filter-select{width:100%}
+        }
+    </style>
 </head>
-
-<body class="hold-transition sidebar-mini">
-  <div class="wrapper" id="app">
-    <!-- Navbar -->
-    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-      <!-- Left navbar links -->
-      <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-        </li>
-      </ul>
-
-      <!-- Right navbar links -->
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item dropdown">
-          <a class="nav-link" data-toggle="dropdown" href="#">
-            <i class="fas fa-th-large"></i>
-          </a>
-          <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-            <span class="dropdown-item dropdown-header">Quick Menu</span>
-            <div class="dropdown-divider"></div>
-            <a href="/mypage.html" class="dropdown-item">
-              <i class="fas fa-user-circle mr-2"></i> 내 정보
-            </a>
-            <a href="/logout" class="dropdown-item">
-              <i class="fas fa-sign-out-alt mr-2"></i> 로그아웃
-            </a>
-          </div>
-        </li>
-      </ul>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard.html" class="navbar-brand"><span>👋</span><span>StaffManager</span></a>
+        <div class="navbar-menu">
+            <a href="/dashboard.html" class="active">관리</a>
+            <a href="/employees.html">직원 관리</a>
+            <a href="/attendances.html">출퇴근 관리</a>
+            <a href="/calendar.html">휴가 관리</a>
+            <a href="/salary.html">급여 관리</a>
+            <a href="/contracts.html">계약 관리</a>
+            <a href="/settings.html">설정</a>
+        </div>
+        <div class="user-menu">
+            <div class="user-info">
+                <div class="user-name" id="userName">관리</div>
+                <div class="company-name" id="companyName">인스퍼랩</div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+        </div>
     </nav>
-    <!-- /.navbar -->
 
-    <!-- Main Sidebar Container -->
-    <aside class="main-sidebar sidebar-dark-primary elevation-4">
-      <!-- Brand Logo -->
-      <a href="/dashboard.html" class="brand-link">
-        <img src="/dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3"
-          style="opacity: .8">
-        <span class="brand-text font-weight-light">Staff Manager</span>
-      </a>
-
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <!-- Sidebar user panel (optional) -->
-        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-          <div class="image">
-            <img src="/dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
-          </div>
-          <div class="info">
-            <a href="/mypage.html" class="d-block" id="user-name"></a>
-          </div>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title" id="greeting">관리</h1>
+            <p class="page-subtitle" id="dateInfo">로딩중...</p>
         </div>
 
-        <!-- Sidebar Menu -->
-        <nav class="mt-2">
-          <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-            <li class="nav-item">
-              <a href="/dashboard.html" class="nav-link active">
-                <i class="nav-icon fas fa-tachometer-alt"></i>
-                <p>대시보드</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-table"></i>
-                <p>
-                  계약 관리
-                  <i class="fas fa-angle-left right"></i>
-                </p>
-              </a>
-              <ul class="nav nav-treeview">
-                <li class="nav-item">
-                  <a href="/contracts.html" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>계약 목록</p>
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a href="/contracts-new.html" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>신규 계약 등록</p>
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <li class="nav-item">
-              <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-users"></i>
-                <p>
-                  직원 관리
-                  <i class="fas fa-angle-left right"></i>
-                </p>
-              </a>
-              <ul class="nav nav-treeview">
-                <li class="nav-item">
-                  <a href="/staffs.html" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>직원 목록</p>
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a href="/staffs-new.html" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>신규 직원 등록</p>
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <li class="nav-item">
-              <a href="/calendar.html" class="nav-link">
-                <i class="nav-icon far fa-calendar-alt"></i>
-                <p>
-                  캘린더
-                </p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-chart-pie"></i>
-                <p>
-                  통계
-                  <i class="fas fa-angle-left right"></i>
-                </p>
-              </a>
-              <ul class="nav nav-treeview">
-                <li class="nav-item">
-                  <a href="/statistics-contracts.html" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>계약 통계</p>
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <li class="nav-item">
-              <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-cogs"></i>
-                <p>
-                  설정
-                  <i class="fas fa-angle-left right"></i>
-                </p>
-              </a>
-              <ul class="nav nav-treeview">
-                <li class="nav-item">
-                  <a href="/settings-codes.html" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>공통 코드 관리</p>
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a href="/settings-users.html" class="nav-link">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>사용자 관리</p>
-                  </a>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </nav>
-        <!-- /.sidebar-menu -->
-      </div>
-      <!-- /.sidebar -->
-    </aside>
-
-    <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper">
-      <!-- Content Header (Page header) -->
-      <div class="content-header">
-        <div class="container-fluid">
-          <div class="row mb-2">
-            <div class="col-sm-6">
-              <h1 class="m-0">대시보드</h1>
-            </div><!-- /.col -->
-            <div class="col-sm-6">
-              <ol class="breadcrumb float-sm-right">
-                <li class="breadcrumb-item"><a href="/dashboard.html">Home</a></li>
-                <li class="breadcrumb-item active">대시보드</li>
-              </ol>
-            </div><!-- /.col -->
-          </div><!-- /.row -->
-        </div><!-- /.container-fluid -->
-      </div>
-      <!-- /.content-header -->
-
-      <!-- Main content -->
-      <div class="content">
-        <div class="container-fluid">
-          <div class="row">
-            <div class="col-lg-3 col-6">
-              <!-- small box -->
-              <div class="small-box bg-info">
-                <div class="inner">
-                  <h3 id="contract-count">0</h3>
-                  <p>전체 계약 수</p>
-                </div>
-                <div class="icon">
-                  <i class="ion ion-bag"></i>
-                </div>
-                <a href="/contracts.html" class="small-box-footer">자세히 보기 <i
-                    class="fas fa-arrow-circle-right"></i></a>
-              </div>
-            </div>
-            <!-- ./col -->
-            <div class="col-lg-3 col-6">
-              <!-- small box -->
-              <div class="small-box bg-success">
-                <div class="inner">
-                  <h3 id="staff-count">0</h3>
-                  <p>전체 직원 수</p>
-                </div>
-                <div class="icon">
-                  <i class="ion ion-person-add"></i>
-                </div>
-                <a href="/staffs.html" class="small-box-footer">자세히 보기 <i
-                    class="fas fa-arrow-circle-right"></i></a>
-              </div>
-            </div>
-            <!-- ./col -->
-            <div class="col-lg-3 col-6">
-              <!-- small box -->
-              <div class="small-box bg-warning">
-                <div class="inner">
-                  <h3 id="upcoming-contract-count">0</h3>
-                  <p>만료 예정 계약</p>
-                </div>
-                <div class="icon">
-                  <i class="ion ion-calendar"></i>
-                </div>
-                <a href="/contracts.html?status=upcoming" class="small-box-footer">자세히 보기 <i
-                    class="fas fa-arrow-circle-right"></i></a>
-              </div>
-            </div>
-            <!-- ./col -->
-            <div class="col-lg-3 col-6">
-              <!-- small box -->
-              <div class="small-box bg-danger">
-                <div class="inner">
-                  <h3 id="expired-contract-count">0</h3>
-                  <p>만료된 계약</p>
-                </div>
-                <div class="icon">
-                  <i class="ion ion-pie-graph"></i>
-                </div>
-                <a href="/contracts.html?status=expired" class="small-box-footer">자세히 보기 <i
-                    class="fas fa-arrow-circle-right"></i></a>
-              </div>
-            </div>
-            <!-- ./col -->
-          </div>
-          <!-- /.row -->
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="card">
-                <div class="card-header">
-                  <h3 class="card-title">계약 현황</h3>
-                  <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                      <i class="fas fa-minus"></i>
-                    </button>
-                    <button type="button" class="btn btn-tool" data-card-widget="remove">
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="card-body">
-                  <div class="chart">
-                    <canvas id="contractsStatusChart"
-                      style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
-                  </div>
-                </div>
-                <!-- /.card-body -->
-              </div>
-              <!-- /.card -->
-            </div>
-            <!-- /.col -->
-
-            <div class="col-md-6">
-              <div class="card">
-                <div class="card-header">
-                  <h3 class="card-title">최근 활동</h3>
-                  <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                      <i class="fas fa-minus"></i>
-                    </button>
-                    <button type="button" class="btn btn-tool" data-card-widget="remove">
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </div>
-                </div>
-                <!-- /.card-header -->
-                <div class="card-body p-0">
-                  <ul class="products-list product-list-in-card pl-2 pr-2" id="recent-activities">
-                    <!-- Activities will be loaded here -->
-                  </ul>
-                </div>
-                <!-- /.card-body -->
-                <div class="card-footer text-center">
-                  <a href="/contracts.html" class="uppercase">모든 활동 보기</a>
-                </div>
-                <!-- /.card-footer -->
-              </div>
-              <!-- /.card -->
-            </div>
-            <!-- /.col -->
-          </div>
-          <!-- /.row -->
+        <!-- 사업장 필터 바 -->
+        <div class="biz-filter-bar">
+            <span class="biz-filter-label">📍 사업장</span>
+            <select class="biz-filter-select" id="bizFilterSelect" onchange="onBizFilterChange()">
+                <option value="all">전체 사업장</option>
+            </select>
+            <span class="biz-filter-badge" id="bizFilterBadge" style="display:none"></span>
         </div>
-        <!-- /.container-fluid -->
-      </div>
-      <!-- /.content -->
+
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p style="color:#999">데이터를 불러오는 중입니다...</p>
+        </div>
+
+        <div id="dashboardContent" style="display:none">
+            <div class="stats-grid">
+                <a class="stat-card" href="/employees.html">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">전체 직원</div>
+                            <div class="stat-value" id="totalEmployees">-</div>
+                            <div class="stat-change" id="employeeChange"></div>
+                        </div>
+                        <div class="stat-icon blue">🧑‍🤝‍🧑</div>
+                    </div>
+                </a>
+                <a class="stat-card" href="/salary.html">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">이번 달 급여 예정액</div>
+                            <div class="stat-value" id="totalSalary">-</div>
+                            <div class="stat-change" id="salaryInfo"></div>
+                        </div>
+                        <div class="stat-icon green">💰</div>
+                    </div>
+                </a>
+                <a class="stat-card" href="/attendances.html">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">오늘 출근</div>
+                            <div class="stat-value" id="todayAttendance">-</div>
+                            <div class="stat-change" id="attendanceInfo"></div>
+                        </div>
+                        <div class="stat-icon orange">🕒</div>
+                    </div>
+                </a>
+                <a class="stat-card" href="/contracts.html">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">전체 계약 건</div>
+                            <div class="stat-value" id="contractSummary">-</div>
+                            <div class="stat-change" id="contractInfo"></div>
+                        </div>
+                        <div class="stat-icon purple">📜</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="quick-actions">
+                <h2 class="section-title">빠른 실행</h2>
+                <div class="action-buttons">
+                    <a class="action-btn" href="/employee-new.html"><span>➕</span><span>직원 등록</span></a>
+                    <a class="action-btn secondary" href="/attendances.html"><span>⏰</span><span>출근 기록</span></a>
+                    <a class="action-btn secondary" href="/contracts.html"><span>📜</span><span>계약 작성</span></a>
+                    <a class="action-btn secondary" href="/calendar.html"><span>🗓️</span><span>휴가 관리</span></a>
+                    <a class="action-btn secondary" href="/salary.html"><span>💰</span><span>급여 정산</span></a>
+                    <a class="action-btn secondary" href="/company-settings.html"><span>⚙️</span><span>회사 설정</span></a>
+                </div>
+            </div>
+
+            <div class="bottom-grid">
+                <div class="recent-activity">
+                    <h2 class="section-title">최근 활동</h2>
+                    <ul class="activity-list" id="activityList">
+                        <li class="empty-state">최근 활동 내역이 없습니다.</li>
+                    </ul>
+                </div>
+                <div class="contract-summary">
+                    <h2 class="section-title">계약 요약</h2>
+                    <div id="summaryContent">
+                        <div class="empty-state">계약 요약 데이터가 없습니다.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <!-- /.content-wrapper -->
 
-    <!-- Control Sidebar -->
-    <aside class="control-sidebar control-sidebar-dark">
-      <!-- Control sidebar content goes here -->
-    </aside>
-    <!-- /.control-sidebar -->
+<!-- ✅ [핵심수정] businesses-filter.js (s 추가) - 이전에 business-filter.js로 잘못 작성되어 BusinessFilter 객체 로드 실패 -->
+<script src="/businesses-filter.js"></script>
+<script>
+var authToken = null, userInfo = null;
+var selectedBizId = 'all';
+var businessList = [];
 
-    <!-- Main Footer -->
-    <footer class="main-footer">
-      <strong>Copyright &copy; 2014-2021 <a href="https://adminlte.io">AdminLTE.io</a>.</strong>
-      All rights reserved.
-      <div class="float-right d-none d-sm-inline-block">
-        <b>Version</b> 3.2.0
-      </div>
-    </footer>
-  </div>
-  <!-- ./wrapper -->
+/* ✅ 전체 데이터를 한 번만 로드해서 저장 (employees.html과 동일한 방식) */
+var allEmployees = [];
+var allAttendances = [];
+var allVacations = [];
+var allContracts = [];
+var allConStats = {};
 
-  <!-- REQUIRED SCRIPTS -->
-  <!-- jQuery -->
-  <script src="/plugins/jquery/jquery.min.js"></script>
-  <!-- Bootstrap -->
-  <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <!-- AdminLTE -->
-  <script src="/dist/js/adminlte.js"></script>
-  <!-- ChartJS -->
-  <script src="/plugins/chart.js/Chart.min.js"></script>
+window.addEventListener('DOMContentLoaded', async function() {
+    authToken = localStorage.getItem('authToken');
+    var userInfoStr = localStorage.getItem('userInfo');
+    if (!authToken || !userInfoStr) { window.location.href = '/login.html'; return; }
+    try { userInfo = JSON.parse(userInfoStr); } catch (e) { window.location.href = '/login.html'; return; }
 
-  <script>
-    $(document).ready(function () {
-      function getToken() {
-        return localStorage.getItem(\'jwtToken\');
-      }
+    document.getElementById('userName').textContent = userInfo.name || '관리';
+    document.getElementById('companyName').textContent = userInfo.companyName || '';
 
-      function fetchDashboardData() {
-        $.ajax({
-          url: \'/api/dashboard\',\
-          method: \'GET\',\
-          headers: {\
-            \'Authorization\': \'Bearer \' + getToken()\
-          },\
-          success: function (data) {\
-            $(\'#contract-count\').text(data.contractCount);\
-            $(\'#staff-count\').text(data.staffCount);\
-            $(\'#upcoming-contract-count\').text(data.upcomingContractCount);\
-            $(\'#expired-contract-count\').text(data.expiredContractCount);\
+    var today = new Date();
+    var days = ['일','월','화','수','목','금','토'];
+    document.getElementById('greeting').textContent = '안녕하세요, ' + (userInfo.name || '관리') + '!';
+    document.getElementById('dateInfo').textContent = today.getFullYear() + '년 ' + (today.getMonth()+1) + '월 ' + today.getDate() + '일 (' + days[today.getDay()] + ')';
 
-            renderContractsStatusChart(data.contractStatusCounts);\
-            renderRecentActivities(data.recentActivities);\
-          },\
-          error: function (xhr, status, error) {\
-            if (xhr.status === 401) {\
-              window.location.href = \'/login.html\';\
-            } else {\
-              console.error(\'Failed to fetch dashboard data:\', error);\
-            }\
-          }\
+    await loadBusinesses();
+    await loadAllData();      /* ✅ 전체 데이터 한 번만 로드 */
+    renderDashboard();        /* ✅ 렌더링 분리 */
+});
+
+/* 사업장 목록 로드 */
+async function loadBusinesses() {
+    try {
+        var r = await fetch('/.netlify/functions/businesses-list', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
         });
-      }
+        var res = await r.json();
+        if (res.success && res.businesses && res.businesses.length > 0) {
+            businessList = res.businesses;
+            var sel = document.getElementById('bizFilterSelect');
+            businessList.forEach(function(b) {
+                var opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
+                sel.appendChild(opt);
+            });
+            /* localStorage에서 이전 선택값 복원 */
+            try {
+                var saved = BusinessFilter.getSelected();
+                if (saved && saved !== 'all') {
+                    sel.value = saved;
+                    selectedBizId = saved;
+                    var biz = businessList.find(function(b) { return b.id === saved; });
+                    if (biz) {
+                        var badge = document.getElementById('bizFilterBadge');
+                        badge.textContent = biz.name;
+                        badge.style.display = 'inline-block';
+                    }
+                }
+            } catch(e) { /* BusinessFilter 없어도 계속 동작 */ }
+        }
+    } catch (e) { console.error('사업장 목록 오류:', e); }
+}
 
-      function renderContractsStatusChart(contractStatusCounts) {
-        var pieChartCanvas = $(\'#contractsStatusChart\').get(0).getContext(\'2d\');
-        var pieData = {
-          labels: [
-            \'진행 중\',
-            \'만료 임박\',
-            \'만료됨\',
-            \'거부됨\'
-          ],
-          datasets: [
-            {
-              data: [
-                contractStatusCounts.ongoing,
-                contractStatusCounts.upcoming,
-                contractStatusCounts.expired,
-                contractStatusCounts.rejected
-              ],
-              backgroundColor: [\'#007bff\', \'#ffc107\', \'#dc3545\', \'#6c757d\'],
+/* ✅ 전체 데이터 한 번에 로드 (필터 없이 전체) */
+async function loadAllData() {
+    var todayStr = new Date().toISOString().split('T')[0];
+    var monthStart = todayStr.substring(0,8) + '01';
+
+    var [empRes, attRes, vacRes, conRes] = await Promise.all([
+        apiFetch('/.netlify/functions/employees-list'),                            /* 전체 직원 */
+        apiFetch('/.netlify/functions/attendances-list?startDate=' + todayStr + '&endDate=' + todayStr), /* 오늘 출근 */
+        apiFetch('/.netlify/functions/vacations-list?start_date=' + monthStart + '&end_date=' + todayStr), /* 이번달 휴가 */
+        apiFetch('/.netlify/functions/contracts-list')                             /* 계약 (필터 없음) */
+    ]);
+
+    allEmployees  = (empRes && empRes.success) ? (empRes.data.employees || []) : [];
+    allAttendances = (attRes && attRes.success) ? (attRes.data.attendances || []) : [];
+    allVacations  = (vacRes && vacRes.success) ? (vacRes.vacations || []) : [];
+    allContracts  = (conRes && conRes.success) ? (conRes.data || []) : [];
+    allConStats   = (conRes && conRes.success) ? (conRes.stats || {}) : {};
+}
+
+/* ✅ 사업장 선택 변경 → 클라이언트 필터링만 (API 재호출 없음) */
+function onBizFilterChange() {
+    selectedBizId = document.getElementById('bizFilterSelect').value;
+
+    /* BusinessFilter가 로드됐을 때만 저장 시도 */
+    try { BusinessFilter.setSelected(selectedBizId); } catch(e) {}
+
+    var badge = document.getElementById('bizFilterBadge');
+    if (selectedBizId === 'all') {
+        badge.style.display = 'none';
+    } else {
+        var biz = businessList.find(function(b) { return b.id === selectedBizId; });
+        badge.textContent = biz ? biz.name : '';
+        badge.style.display = 'inline-block';
+    }
+
+    renderDashboard(); /* ✅ API 재호출 없이 바로 렌더링 */
+}
+
+/* ✅ 데이터 렌더링 (클라이언트 필터 적용) */
+function renderDashboard() {
+    /* 직원 필터링 */
+    var employees = allEmployees;
+    if (selectedBizId !== 'all') {
+        employees = allEmployees.filter(function(e) {
+            return (e.businessId || e.business_id) === selectedBizId;
+        });
+    }
+
+    /* 출근 필터링 */
+    var attendances = allAttendances;
+    if (selectedBizId !== 'all') {
+        attendances = allAttendances.filter(function(a) {
+            var empBizId = a.employee && (a.employee.businessId || a.employee.business_id);
+            /* 출근 기록에 business_id 없으면 직원 목록에서 조회 */
+            if (!empBizId && a.employee && a.employee.id) {
+                var emp = allEmployees.find(function(e) { return e.id === a.employee.id; });
+                empBizId = emp && (emp.businessId || emp.business_id);
             }
-          ]
-        };
-        var pieOptions = {
-          maintainAspectRatio: false,
-          responsive: true,
-        };
-        new Chart(pieChartCanvas, {
-          type: \'pie\',
-          data: pieData,
-          options: pieOptions
+            return empBizId === selectedBizId;
         });
-      }
+    }
 
-      function contractStatusLabel(status) {
-        switch (status) {
-          case \'ONGOING\': return \'진행 중\';
-          case \'UPCOMING\': return \'만료 임박\';
-          case \'EXPIRED\': return \'만료됨\';
-          case \'REJECTED\': return \'거부됨\';
-          default: return status;
-        }
-      }
+    /* 휴가 필터링 */
+    var vacations = allVacations;
+    if (selectedBizId !== 'all') {
+        vacations = allVacations.filter(function(v) {
+            var empId = v.employee_id || (v.employee && v.employee.id);
+            var emp = allEmployees.find(function(e) { return e.id === empId; });
+            return emp && (emp.businessId || emp.business_id) === selectedBizId;
+        });
+    }
 
-      function renderRecentActivities(activities) {
-        var activityList = $(\'#recent-activities\');
-        activityList.empty();
-        if (activities && activities.length > 0) {
-          activities.forEach(function (activity) {
-            var employeeName = activity.employee ? activity.employee.name : \'알 수 없는 직원\';
-            var statusLabel = contractStatusLabel(activity.status);
-            var activityHtml = `
-            <li class=\"item\">
-              <div class=\"product-info\">
-                <a href=\"/contracts-detail.html?id=${activity.id}\" class=\"product-title\">${employeeName} - ${activity.contractType}</a>
-                <span class=\"badge badge-info float-right\">${statusLabel}</span>
-                <span class=\"product-description\">
-                  ${new Date(activity.startDate).toLocaleDateString()} - ${new Date(activity.endDate).toLocaleDateString()}
-                </span>
-              </div>
-            </li>
-          `;
-            activityList.append(activityHtml);
-          });
-        } else {
-          activityList.append(\'<li class=\"item\"><div class=\"product-info\">활동이 없습니다.</div></li>\');
-        }
-      }
+    var todayStr = new Date().toISOString().split('T')[0];
 
-      fetchDashboardData();
+    /* ---- 직원 카드 ---- */
+    var activeEmps = employees.filter(function(e) { return e.status === 'active'; });
+    document.getElementById('totalEmployees').textContent = activeEmps.length + '명';
+    var thisMonth = todayStr.substring(0,7);
+    var newThisMonth = employees.filter(function(e) {
+        return e.hireDate && e.hireDate.substring(0,7) === thisMonth;
+    }).length;
+    var changeEl = document.getElementById('employeeChange');
+    if (newThisMonth > 0) {
+        changeEl.textContent = '+' + newThisMonth + '명 이번달 신규';
+        changeEl.className = 'stat-change positive';
+    } else {
+        changeEl.textContent = '현재 ' + activeEmps.length + ' / ' + employees.length + '명 재직';
+        changeEl.className = 'stat-change';
+    }
 
-      // Fetch user name
-      $.ajax({
-        url: \'/api/user/me\',\
-        method: \'GET\',\
-        headers: {\
-          \'Authorization\': \'Bearer \' + getToken()\
-        },\
-        success: function (data) {\
-          $(\'#user-name\').text(data.name);\
-        },\
-        error: function (xhr, status, error) {\
-          if (xhr.status === 401) {\
-            window.location.href = \'/login.html\';
-          } else {
-            console.error(\'Failed to fetch user data:\', error);
-          }
-        }
-      });
+    /* ---- 급여 카드 ---- */
+    var totalWage = 0;
+    activeEmps.forEach(function(e) { totalWage += (e.monthlyWage || e.baseSalary || 0); });
+    document.getElementById('totalSalary').textContent = '₩' + totalWage.toLocaleString('ko-KR');
+    document.getElementById('salaryInfo').textContent = '현재 ' + activeEmps.length + '명 급여';
+
+    /* ---- 출근 카드 ---- */
+    var todayCheckins = attendances.length;
+    document.getElementById('todayAttendance').textContent = todayCheckins + '명';
+    var attInfo = document.getElementById('attendanceInfo');
+    if (activeEmps.length > 0) {
+        var rate = Math.round((todayCheckins / activeEmps.length) * 100);
+        attInfo.textContent = '출근율 ' + rate + '% (' + activeEmps.length + '명)';
+        attInfo.className = rate >= 80 ? 'stat-change positive' : 'stat-change negative';
+    } else {
+        attInfo.textContent = '아직 등록된 직원이 없습니다';
+        attInfo.className = 'stat-change';
+    }
+
+    /* ---- 계약 카드 (사업장 필터 미적용 - 계약은 전사 기준) ---- */
+    var completed = allConStats.completed || allConStats.signed || 0;
+    var pending = (allConStats.sent || 0) + (allConStats.viewed || 0);
+    document.getElementById('contractSummary').textContent = (allConStats.total || 0) + '건';
+    var conInfo = document.getElementById('contractInfo');
+    var parts = [];
+    if (completed > 0) parts.push('완료 ' + completed);
+    if (pending > 0) parts.push('진행 ' + pending);
+    conInfo.textContent = parts.length > 0 ? parts.join('건, ') + '건' : '계약 내역이 없습니다';
+    if (pending > 0) conInfo.className = 'stat-change negative';
+    else conInfo.className = 'stat-change';
+
+    /* ---- 계약 요약 패널 ---- */
+    var summaryHtml = '';
+    summaryHtml += '<div class="summary-row"><span class="summary-label">전체 직원</span><span class="summary-value">' + activeEmps.length + '명</span></div>';
+    summaryHtml += '<div class="summary-row"><span class="summary-label">이번 달 휴가</span><span class="summary-value ' + (vacations.length > 0 ? 'warn' : '') + '">' + vacations.length + '건</span></div>';
+    summaryHtml += '<div class="summary-row"><span class="summary-label">전체 계약</span><span class="summary-value">' + (allConStats.total || 0) + '건</span></div>';
+    summaryHtml += '<div class="summary-row"><span class="summary-label">완료 계약</span><span class="summary-value ok">' + completed + '건</span></div>';
+    summaryHtml += '<div class="summary-row"><span class="summary-label">진행 계약</span><span class="summary-value ' + (pending > 0 ? 'warn' : '') + '">' + pending + '건</span></div>';
+    summaryHtml += '<div class="summary-row"><span class="summary-label">이번달 급여 예정</span><span class="summary-value">₩' + totalWage.toLocaleString('ko-KR') + '</span></div>';
+    document.getElementById('summaryContent').innerHTML = summaryHtml;
+
+    /* ---- 최근 활동 ---- */
+    var activities = [];
+    attendances.forEach(function(a) {
+        activities.push({ icon: '⏰', cls: 'att', text: (a.employee ? a.employee.name : '직원') + ' 출근 기록', sub: a.checkInTime ? new Date(a.checkInTime).toLocaleString('ko-KR', {hour:'2-digit',minute:'2-digit'}) : '', time: new Date(a.checkInTime) || new Date() });
     });
-  </script>
-</body>
+    allContracts.slice(0, 5).forEach(function(c) {
+        var statusMap = { completed:'계약 완료', signed:'계약 완료', sent:'발송 대기', viewed:'열람', draft:'초안', rejected:'거절/취소', expired:'만료' };
+        var empName = c.employees ? c.employees.name : '직원';
+        activities.push({ icon: '📜', cls: 'con', text: empName + '의 계약 ' + (statusMap[c.status] || c.status), sub: c.contract_type === 'standard_labor' ? '표준 근로 계약' : (c.contract_type || ''), time: new Date(c.created_at) });
+    });
+    vacations.slice(0, 5).forEach(function(v) {
+        var typeMap = { annual:'연차', half_day_am:'오전 반차', half_day_pm:'오후 반차', sick:'병가', special:'특별 휴가' };
+        var empName = v.employee ? (v.employee.name || '직원') : '직원';
+        activities.push({ icon: '🗓️', cls: 'vac', text: empName + ' ' + (typeMap[v.vacation_type] || v.vacation_type || '휴가'), sub: v.start_date + (v.start_date !== v.end_date ? ' ~ ' + v.end_date : ''), time: new Date(v.created_at || v.start_date) });
+    });
+    activities.sort(function(a, b) { return b.time - a.time; });
 
+    var listEl = document.getElementById('activityList');
+    if (activities.length === 0) {
+        listEl.innerHTML = '<li class="empty-state">최근 활동 내역이 없습니다.</li>';
+    } else {
+        listEl.innerHTML = activities.slice(0, 10).map(function(a) {
+            return '<li class="activity-item"><div class="activity-content"><div class="activity-icon ' + a.cls + '">' + a.icon + '</div><div><div class="activity-text">' + a.text + '</div>' + (a.sub ? '<div class="activity-sub">' + a.sub + '</div>' : '') + '</div></div><span class="activity-time">' + formatTimeAgo(a.time) + '</span></li>';
+        }).join('');
+    }
+
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('dashboardContent').style.display = 'block';
+}
+
+async function apiFetch(url) {
+    try {
+        var r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' } });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return await r.json();
+    } catch (e) { console.error('API 에러 (' + url + '):', e); return null; }
+}
+
+function formatTimeAgo(date) {
+    var now = new Date();
+    var diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return Math.floor(diff/60) + '분 전';
+    if (diff < 86400) return Math.floor(diff/3600) + '시간 전';
+    if (diff < 604800) return Math.floor(diff/86400) + '일 전';
+    return date.toLocaleDateString('ko-KR');
+}
+
+function handleLogout() {
+    if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        try { localStorage.removeItem('sm_selected_business'); } catch(e) {}
+        sessionStorage.clear();
+        window.location.href = '/login.html';
+    }
+}
+</script>
+</body>
 </html>
