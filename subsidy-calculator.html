@@ -434,7 +434,7 @@ function showTab(name) {
 // 메인 실행
 // ============================================================
 async function loadData() {
-  const token = sessionStorage.getItem('authToken');
+  const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
   if (!token) { location.href = 'login.html'; return; }
 
   let employees = [];
