@@ -120,6 +120,13 @@ Salary · HTML
         </div>
 
         <div class="filter-bar">
+            <!-- 사업체 필터: 선택 시 직원 드롭다운 자동 갱신 -->
+            <div class="filter-group">
+                <label>사업체</label>
+                <select id="businessFilter" onchange="onBizFilter()">
+                    <option value="all">전체 사업체</option>
+                </select>
+            </div>
             <div class="filter-group">
                 <label>직원 선택</label>
                 <select id="employeeSelect"><option value="">직원을 선택하세요</option></select>
@@ -200,6 +207,7 @@ Salary · HTML
 
 <script>
 var authToken = null, userInfo = null, employees = [], currentData = null, currentEmployee = null;
+var allEmployees = [], businessMap = {}; // 사업체 필터용
 
 window.addEventListener('DOMContentLoaded', async function() {
     authToken = localStorage.getItem('authToken');
@@ -220,8 +228,28 @@ window.addEventListener('DOMContentLoaded', async function() {
     }
     document.getElementById('monthSelect').value = new Date().getMonth() + 1;
 
-    await loadEmployees();
+    await Promise.all([loadBusinesses(), loadEmployees()]);
 });
+
+/* 사업체 목록 로드 */
+async function loadBusinesses() {
+    try {
+        var r = await fetch('/.netlify/functions/businesses-manage', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        var res = await r.json();
+        if (res.success && res.data && res.data.businesses) {
+            var sel = document.getElementById('businessFilter');
+            res.data.businesses.forEach(function(b) {
+                businessMap[b.id] = b.name;
+                var opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.name;
+                sel.appendChild(opt);
+            });
+        }
+    } catch(e) { console.error('사업체 로드 실패:', e); }
+}
 
 async function loadEmployees() {
     try {
@@ -230,16 +258,42 @@ async function loadEmployees() {
         });
         var res = await r.json();
         if (res.success && res.data && res.data.employees) {
-            employees = res.data.employees.filter(function(e) { return e.status === 'active'; });
-            var sel = document.getElementById('employeeSelect');
-            employees.forEach(function(emp) {
-                var opt = document.createElement('option');
-                opt.value = emp.id;
-                opt.textContent = emp.name + ' (' + (emp.position || '직원') + ')';
-                sel.appendChild(opt);
-            });
+            /* 전체 재직자 저장 (사업체 필터용) */
+            allEmployees = res.data.employees.filter(function(e) { return e.status === 'active'; });
+            renderEmployeeSelect(allEmployees);
         }
     } catch(e) { console.error('직원 로드 실패:', e); }
+}
+
+/* 사업체 필터 변경 시 직원 드롭다운 갱신 */
+function onBizFilter() {
+    var bizId = document.getElementById('businessFilter').value;
+    var filtered = bizId === 'all'
+        ? allEmployees
+        : allEmployees.filter(function(e) {
+            return (e.businessId || e.business_id) === bizId;
+        });
+    renderEmployeeSelect(filtered);
+    /* 직원 선택 초기화 → 결과창 숨기기 */
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('loading').style.display = 'none';
+    var resultEl = document.getElementById('payrollResult');
+    if (resultEl) resultEl.style.display = 'none';
+}
+
+/* 직원 셀렉트박스 렌더링 공통 함수 */
+function renderEmployeeSelect(list) {
+    employees = list;
+    var sel = document.getElementById('employeeSelect');
+    sel.innerHTML = '<option value="">직원을 선택하세요</option>';
+    list.forEach(function(emp) {
+        var opt = document.createElement('option');
+        opt.value = emp.id;
+        /* 사업체명 표시 (전체 보기일 때 유용) */
+        var bizName = businessMap[emp.businessId || emp.business_id];
+        opt.textContent = emp.name + ' (' + (emp.position || '직원') + (bizName ? ' · ' + bizName : '') + ')';
+        sel.appendChild(opt);
+    });
 }
 
 async function calculatePayroll() {
