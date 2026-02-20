@@ -51,6 +51,9 @@
         .payslip-actions{display:flex;gap:10px}
         .payslip-actions button{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;border:none}
         .btn-pdf{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.5)!important}
+        .btn-send{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:8px;}
+        .btn-send:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(37,211,102,.35)}
+        .btn-send:disabled{opacity:.6;cursor:not-allowed;transform:none}
         .btn-pdf:hover{background:rgba(255,255,255,.3)}
         .payslip-body{padding:25px 30px}
         .payslip-info{display:flex;justify-content:space-between;margin-bottom:25px;padding-bottom:20px;border-bottom:2px solid #f0f0f0}
@@ -151,6 +154,7 @@
                 </div>
                 <div class="payslip-actions">
                     <button class="btn-pdf" onclick="downloadPDF()">📥 PDF 다운로드</button>
+                    <button class="btn-send" id="sendNotifyBtn" onclick="sendPayrollNotification()" style="display:none">📱 카카오/SMS 발송</button>
                 </div>
             </div>
 
@@ -353,6 +357,7 @@ function displayPayslip(d, empId, year, month) {
     }
 
     document.getElementById('payslip').classList.add('show');
+    document.getElementById('sendNotifyBtn').style.display = 'inline-flex';
 }
 
 function renderSection(containerId, items, total) {
@@ -365,6 +370,45 @@ function renderSection(containerId, items, total) {
 
 function fmt(n) {
     return ' A5' + Math.round(n || 0).toLocaleString('ko-KR');
+}
+
+/* ── 급여명세서 카카오/SMS 발송 ── */
+async function sendPayrollNotification() {
+    if (!currentData || !currentEmployee) { alert('먼저 급여를 계산해주세요.'); return; }
+    var btn = document.getElementById('sendNotifyBtn');
+    var year = document.getElementById('yearSelect').value;
+    var month = document.getElementById('monthSelect').value;
+    var payMonth = year + '년 ' + month + '월';
+    var netPay = currentData.net_payment || 0;
+    if (!confirm(currentEmployee.name + '님에게 ' + payMonth + ' 급여명세서 알림을 발송할까요?\n실수령액: ₩' + netPay.toLocaleString('ko-KR'))) return;
+    btn.disabled = true;
+    btn.textContent = '📤 발송 중...';
+    try {
+        var r = await fetch('/.netlify/functions/solapi-send', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'payroll',
+                employeeId: currentEmployee.id,
+                data: { payMonth: payMonth, netPay: netPay, link: 'https://staffmanager.io/salary.html' }
+            })
+        });
+        var res = await r.json();
+        if (res.success) {
+            var chMap = { alimtalk: '카카오 알림톡', sms: 'SMS', sms_fallback: 'SMS(폴백)' };
+            alert('✅ 발송 완료!\n채널: ' + (chMap[res.channel] || res.channel));
+            btn.textContent = '✅ 발송 완료';
+            setTimeout(function() { btn.textContent = '📱 카카오/SMS 발송'; btn.disabled = false; }, 3000);
+        } else {
+            alert('발송 실패: ' + (res.error || '알 수 없는 오류'));
+            btn.textContent = '📱 카카오/SMS 발송';
+            btn.disabled = false;
+        }
+    } catch(e) {
+        alert('발송 중 오류: ' + e.message);
+        btn.textContent = '📱 카카오/SMS 발송';
+        btn.disabled = false;
+    }
 }
 
 function downloadPDF() {
