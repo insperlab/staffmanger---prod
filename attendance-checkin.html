@@ -276,7 +276,18 @@
                 grid-template-columns: 1fr;
             }
         }
-    </style>
+    
+  /* WiFi 인증 뱃지 (M7) */
+  .wifi-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px; margin-top: 8px;
+  }
+  .wifi-badge.matched  { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+  .wifi-badge.unmatched{ background: #FFF7ED; color: #EA580C; border: 1px solid #FED7AA; }
+  .wifi-badge.unused   { display: none; }
+
+</style>
 </head>
 <body>
     <div class="container">
@@ -552,9 +563,17 @@
                     const actionName = type === 'check-in' ? '출근' : '퇴근';
                     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     
+                    // WiFi 뱃지 상태 결정
+                    let wifiBadge = '';
+                    if (data.wifiMatched === true) {
+                        wifiBadge = '<div class="wifi-badge matched">✅ WiFi 인증됨</div>';
+                    } else if (data.wifiMatched === false) {
+                        wifiBadge = '<div class="wifi-badge unmatched">⚠️ WiFi 미인증 (기록은 완료)</div>';
+                    }
                     showStatus(
-                        `${actionName}이 기록되었습니다. (${timeStr}) 카카오톡으로 확인 알림이 전송됩니다.`,
-                        'success'
+                        `${actionName}이 기록되었습니다. (${timeStr})${wifiBadge}`,
+                        'success',
+                        true  // HTML 허용
                     );
 
                     // 전화번호 입력 필드 초기화
@@ -576,9 +595,9 @@
         // 상태 메시지 표시
         // ====================================
 
-        function showStatus(message, type = 'info') {
+        function showStatus(message, type = 'info', isHtml = false) {
             const statusEl = document.getElementById('statusMessage');
-            statusEl.textContent = message;
+            if (isHtml) { statusEl.innerHTML = message; } else { statusEl.textContent = message; }
             statusEl.className = `status-message ${type} show`;
 
             // 성공 메시지는 5초 후 자동으로 숨김

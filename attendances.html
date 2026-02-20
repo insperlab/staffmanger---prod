@@ -55,7 +55,16 @@
     .empty-state-text{font-size:18px;color:#999;margin-bottom:20px}
     .result-count{font-size:13px;color:#999;padding:8px 0}
     @media(max-width:768px){.navbar-menu{display:none}.controls{flex-direction:column}th,td{padding:12px 10px;font-size:13px}}
-  </style>
+  
+    /* 출퇴근 방식 뱃지 (M8) */
+    .method-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600}
+    .method-badge.qr    {background:#EFF6FF;color:#1D4ED8}
+    .method-badge.gps   {background:#F0FDF4;color:#15803D}
+    .method-badge.wifi  {background:#FDF4FF;color:#7E22CE}
+    .method-badge.manual{background:#F9FAFB;color:#6B7280;border:1px solid #E5E7EB}
+
+    
+</style>
 </head>
 <body>
 <nav class="navbar">
@@ -112,7 +121,7 @@
   </div>
   <div id="attendanceTable" class="table-container" style="display:none">
     <table>
-      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>상태</th></tr></thead>
+      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>방식</th><th>방식</th><th>상태</th></tr></thead>
       <tbody id="attendanceBody"></tbody>
     </table>
   </div>
@@ -232,7 +241,13 @@
         var bizName=emp.businessId?(businessMap[emp.businessId]||'미배정'):'미배정';
         var bizHtml=emp.businessId?'<span class="biz-badge">'+escapeHtml(bizName)+'</span>':'<span class="biz-badge" style="background:#fff3e0;color:#e65100">미배정</span>';
         var tr=document.createElement('tr');
-        tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td>';
+        
+        // 출퇴근 방식 뱃지 생성
+        var method = att.checkMethod || att.check_method || 'qr';
+        var methodLabel = {qr:'📱 QR', gps:'📍 GPS', wifi:'📶 WiFi', manual:'✏️ 수동'}[method] || method.toUpperCase();
+        var methodBadge = '<span class="method-badge '+method+'">'+methodLabel+'</span>';
+        
+        tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td>'+methodBadge+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td>';
         tbody.appendChild(tr);
       });
       document.getElementById('attendanceTable').style.display='block';

@@ -104,7 +104,23 @@
         .notif-empty{text-align:center;padding:40px;color:#bbb;font-size:14px}
         .notif-load-more{text-align:center;padding:12px;color:#667eea;font-size:13px;cursor:pointer;font-weight:500}
         .notif-load-more:hover{text-decoration:underline}
-    </style>
+    
+        /* ── WiFi IP 불일치 알림 배너 (M6) ── */
+        .wifi-alert-area{margin-bottom:20px}
+        .wifi-alert-banner{
+          display:flex;align-items:flex-start;gap:12px;
+          background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;
+          padding:14px 16px;margin-bottom:10px;font-size:13px;color:#9A3412;
+        }
+        .wifi-alert-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+        .wifi-alert-body{flex:1}
+        .wifi-alert-body strong{display:block;font-size:14px;margin-bottom:4px}
+        .wifi-alert-body .ip-info{font-family:monospace;font-size:12px;margin-bottom:6px}
+        .wifi-alert-actions{display:flex;gap:8px;margin-top:8px}
+        .btn-wifi-update{padding:6px 14px;background:#EA580C;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none}
+        .btn-wifi-dismiss{padding:6px 12px;background:transparent;color:#9A3412;border:1px solid #FED7AA;border-radius:6px;font-size:12px;cursor:pointer}
+
+        </style>
 </head>
 <body>
     <nav class="navbar">
@@ -128,6 +144,9 @@
     </nav>
 
     <div class="container">
+        <!-- WiFi IP 불일치 알림 배너 영역 (M6) — JS가 동적으로 채움 -->
+        <div class="wifi-alert-area" id="wifiAlertArea" style="display:none"></div>
+
         <div class="page-header">
             <h1 class="page-title" id="greeting">관리</h1>
             <p class="page-subtitle" id="dateInfo">로딩중...</p>
@@ -268,6 +287,7 @@ window.addEventListener('DOMContentLoaded', async function() {
 
     document.getElementById('userName').textContent = userInfo.name || '관리';
     document.getElementById('companyName').textContent = userInfo.companyName || '';
+    checkWifiAlerts(); // WiFi IP 불일치 알림 확인
 
     var today = new Date();
     var days = ['일','월','화','수','목','금','토'];
@@ -637,6 +657,73 @@ function handleLogout() {
         window.location.href = '/login.html';
     }
 }
+
+// ═══════════════════════════════════════════════════════════
+// WiFi IP 불일치 알림 배너 (M6)
+// ═══════════════════════════════════════════════════════════
+async function checkWifiAlerts() {
+  try {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (!token) return;
+    const res  = await fetch('/.netlify/functions/wifi-settings', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const json = await res.json();
+    if (!json.success) return;
+
+    const alerts = json.data.alerts || [];
+    const area   = document.getElementById('wifiAlertArea');
+    if (!area) return;
+
+    if (!alerts.length) { area.style.display = 'none'; return; }
+
+    area.style.display = 'block';
+    area.innerHTML = alerts.map(biz => `
+      <div class="wifi-alert-banner" id="wifiAlert_${biz.id}">
+        <div class="wifi-alert-icon">⚠️</div>
+        <div class="wifi-alert-body">
+          <strong>WiFi IP 변경 감지 — ${biz.name}</strong>
+          <div class="ip-info">
+            등록 IP: <b>${biz.wifi_registered_ip || '미등록'}</b>
+            &nbsp;→&nbsp;
+            감지 IP: <b>${biz.wifi_ip_mismatch_detected}</b>
+            &nbsp;
+            <span style="color:#C2410C">(${biz.wifi_ip_mismatch_at ? new Date(biz.wifi_ip_mismatch_at).toLocaleString('ko-KR') : ''})</span>
+          </div>
+          <div style="font-size:12px;color:#C2410C">
+            WiFi 공인 IP가 변경되었을 수 있습니다. 설정에서 IP를 업데이트해주세요.
+          </div>
+          <div class="wifi-alert-actions">
+            <a href="settings.html#wifiSettingCard" class="btn-wifi-update">지금 업데이트</a>
+            <button class="btn-wifi-dismiss" onclick="dismissWifiAlert('${biz.id}')">무시</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    console.warn('WiFi 알림 조회 오류:', e);
+  }
+}
+
+// 알림 무시 — 현재 감지 IP를 등록 IP로 수용하는 것이 아니라 플래그만 제거
+async function dismissWifiAlert(bizId) {
+  if (!confirm('이 알림을 무시하겠습니까?\nWiFi 인증 기록은 계속 남습니다.')) return;
+  try {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    await fetch('/.netlify/functions/wifi-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ businessId: bizId, wifiRegisteredIp: undefined })
+      // wifiRegisteredIp 미전송 → mismatch 플래그만 초기화하지 않음
+      // → 실제로는 DELETE로 비활성화 유도
+    });
+    // 배너만 UI에서 숨김
+    const el = document.getElementById('wifiAlert_' + bizId);
+    if (el) el.remove();
+    const area = document.getElementById('wifiAlertArea');
+    if (area && !area.querySelector('.wifi-alert-banner')) area.style.display = 'none';
+  } catch(e) { console.warn(e); }
+}
+
 </script>
 </body>
 </html>

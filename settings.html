@@ -320,7 +320,47 @@
                 opacity: 1;
             }
         }
-    </style>
+    
+  /* ── WiFi 설정 카드 (M5) ── */
+  .biz-wifi-card {
+    border: 1px solid #E5E7EB; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px; background: #FAFAFA;
+  }
+  .biz-wifi-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .wifi-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .wifi-label { font-size: 13px; font-weight: 600; color: #374151; min-width: 120px; }
+  .wifi-select { padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 13px; background: white; }
+  .wifi-toggle { display: flex; align-items: center; gap: 8px; }
+  .toggle-switch { position: relative; width: 44px; height: 24px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: #D1D5DB;
+    border-radius: 24px; cursor: pointer; transition: .3s;
+  }
+  .toggle-slider:before {
+    content: ''; position: absolute;
+    width: 18px; height: 18px; left: 3px; top: 3px;
+    background: white; border-radius: 50%; transition: .3s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: #2156D0; }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+  .wifi-ip-section { background: white; border: 1px solid #E5E7EB; border-radius: 10px; padding: 16px; margin-top: 4px; }
+  .wifi-ip-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .wifi-ip-input { flex: 1; min-width: 180px; padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 13px; font-family: monospace; }
+  .wifi-ip-input.error { border-color: #DC2626; }
+  .btn-getip { padding: 8px 12px; background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .btn-getip:hover { background: #E5E7EB; }
+  .btn-save-wifi { padding: 9px 20px; background: #2156D0; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-save-wifi:hover { background: #1a45b0; }
+  .btn-save-wifi:disabled { opacity: 0.5; cursor: not-allowed; }
+  .wifi-meta { font-size: 11px; color: #9CA3AF; margin-top: 8px; }
+  .alert-banner {
+    background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: #9A3412;
+  }
+  .alert-banner strong { display: block; margin-bottom: 4px; }
+
+</style>
 </head>
 <body>
     <!-- 네비게이션 -->
@@ -406,7 +446,8 @@
                             </div>
 
                             <div class="button-group">
-                                <button class="btn btn-primary" onclick="downloadQRCode()">
+                                <button class="btn btn-primary" onclick="downloadQRCode();
+    loadWifiSettings();">
                                     <span>💾</span>
                                     <span>QR코드 다운로드 (PNG)</span>
                                 </button>
@@ -424,7 +465,29 @@
                 </div>
             </div>
         </div>
+
+        <!-- ══════════════════════════════════════════
+             📡 출퇴근 방식 & WiFi 설정 섹션 (M5)
+        ══════════════════════════════════════════ -->
+        <div class="setting-card" id="wifiSettingCard" style="margin-top:20px">
+          <div class="setting-header">
+            <span class="setting-icon">📡</span>
+            <h2 class="setting-title">출퇴근 방식 & WiFi 인증</h2>
+          </div>
+          <p class="setting-description">
+            사업장별로 주 출퇴근 방식을 선택하고, WiFi 공인 IP를 등록하면 매장 내 접속 여부를 자동 확인합니다.
+            WiFi가 꺼지거나 IP가 변경되어도 출퇴근은 정상 기록됩니다.
+          </p>
+          <div id="wifiLoadingState" style="text-align:center;padding:32px;color:#888">
+            <div class="spinner"></div><p>불러오는 중...</p>
+          </div>
+          <div id="wifiContentState" style="display:none">
+            <div id="bizWifiList"></div>
+          </div>
+        </div>
+
     </div>
+</div>
 
     <!-- 토스트 알림 -->
     <div id="toast" class="toast"></div>
@@ -694,6 +757,180 @@
                 toast.classList.remove('show');
             }, 3000);
         }
-    </script>
+    
+// ═══════════════════════════════════════════════════════════
+// WiFi 설정 (M5)
+// ═══════════════════════════════════════════════════════════
+async function loadWifiSettings() {
+  try {
+    const res = await fetch('/.netlify/functions/wifi-settings', {
+      headers: { Authorization: 'Bearer ' + authToken }
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+
+    document.getElementById('wifiLoadingState').style.display = 'none';
+    document.getElementById('wifiContentState').style.display = 'block';
+    renderBizWifiList(json.data.businesses);
+  } catch(e) {
+    document.getElementById('wifiLoadingState').innerHTML =
+      '<p style="color:#DC2626">WiFi 설정을 불러오지 못했습니다: ' + e.message + '</p>';
+  }
+}
+
+function renderBizWifiList(businesses) {
+  const container = document.getElementById('bizWifiList');
+  if (!businesses.length) {
+    container.innerHTML = '<p style="color:#888;font-size:13px">등록된 사업장이 없습니다.</p>';
+    return;
+  }
+  container.innerHTML = businesses.map(biz => renderBizWifiCard(biz)).join('');
+}
+
+function renderBizWifiCard(biz) {
+  const hq = biz.is_headquarters ? ' 🏠 본점' : '';
+  const alertHtml = biz.wifi_ip_mismatch_detected ? `
+    <div class="alert-banner">
+      <strong>⚠️ WiFi IP 변경 감지</strong>
+      등록 IP: <b>${biz.wifi_registered_ip || '미등록'}</b> →
+      감지 IP: <b>${biz.wifi_ip_mismatch_detected}</b>
+      (${biz.wifi_ip_mismatch_at ? new Date(biz.wifi_ip_mismatch_at).toLocaleString('ko-KR') : ''})
+      <br><small>아래에서 새 IP로 업데이트하거나 무시하세요.</small>
+    </div>` : '';
+
+  const wifiChecked = biz.wifi_enabled ? 'checked' : '';
+  const methodQr  = (biz.checkin_method||'qr') === 'qr'  ? 'selected' : '';
+  const methodGps = (biz.checkin_method||'qr') === 'gps' ? 'selected' : '';
+  const ipVal     = biz.wifi_registered_ip || '';
+  const ipUpdated = biz.wifi_ip_updated_at
+    ? '마지막 수정: ' + new Date(biz.wifi_ip_updated_at).toLocaleString('ko-KR')
+    : 'IP 미등록';
+
+  return `
+  <div class="biz-wifi-card" id="bizCard_${biz.id}">
+    <h3>🏪 ${biz.name}${hq}</h3>
+    ${alertHtml}
+
+    <div class="wifi-row">
+      <span class="wifi-label">주 출퇴근 방식</span>
+      <select class="wifi-select" id="method_${biz.id}">
+        <option value="qr"  ${methodQr}>📱 QR 스캔 (기본)</option>
+        <option value="gps" ${methodGps}>📍 GPS 위치 인증</option>
+      </select>
+    </div>
+
+    <div class="wifi-row">
+      <span class="wifi-label">WiFi 보조 인증</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="wifiToggle_${biz.id}" ${wifiChecked}
+               onchange="onWifiToggle('${biz.id}')">
+        <span class="toggle-slider"></span>
+      </label>
+      <span id="wifiToggleLabel_${biz.id}" style="font-size:13px;color:#6B7280">
+        ${biz.wifi_enabled ? 'ON' : 'OFF'}
+      </span>
+    </div>
+
+    <div class="wifi-ip-section" id="wifiIpSection_${biz.id}"
+         style="display:${biz.wifi_enabled ? 'block' : 'none'}">
+      <div class="wifi-ip-row">
+        <input type="text" class="wifi-ip-input" id="wifiIp_${biz.id}"
+               placeholder="예: 211.45.67.89" value="${ipVal}"
+               oninput="validateIpInput('${biz.id}')">
+        <button class="btn-getip" onclick="fetchMyIp('${biz.id}')">
+          📍 현재 IP 가져오기
+        </button>
+      </div>
+      <div class="wifi-meta" id="wifiMeta_${biz.id}">${ipUpdated}</div>
+    </div>
+
+    <div style="margin-top:14px;text-align:right">
+      <button class="btn-save-wifi" id="saveBtn_${biz.id}"
+              onclick="saveWifiSettings('${biz.id}')">
+        💾 저장
+      </button>
+    </div>
+  </div>`;
+}
+
+function onWifiToggle(bizId) {
+  const on = document.getElementById('wifiToggle_' + bizId).checked;
+  document.getElementById('wifiToggleLabel_' + bizId).textContent = on ? 'ON' : 'OFF';
+  document.getElementById('wifiIpSection_' + bizId).style.display = on ? 'block' : 'none';
+}
+
+// IP 형식 실시간 검증
+function validateIpInput(bizId) {
+  const val = document.getElementById('wifiIp_' + bizId).value.trim();
+  const parts = val.split('.');
+  const valid = val === '' || (parts.length === 4 && parts.every(p => {
+    const n = parseInt(p,10); return !isNaN(n) && n>=0 && n<=255 && String(n)===p;
+  }));
+  document.getElementById('wifiIp_' + bizId).classList.toggle('error', !valid);
+}
+
+// 현재 접속 IP 자동 가져오기
+async function fetchMyIp(bizId) {
+  try {
+    const res  = await fetch('/.netlify/functions/my-ip');
+    const json = await res.json();
+    if (json.ip) {
+      document.getElementById('wifiIp_' + bizId).value = json.ip;
+      validateIpInput(bizId);
+      showToast('현재 IP: ' + json.ip + ' \n이 IP가 매장 WiFi의 공인 IP인지 확인하세요.', 'info');
+    }
+  } catch(e) {
+    showToast('IP 조회 실패: ' + e.message, 'error');
+  }
+}
+
+// WiFi 설정 저장
+async function saveWifiSettings(bizId) {
+  const btn = document.getElementById('saveBtn_' + bizId);
+  const method    = document.getElementById('method_' + bizId).value;
+  const wifiOn    = document.getElementById('wifiToggle_' + bizId).checked;
+  const ipInput   = document.getElementById('wifiIp_' + bizId);
+  const ip        = ipInput ? ipInput.value.trim() : '';
+
+  // IP 형식 검증
+  if (wifiOn && ip) {
+    const parts = ip.split('.');
+    const valid = parts.length === 4 && parts.every(p => {
+      const n = parseInt(p,10); return !isNaN(n) && n>=0 && n<=255 && String(n)===p;
+    });
+    if (!valid) { showToast('IP 형식이 올바르지 않습니다 (예: 211.45.67.89)', 'error'); return; }
+  }
+
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    const res = await fetch('/.netlify/functions/wifi-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+      body: JSON.stringify({
+        businessId:      bizId,
+        checkinMethod:   method,
+        wifiEnabled:     wifiOn,
+        wifiRegisteredIp: wifiOn ? ip : undefined,
+      })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+
+    // 저장 성공 후 메타 정보 갱신
+    const meta = document.getElementById('wifiMeta_' + bizId);
+    if (meta) meta.textContent = '마지막 수정: ' + new Date().toLocaleString('ko-KR');
+    // 알림 배너 제거
+    const alertEl = document.querySelector('#bizCard_' + bizId + ' .alert-banner');
+    if (alertEl) alertEl.remove();
+
+    showToast('설정이 저장되었습니다.', 'success');
+  } catch(e) {
+    showToast('저장 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 저장';
+  }
+}
+
+</script>
 </body>
 </html>
