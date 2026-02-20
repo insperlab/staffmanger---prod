@@ -405,8 +405,8 @@ function downloadBankFile() {
     let hasEmpty = false;
     const lines = ['직원명,은행명,계좌번호,급여액'];
     payrollData.forEach(p => {
-        if (!p.bank_account || !p.bank_name) hasEmpty = true;
-        lines.push('"'+(p.employee_name||'').replace(/"/g,'')+'","'+(p.bank_name||'미지정').replace(/"/g,'')+'","'+(p.bank_account||'미지정').replace(/"/g,'')+'","'+(p.net_pay||0)+'"');
+        if (!p.account_number || !p.bank_name) hasEmpty = true;
+        lines.push('"'+(p.employee_name||'').replace(/"/g,'')+'","'+(p.bank_name||'미지정').replace(/"/g,'')+'","'+(p.account_number||'미지정').replace(/"/g,'')+'","'+(p.net_pay||0)+'"');
     });
     if (hasEmpty) alert('은행 계좌 정보가 없는 직원이 있습니다.\n직원 정보에서 계좌 정보를 설정해주세요.');
     const blob = new Blob(['\ufeff'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
