@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정부지원금 계산기 - StaffManager</title>
+<style>
+  :root {
+    --blue: #2156D0; --blue-light: #EEF2FF;
+    --green: #16A34A; --green-light: #F0FDF4;
+    --red: #DC2626; --red-light: #FEF2F2;
+    --orange: #EA580C; --orange-light: #FFF7ED;
+    --gray: #6B7280; --border: #E5E7EB;
+    --dark: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F9FAFB; color: var(--dark); }
+
+  /* 공통 navbar */
+  .navbar { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .navbar-brand { font-size: 18px; font-weight: 700; color: var(--blue); text-decoration: none; }
+  .navbar-back { font-size: 14px; color: var(--gray); text-decoration: none; display: flex; align-items: center; gap: 4px; }
+  .navbar-back:hover { color: var(--blue); }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: var(--gray); font-size: 14px; margin-bottom: 28px; }
+
+  /* 요약 카드 */
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .summary-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 18px; }
+  .summary-card .label { font-size: 12px; color: var(--gray); margin-bottom: 6px; }
+  .summary-card .value { font-size: 22px; font-weight: 700; }
+  .summary-card.green .value { color: var(--green); }
+  .summary-card.blue .value { color: var(--blue); }
+  .summary-card.orange .value { color: var(--orange); }
+
+  /* 두루누리 조건 박스 */
+  .condition-box { background: var(--blue-light); border: 1px solid #C7D7FA; border-radius: 12px; padding: 18px 20px; margin-bottom: 28px; }
+  .condition-box h3 { font-size: 14px; font-weight: 600; color: var(--blue); margin-bottom: 10px; }
+  .condition-list { display: flex; gap: 20px; flex-wrap: wrap; }
+  .condition-item { font-size: 13px; color: var(--dark); display: flex; align-items: center; gap: 6px; }
+  .condition-item::before { content: '✓'; color: var(--green); font-weight: 700; }
+
+  /* 사업장 인원 경고 */
+  .warning-box { background: var(--orange-light); border: 1px solid #FED7AA; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px; font-size: 13px; color: #9A3412; display: none; }
+  .warning-box.show { display: flex; gap: 8px; align-items: flex-start; }
+
+  /* 테이블 */
+  .table-wrap { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 24px; }
+  .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .table-header h2 { font-size: 15px; font-weight: 600; }
+  .badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-gray { background: #F3F4F6; color: var(--gray); }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #F9FAFB; font-size: 12px; font-weight: 600; color: var(--gray); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFAFA; }
+  .amount { font-weight: 600; font-family: 'Courier New', monospace; }
+  .amount.green { color: var(--green); }
+  .amount.gray { color: var(--gray); }
+
+  /* 지원금 상세 툴팁 스타일 셀 */
+  .detail-cell { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+  /* 신청 안내 카드 */
+  .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+  .guide-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; }
+  .guide-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .guide-card p, .guide-card li { font-size: 13px; color: var(--gray); line-height: 1.7; }
+  .guide-card ul { padding-left: 16px; }
+  .btn-link { display: inline-flex; align-items: center; gap-4px; background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-top: 12px; gap: 4px; }
+  .btn-link:hover { background: #1a45b0; }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+  .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--gray); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
+  /* 로딩 */
+  .loading { text-align: center; padding: 60px; color: var(--gray); font-size: 14px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .guide-grid { grid-template-columns: 1fr; }
+    .condition-list { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="dashboard.html" class="navbar-brand">StaffManager</a>
+  <a href="dashboard.html" class="navbar-back">← 대시보드</a>
+</nav>
+
+<div class="container">
+  <h1>🏛️ 정부지원금 자동계산기</h1>
+  <p class="subtitle">두루누리 사회보험료 지원 대상 여부를 자동으로 확인하고 절감 가능 금액을 계산합니다.</p>
+
+  <!-- 조건 안내 -->
+  <div class="condition-box">
+    <h3>📋 2026년 두루누리 지원 요건</h3>
+    <div class="condition-list">
+      <span class="condition-item">10인 미만 사업장</span>
+      <span class="condition-item">월평균보수 270만원 미만 근로자</span>
+      <span class="condition-item">국민연금 + 고용보험 각 80% 지원</span>
+      <span class="condition-item">최대 36개월 (신규가입자)</span>
+      <span class="condition-item">사업주 · 근로자 각각 지원</span>
+    </div>
+  </div>
+
+  <!-- 인원 초과 경고 -->
+  <div class="warning-box" id="warningBox">
+    ⚠️ <span id="warningText"></span>
+  </div>
+
+  <!-- 요약 카드 -->
+  <div class="summary-grid">
+    <div class="summary-card green">
+      <div class="label">월 절감 가능액 (사업주)</div>
+      <div class="value" id="sumEmployer">—</div>
+    </div>
+    <div class="summary-card green">
+      <div class="label">월 절감 가능액 (근로자)</div>
+      <div class="value" id="sumEmployee">—</div>
+    </div>
+    <div class="summary-card blue">
+      <div class="label">연간 절감 합계</div>
+      <div class="value" id="sumAnnual">—</div>
+    </div>
+    <div class="summary-card orange">
+      <div class="label">지원 대상 / 전체 직원</div>
+      <div class="value" id="sumRatio">—</div>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('eligible')">✅ 지원 대상</div>
+    <div class="tab" onclick="showTab('ineligible')">❌ 대상 아님</div>
+    <div class="tab" onclick="showTab('guide')">📖 신청 안내</div>
+  </div>
+
+  <!-- 지원 대상 테이블 -->
+  <div id="tabEligible">
+    <div class="table-wrap">
+      <div class="table-header">
+        <h2>두루누리 지원 대상 직원</h2>
+        <span class="badge badge-green" id="eligibleCount">0명</span>
+      </div>
+      <div id="eligibleBody">
+        <div class="loading"><div class="spinner"></div>직원 정보 불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 미대상 테이블 -->
+  <div id="tabIneligible" style="display:none">
+    <div class="table-wrap">
+      <div class="table-header">
+        <h2>지원 대상 제외 직원</h2>
+        <span class="badge badge-red" id="ineligibleCount">0명</span>
+      </div>
+      <div id="ineligibleBody">
+        <div class="loading"><div class="spinner"></div>불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 신청 안내 -->
+  <div id="tabGuide" style="display:none">
+    <div class="guide-grid">
+      <div class="guide-card">
+        <h3>🖥️ 온라인 신청</h3>
+        <p>4대사회보험 정보연계센터에서 간편 신청 가능합니다.</p>
+        <ul style="margin-top:8px">
+          <li>사업장 회원 로그인</li>
+          <li>상단 '사업장업무' → '두루누리보험료지원' 클릭</li>
+          <li>지원 대상 근로자 선택 후 신청</li>
+        </ul>
+        <a href="https://www.4insure.or.kr" target="_blank" class="btn-link">4대보험 정보연계센터 →</a>
+      </div>
+      <div class="guide-card">
+        <h3>📋 지원 방식</h3>
+        <ul>
+          <li>현금 지급 ❌ → <strong>다음 달 보험료에서 차감</strong></li>
+          <li>당월 보험료 법정기한 내 납부 필수</li>
+          <li>근로자 수 변동 시 즉시 신고 필요</li>
+          <li>재산·소득 기준 초과 시 제외</li>
+        </ul>
+      </div>
+      <div class="guide-card">
+        <h3>📞 문의처</h3>
+        <ul>
+          <li>근로복지공단: <strong>1588-0075</strong></li>
+          <li>국민연금공단: <strong>1355</strong></li>
+          <li>고용보험: <strong>1350</strong></li>
+        </ul>
+      </div>
+      <div class="guide-card">
+        <h3>⚠️ 주의사항</h3>
+        <ul>
+          <li>2021년부터 <strong>신규 가입자만</strong> 지원</li>
+          <li>보수 270만원 이상 시 즉시 지원 중단</li>
+          <li>10인 이상이 되면 지원 중단</li>
+          <li>일자리 안정자금 등과 중복 불가</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 상수 (2026년 기준) ──────────────────────────────────────
+const LIMIT_SALARY = 2700000;       // 270만원 미만
+const LIMIT_HEADCOUNT = 10;         // 10인 미만
+const SUPPORT_RATE = 0.80;          // 80% 지원
+
+// 보험료율
+const NP_EMP  = 0.045;  // 국민연금 근로자
+const NP_ER   = 0.045;  // 국민연금 사업주
+const EI_EMP  = 0.009;  // 고용보험 근로자
+const EI_ER   = 0.0115; // 고용보험 사업주 (150인 미만)
+
+// ── 두루누리 계산 함수 ──────────────────────────────────────
+function calcDurunuri(monthlySalary) {
+  if (monthlySalary <= 0) return null;
+  const np_emp  = Math.round(monthlySalary * NP_EMP  * SUPPORT_RATE);
+  const np_er   = Math.round(monthlySalary * NP_ER   * SUPPORT_RATE);
+  const ei_emp  = Math.round(monthlySalary * EI_EMP  * SUPPORT_RATE);
+  const ei_er   = Math.round(monthlySalary * EI_ER   * SUPPORT_RATE);
+  return {
+    employee: np_emp + ei_emp,          // 근로자 지원액/월
+    employer: np_er  + ei_er,           // 사업주 지원액/월
+    np_emp, np_er, ei_emp, ei_er,
+    total: np_emp + ei_emp + np_er + ei_er
+  };
+}
+
+function fmt(n) { return Math.round(n).toLocaleString('ko-KR') + '원'; }
+
+// ── 탭 전환 ────────────────────────────────────────────────
+function showTab(name) {
+  ['eligible','ineligible','guide'].forEach(t => {
+    document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = 'none';
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['eligible','ineligible','guide'][i] === name);
+  });
+  document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).style.display = 'block';
+}
+
+// ── 메인 로드 ──────────────────────────────────────────────
+async function loadData() {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) { location.href = 'login.html'; return; }
+
+  // 직원 목록 조회
+  let employees = [];
+  try {
+    const res = await fetch('/.netlify/functions/employees-list', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const json = await res.json();
+    employees = json.data || json.employees || json || [];
+    if (!Array.isArray(employees)) employees = [];
+  } catch(e) {
+    document.getElementById('eligibleBody').innerHTML =
+      '<div class="loading" style="color:#DC2626">직원 정보 불러오기 실패. 새로고침 해주세요.</div>';
+    return;
+  }
+
+  const activeEmp = employees.filter(e => e.status !== 'inactive');
+  const headcount = activeEmp.length;
+
+  // 인원 초과 경고
+  if (headcount >= LIMIT_HEADCOUNT) {
+    document.getElementById('warningBox').classList.add('show');
+    document.getElementById('warningText').textContent =
+      `현재 사업장 재직 인원이 ${headcount}명입니다. 두루누리 지원은 10인 미만 사업장에만 해당됩니다. 일부 직원의 지원이 중단될 수 있습니다.`;
+  }
+
+  const eligible = [], ineligible = [];
+
+  activeEmp.forEach(emp => {
+    // 월보수 = 기본급 기준 (계산된 급여가 있으면 그걸 우선)
+    const salary = Number(emp.base_salary || emp.hourly_wage * 209 || 0);
+    const reason = [];
+
+    if (salary <= 0)           reason.push('급여 정보 없음');
+    if (salary >= LIMIT_SALARY) reason.push(`월보수 ${fmt(salary)} ≥ 270만원`);
+
+    if (reason.length === 0) {
+      eligible.push({ ...emp, salary, subsidy: calcDurunuri(salary) });
+    } else {
+      ineligible.push({ ...emp, salary, reason: reason.join(', ') });
+    }
+  });
+
+  // 집계
+  const totalEmployer = eligible.reduce((s, e) => s + e.subsidy.employer, 0);
+  const totalEmployee = eligible.reduce((s, e) => s + e.subsidy.employee, 0);
+  const totalAnnual   = (totalEmployer + totalEmployee) * 12;
+
+  document.getElementById('sumEmployer').textContent  = fmt(totalEmployer) + '/월';
+  document.getElementById('sumEmployee').textContent  = fmt(totalEmployee) + '/월';
+  document.getElementById('sumAnnual').textContent    = fmt(totalAnnual) + '/년';
+  document.getElementById('sumRatio').textContent     = `${eligible.length} / ${activeEmp.length}명`;
+  document.getElementById('eligibleCount').textContent = eligible.length + '명';
+  document.getElementById('ineligibleCount').textContent = ineligible.length + '명';
+
+  // ── 지원 대상 테이블 렌더 ──
+  if (eligible.length === 0) {
+    document.getElementById('eligibleBody').innerHTML =
+      '<div class="loading" style="color:var(--gray)">지원 대상 직원이 없습니다.</div>';
+  } else {
+    document.getElementById('eligibleBody').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>직원명</th>
+            <th>부서</th>
+            <th>월보수</th>
+            <th>근로자 지원액/월</th>
+            <th>사업주 지원액/월</th>
+            <th>합계/월</th>
+            <th>연간 절감액</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${eligible.map(e => `
+            <tr>
+              <td><strong>${e.name}</strong></td>
+              <td>${e.department || '-'}</td>
+              <td class="amount">${fmt(e.salary)}</td>
+              <td>
+                <span class="amount green">${fmt(e.subsidy.employee)}</span>
+                <div class="detail-cell">연금 ${fmt(e.subsidy.np_emp)} + 고용 ${fmt(e.subsidy.ei_emp)}</div>
+              </td>
+              <td>
+                <span class="amount green">${fmt(e.subsidy.employer)}</span>
+                <div class="detail-cell">연금 ${fmt(e.subsidy.np_er)} + 고용 ${fmt(e.subsidy.ei_er)}</div>
+              </td>
+              <td class="amount green">${fmt(e.subsidy.total)}</td>
+              <td class="amount green">${fmt(e.subsidy.total * 12)}</td>
+              <td><span class="badge badge-green">대상</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // ── 미대상 테이블 렌더 ──
+  if (ineligible.length === 0) {
+    document.getElementById('ineligibleBody').innerHTML =
+      '<div class="loading" style="color:var(--gray)">모든 직원이 지원 대상입니다. 🎉</div>';
+  } else {
+    document.getElementById('ineligibleBody').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>직원명</th>
+            <th>부서</th>
+            <th>월보수</th>
+            <th>제외 사유</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ineligible.map(e => `
+            <tr>
+              <td><strong>${e.name}</strong></td>
+              <td>${e.department || '-'}</td>
+              <td class="amount ${e.salary >= LIMIT_SALARY ? 'gray' : ''}">${e.salary > 0 ? fmt(e.salary) : '-'}</td>
+              <td><span class="badge badge-red">${e.reason}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
