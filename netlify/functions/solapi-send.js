@@ -2,11 +2,14 @@
  * netlify/functions/solapi-send.js
  * SOLAPI 알림 발송 통합 엔드포인트
  * POST /.netlify/functions/solapi-send
+ * Phase 9-A: 카카오 알림 플랜 사용량 제한 연동
  */
 
 const { verifyToken } = require('./lib/auth');
 const { sendAlimtalk, sendSms } = require('./lib/solapi');
 const { createClient } = require('@supabase/supabase-js');
+// Phase 9-A: 요금제 한도 체크 미들웨어
+const { checkPlanLimit, incrementUsage, FEATURES } = require('./lib/plan-check');
 
 function getSupabase() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -25,7 +28,9 @@ function buildTemplate(type, data) {
       return {
         templateId: process.env.SOLAPI_TEMPLATE_PAYROLL || null,
         variables: { '#{이름}': data.employeeName, '#{연월}': data.payMonth, '#{실수령액}': Number(data.netPay).toLocaleString('ko-KR'), '#{링크}': data.link || 'https://staffmanager.io/salary.html' },
-        fallbackText: `[StaffManager] ${data.employeeName}님의 ${data.payMonth} 급여명세서가 발송되었습니다.\n실수령액: ${Number(data.netPay).toLocaleString('ko-KR')}원\n확인: https://staffmanager.io/salary.html`,
+        fallbackText: `[StaffManager] ${data.employeeName}님의 ${data.payMonth} 급여명세서가 발송되었습니다.
+실수령액: ${Number(data.netPay).toLocaleString('ko-KR')}원
+확인: https://staffmanager.io/salary.html`,
         title: `${data.payMonth} 급여명세서`,
         message: `실수령액 ${Number(data.netPay).toLocaleString('ko-KR')}원`,
         linkUrl: data.link || 'https://staffmanager.io/salary.html',
@@ -34,7 +39,8 @@ function buildTemplate(type, data) {
       return {
         templateId: process.env.SOLAPI_TEMPLATE_CONTRACT || null,
         variables: { '#{이름}': data.employeeName, '#{계약종류}': data.contractType || '근로계약서', '#{링크}': data.signingUrl || 'https://staffmanager.io/contracts.html' },
-        fallbackText: `[StaffManager] ${data.employeeName}님, 서명이 필요한 ${data.contractType || '근로계약서'}가 있습니다.\n서명하기: ${data.signingUrl || 'https://staffmanager.io/contracts.html'}`,
+        fallbackText: `[StaffManager] ${data.employeeName}님, 서명이 필요한 ${data.contractType || '근로계약서'}가 있습니다.
+서명하기: ${data.signingUrl || 'https://staffmanager.io/contracts.html'}`,
         title: `${data.contractType || '근로계약서'} 서명 요청`,
         message: '서명이 필요한 계약서가 있습니다.',
         linkUrl: data.signingUrl || 'https://staffmanager.io/contracts.html',
@@ -43,7 +49,9 @@ function buildTemplate(type, data) {
       return {
         templateId: process.env.SOLAPI_TEMPLATE_ATTENDANCE || null,
         variables: { '#{이름}': data.employeeName, '#{시각}': data.checkInTime, '#{사업장}': data.businessName || '' },
-        fallbackText: `[StaffManager] ${data.employeeName}님 출근 확인\n시각: ${data.checkInTime}\n사업장: ${data.businessName || ''}`,
+        fallbackText: `[StaffManager] ${data.employeeName}님 출근 확인
+시각: ${data.checkInTime}
+사업장: ${data.businessName || ''}`,
         title: '출근 확인',
         message: `${data.checkInTime} 출근 처리되었습니다.`,
         linkUrl: 'https://staffmanager.io/attendance.html',
@@ -53,7 +61,8 @@ function buildTemplate(type, data) {
       return {
         templateId: data.status === 'approved' ? (process.env.SOLAPI_TEMPLATE_VAC_APPROVE || null) : (process.env.SOLAPI_TEMPLATE_VAC_REJECT || null),
         variables: { '#{이름}': data.employeeName, '#{휴가종류}': data.vacationType || '연차', '#{날짜}': data.vacationDate, '#{결과}': statusText, '#{사유}': data.reason || '' },
-        fallbackText: `[StaffManager] ${data.employeeName}님의 ${data.vacationType || '연차'} 신청이 ${statusText}되었습니다.\n날짜: ${data.vacationDate}`,
+        fallbackText: `[StaffManager] ${data.employeeName}님의 ${data.vacationType || '연차'} 신청이 ${statusText}되었습니다.
+날짜: ${data.vacationDate}`,
         title: `휴가 신청 ${statusText}`,
         message: `${data.vacationDate} ${data.vacationType || '연차'}이 ${statusText}되었습니다.`,
         linkUrl: 'https://staffmanager.io/leaves.html',
@@ -94,6 +103,17 @@ exports.handler = async (event) => {
     if (!type || !employeeId) return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ success: false, error: 'type, employeeId는 필수입니다.' }) };
 
     const supabase = getSupabase();
+
+    // ── Phase 9-A: 카카오 알림 플랜 한도 확인 ─────────────────────
+    // 비유: 문자 쿠폰 — 이번 달 남은 카카오 발송 횟수 확인
+    // Free 30건 / Pro 300건 / Business 무제한
+    const planCheck = await checkPlanLimit(supabase, tokenData.companyId, FEATURES.KAKAO_ALERT);
+    if (!planCheck.allowed) {
+      console.log(`[solapi-send] 플랜 한도 초과: ${planCheck.plan} (${planCheck.used}/${planCheck.limit})`);
+      return { statusCode: 402, headers: CORS_HEADERS, body: JSON.stringify({ success: false, ...planCheck }) };
+    }
+    // ──────────────────────────────────────────────────────────────
+
     const { data: empData, error: empError } = await supabase
       .from('employees')
       .select('id, user_id, users:user_id(name, phone)')
@@ -135,13 +155,18 @@ exports.handler = async (event) => {
     }
 
     await saveNotificationLog(supabase, {
-      userId: empData.user_id,
-      companyId: tokenData.companyId,
+      userId: empData.user_id, companyId: tokenData.companyId,
       type, title, message: msgBody, templateId: templateId || null,
       kakaoSent: true,
       messageId: result?.messageId || result?.groupId || null,
       linkUrl,
     });
+
+    // ── Phase 9-A: 발송 성공 → 사용량 +1 ─────────────────────────
+    // 성공 후에만 카운트 (실패 시 카운트 안 함)
+    await incrementUsage(supabase, tokenData.companyId, FEATURES.KAKAO_ALERT);
+    console.log(`[solapi-send] 사용량 +1: ${planCheck.plan} (${planCheck.used + 1}/${planCheck.limit === -1 ? '무제한' : planCheck.limit})`);
+    // ──────────────────────────────────────────────────────────────
 
     return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, channel: usedChannel, messageId: result?.messageId || result?.groupId }) };
 
