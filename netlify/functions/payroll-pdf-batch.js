@@ -78,7 +78,7 @@ function addPayslipPage(doc, font, payroll, emp, company) {
     { x: 200, y: y - 42, size: 11, font, color: cDark });
   page.drawText('입사일: ' + fmtDate(emp?.hire_date),
     { x: 360, y: y - 42, size: 11, font, color: cDark });
-  const bankInfo = [emp?.bank_name, emp?.bank_account].filter(Boolean).join(' ') || '-';
+  const bankInfo = [emp?.bank_name, emp?.account_number].filter(Boolean).join(' ') || '-';
   page.drawText('계좌: ' + bankInfo,
     { x: 45, y: y - 60, size: 9, font, color: cGray });
   y -= 90;
@@ -201,7 +201,7 @@ exports.handler = async (event) => {
         *,
         employees!inner(
           id, name, department, hire_date,
-          bank_name, bank_account, business_id
+          bank_name, account_number, business_id
         )
       `)
       .eq('year', year)

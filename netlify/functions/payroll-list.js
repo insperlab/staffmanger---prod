@@ -56,7 +56,7 @@ exports.handler = async (event) => {
       .select(`
         *,
         employees!inner(
-          id, name, bank_name, bank_account,
+          id, name, bank_name, account_number,
           business_id, department,
           businesses(id, name)
         )
@@ -89,7 +89,7 @@ exports.handler = async (event) => {
         ...p,
         employee_name: p.employees?.name || '',
         bank_name:     p.employees?.bank_name || '',
-        bank_account:  p.employees?.bank_account || '',
+        account_number:  p.employees?.account_number || '',
         business_id:   p.employees?.business_id || null,
         business_name: p.employees?.businesses?.name || '미배정',
         department:    p.employees?.department || '',
