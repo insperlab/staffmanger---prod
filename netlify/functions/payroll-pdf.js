@@ -214,17 +214,34 @@ exports.handler = async (event) => {
         body: JSON.stringify({ success: false, error: 'employeeId+year+month 또는 payrollId 필요' }) };
     }
 
-    /* ── 보안: payroll의 employee_id로 회사 소속 확인 ── */
-    const { data: empCheck } = await supabase
-      .from('employees')
-      .select('id, company_id, name, department, hire_date, bank_name, bank_account')
-      .eq('id', payroll.employee_id)
-      .single();
+    /* ── 보안: payrolls.company_id 직접 비교 (가장 확실한 방법) ── */
+    // payrolls 테이블에 company_id 없으면 employees를 통해 fallback 확인
+    let companyIdToCheck = payroll.company_id;
 
-    if (!empCheck || empCheck.company_id !== tokenData.companyId) {
+    if (!companyIdToCheck) {
+      // payrolls에 company_id 없는 경우 employees에서 조회
+      const { data: empForCheck } = await supabase
+        .from('employees')
+        .select('company_id')
+        .eq('id', payroll.employee_id)
+        .single();
+      companyIdToCheck = empForCheck?.company_id;
+    }
+
+    // 디버그 로그 (Netlify 함수 로그에서 확인 가능)
+    console.log('[payroll-pdf] companyIdToCheck:', companyIdToCheck, '/ tokenData.companyId:', tokenData.companyId);
+
+    if (companyIdToCheck && companyIdToCheck !== tokenData.companyId) {
       return { statusCode: 403, headers: CORS,
         body: JSON.stringify({ success: false, error: '접근 권한 없음' }) };
     }
+
+    /* ── 직원 상세 정보 별도 조회 ── */
+    const { data: empCheck } = await supabase
+      .from('employees')
+      .select('id, name, department, hire_date, bank_name, bank_account')
+      .eq('id', payroll.employee_id)
+      .single();
 
     /* ── 회사 정보 ── */
     const { data: company } = await supabase
