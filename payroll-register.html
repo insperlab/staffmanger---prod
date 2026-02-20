@@ -253,7 +253,7 @@ async function batchCalculate() {
     showLoading('급여 일괄 계산 중...', '잠시만 기다려주세요...');
     try {
         const body = { year: parseInt(year), month: parseInt(month) };
-        if (bizId && bizId !== 'all') body.business_id = bizId;
+        if (bizId && bizId !== 'all') body.businessId = bizId;
         const res = await fetch('/.netlify/functions/calculate-payroll-batch', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
