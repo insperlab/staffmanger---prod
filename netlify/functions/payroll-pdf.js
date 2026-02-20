@@ -24,7 +24,8 @@ const CORS = {
 
 /* ── 한글 폰트 로드 ─────────────────────────────────────────── */
 async function loadKoreanFont() {
-  const url = 'https://fonts.gstatic.com/s/notosanskr/v36/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.0.woff2';
+  // woff2는 pdf-lib 미지원 → OTF(서브셋) 사용
+  const url = 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/KR/NotoSansKR-Regular.otf';
   const res = await fetch(url);
   if (!res.ok) throw new Error('폰트 로드 실패: ' + res.status);
   return res.arrayBuffer();
