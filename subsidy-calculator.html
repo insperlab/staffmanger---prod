@@ -1,6 +1,5 @@
 
 Subsidy calculator · HTML
-복사
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -8,6 +7,7 @@ Subsidy calculator · HTML
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>정부지원금 계산기 - StaffManager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --blue: #2156D0; --blue-light: #EEF2FF;
@@ -95,6 +95,11 @@ Subsidy calculator · HTML
   .btn-link { display: inline-flex; align-items: center; background: var(--blue); color: white; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-top: 12px; }
   .btn-link:hover { background: #1a45b0; }
 
+  .btn-excel { display: inline-flex; align-items: center; gap: 6px; background: #1D6F42; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .btn-excel:hover { background: #155a35; }
+  .btn-excel:disabled { opacity: 0.4; cursor: not-allowed; }
+  .export-bar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+
   .loading { text-align: center; padding: 48px; color: var(--gray); font-size: 14px; }
   .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -179,6 +184,12 @@ Subsidy calculator · HTML
     </div>
   </div>
 
+  <div class="export-bar">
+    <button class="btn-excel" id="excelBtn" onclick="downloadExcel()" disabled>
+      📥 신청 명단 엑셀 다운로드
+    </button>
+  </div>
+
   <div class="tabs">
     <div class="tab active" onclick="showTab('eligible')">✅ 지원 대상</div>
     <div class="tab" onclick="showTab('ineligible')">❌ 제외 직원</div>
@@ -251,6 +262,10 @@ Subsidy calculator · HTML
 </div>
 
 <script>
+// 엑셀 다운로드용 모듈 변수 (loadData 완료 후 채워짐)
+let eligibleData   = [];
+let ineligibleData = [];
+
 // ============================================================
 // 2026년 두루누리 기준 상수
 // ============================================================
@@ -490,6 +505,11 @@ async function loadData() {
   const totEr  = eligible.reduce((s, e) => s + e.subsidy.employer, 0);
   const totEmp = eligible.reduce((s, e) => s + e.subsidy.employee, 0);
 
+  // 모듈 변수에 저장 (downloadExcel에서 사용)
+  eligibleData   = eligible;
+  ineligibleData = ineligible;
+  document.getElementById('excelBtn').disabled = eligible.length === 0;
+
   document.getElementById('sumEmployer').textContent = fmt(totEr)  + '/월';
   document.getElementById('sumEmployee').textContent = fmt(totEmp) + '/월';
   document.getElementById('sumAnnual').textContent   = fmt((totEr + totEmp) * 12) + '/년';
@@ -575,6 +595,115 @@ function renderIneligible(list) {
         </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+// ============================================================
+// 두루누리 신청 명단 엑셀 다운로드
+// 시트1: 지원 대상 (신청 명단)
+// 시트2: 제외 직원 (참고용)
+// ============================================================
+function downloadExcel() {
+  if (!eligibleData.length) return;
+
+  const today = new Date();
+  const dateStr = today.getFullYear() + '년'
+    + String(today.getMonth() + 1).padStart(2, '0') + '월'
+    + String(today.getDate()).padStart(2, '0') + '일';
+
+  const wb = XLSX.utils.book_new();
+
+  // ── 시트1: 지원 대상 (두루누리 신청 명단) ──────────────────
+  const headers1 = [
+    '직원명', '부서', '고용형태', '입사일',
+    '월보수(원)',
+    '근로자_국민연금(원)', '근로자_고용보험(원)', '근로자_절감합계(원)',
+    '사업주_국민연금(원)', '사업주_고용보험+안정(원)', '사업주_절감합계(원)',
+    '월_총절감(원)', '연간_총절감(원)',
+    '비고'
+  ];
+
+  const rows1 = eligibleData.map(e => {
+    const s = e.subsidy;
+    const notes = [];
+    if (e.si.typeLabel === '기간제') notes.push('기간제(36개월)');
+    if (e.age !== null && e.age >= 60) notes.push(e.age + '세_연금면제');
+
+    return [
+      e.name,
+      e.department || '',
+      e.si.typeLabel,
+      e.hire_date ? e.hire_date.slice(0, 10) : '',
+      e.si.salary,
+      s.np_emp, s.ei_emp, s.employee,
+      s.np_er,  s.ei_er,  s.employer,
+      s.total,
+      s.total * 12,
+      notes.join(' / ')
+    ];
+  });
+
+  // 합계 행
+  const sum = (key) => eligibleData.reduce((t, e) => t + e.subsidy[key], 0);
+  const totalSalary = eligibleData.reduce((t, e) => t + e.si.salary, 0);
+  rows1.push([
+    '[ 합계 ]', '', '', '',
+    totalSalary,
+    sum('np_emp'), sum('ei_emp'), sum('employee'),
+    sum('np_er'),  sum('ei_er'),  sum('employer'),
+    sum('total'),  sum('total') * 12,
+    ''
+  ]);
+
+  const ws1 = XLSX.utils.aoa_to_sheet([headers1, ...rows1]);
+
+  // 열 너비 설정
+  ws1['!cols'] = [
+    {wch:12},{wch:10},{wch:8},{wch:12},
+    {wch:14},
+    {wch:18},{wch:18},{wch:18},
+    {wch:22},{wch:22},{wch:18},
+    {wch:14},{wch:16},{wch:20}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws1, '두루누리_신청명단');
+
+  // ── 시트2: 제외 직원 (참고용) ──────────────────────────────
+  if (ineligibleData.length > 0) {
+    const headers2 = ['직원명', '부서', '고용형태', '월보수(원)', '제외 사유'];
+    const rows2 = ineligibleData.map(e => [
+      e.name,
+      e.department || '',
+      e.si.typeLabel,
+      e.si.salary || 0,
+      e.reason
+    ]);
+    const ws2 = XLSX.utils.aoa_to_sheet([headers2, ...rows2]);
+    ws2['!cols'] = [{wch:12},{wch:10},{wch:8},{wch:14},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws2, '제외_직원(참고)');
+  }
+
+  // ── 시트3: 계산 기준 (2026년) ──────────────────────────────
+  const ws3 = XLSX.utils.aoa_to_sheet([
+    ['항목', '기준값', '비고'],
+    ['출력일', dateStr, ''],
+    ['적용 연도', '2026년', ''],
+    ['월보수 상한', '2,700,000원 미만', '270만원 미만'],
+    ['사업장 인원', '10인 미만', ''],
+    ['지원율', '80%', ''],
+    ['국민연금(근로자)', '4.75%', ''],
+    ['국민연금(사업주)', '4.75%', ''],
+    ['고용보험(근로자)', '0.90%', '실업급여'],
+    ['고용보험(사업주)', '0.90% + 0.25%', '실업급여 + 고용안정직능'],
+    ['지원 기간', '최대 36개월', '신규 가입자 기준'],
+    ['', '', ''],
+    ['주의', '이 파일은 StaffManager 자동 계산 결과입니다.', ''],
+    ['', '실제 신청 시 4대보험 정보연계센터(www.4insure.or.kr)에서 확인하세요.', ''],
+  ]);
+  ws3['!cols'] = [{wch:20},{wch:30},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws3, '계산기준(2026)');
+
+  // ── 파일 저장 ──
+  XLSX.writeFile(wb, `두루누리_신청명단_${dateStr}.xlsx`);
 }
 
 // 실행
