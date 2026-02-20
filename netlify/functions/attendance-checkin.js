@@ -89,25 +89,40 @@ exports.handler = async (event) => {
     }
 
     // ── 2) 전화번호 → 직원 조회 ──────────────────────────────
-    // DB 저장 형식: '010-1234-5678' (하이픈 포함)
-    // .or() 에서 하이픈이 파싱 오류 유발 → 정규화 후 in() 방식으로 변경
+    // phone은 employees가 아닌 연결된 users 테이블에 저장됨
+    // users → employees (user_id FK) 순서로 조회
     const phoneNormalized = normalizePhone(phoneNumber); // '01012345678'
     const phoneDashed = phoneNormalized.replace(/^(\d{3})(\d{4})(\d{4})$/, '$1-$2-$3'); // '010-1234-5678'
 
+    // Step 1: users 테이블에서 전화번호로 user_id 조회
+    const { data: userRows, error: userErr } = await supabase
+      .from('users')
+      .select('id')
+      .in('phone', [phoneNormalized, phoneDashed, phoneNumber]);
+
+    if (userErr || !userRows || userRows.length === 0) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '등록되지 않은 전화번호입니다.' }) };
+    }
+
+    const userIds = userRows.map(u => u.id);
+
+    // Step 2: employees 테이블에서 user_id + company_id 매칭
     const { data: employee, error: empErr } = await supabase
       .from('employees')
-      .select('id, name, business_id, status')
+      .select('id, business_id, status, users:user_id ( name )')
       .eq('company_id', companyId)
-      .in('phone', [phoneNormalized, phoneDashed, phoneNumber])
+      .in('user_id', userIds)
       .eq('status', 'active')
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (empErr || !employee) {
       return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '등록되지 않은 전화번호입니다.' }) };
     }
-    if (employee.status === 'inactive' || employee.status === 'resigned') {
-      return { statusCode: 403, headers: CORS, body: JSON.stringify({ success: false, error: '재직 중인 직원만 체크인할 수 있습니다.' }) };
-    }
+
+    // users 조인에서 이름 추출
+    const empUser = Array.isArray(employee.users) ? employee.users[0] : employee.users;
+    employee.name = empUser?.name || '직원';
 
     // ── 3) 사업장 WiFi 설정 조회 ─────────────────────────────
     let bizSettings = null;
