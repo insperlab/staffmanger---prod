@@ -1,7 +1,3 @@
-
-Attendances · HTML
-복사
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -125,7 +121,7 @@ Attendances · HTML
   </div>
   <div id="attendanceTable" class="table-container" style="display:none">
     <table>
-      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>방식</th><th>방식</th><th>상태</th></tr></thead>
+      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>방식</th><th>상태</th></tr></thead>
       <tbody id="attendanceBody"></tbody>
     </table>
   </div>
@@ -236,10 +232,12 @@ Attendances · HTML
         var statusText='',statusClass='status-normal';
         switch(record.status){
           case 'normal':statusText='정상';statusClass='status-normal';break;
+          case 'completed':statusText='정상';statusClass='status-normal';break;
+          case 'in_progress':statusText='근무중';statusClass='status-late';break;
           case 'late':statusText='지각';statusClass='status-late';break;
           case 'absent':statusText='결근';statusClass='status-absent';break;
           case 'early_leave':statusText='조퇴';statusClass='status-early_leave';break;
-          default:statusText=record.status||'-';statusClass='status-normal';
+          default:statusText='정상';statusClass='status-normal';
         }
         var emp=record.employee||{};
         var bizName=emp.businessId?(businessMap[emp.businessId]||'미배정'):'미배정';
