@@ -1111,18 +1111,30 @@ Index · HTML
     if (!isOpen) item.classList.add('open');
   }
 
-  /* 스크롤 진입 애니메이션 */
+  /* 스크롤 진입 애니메이션 — threshold:0으로 1px만 보여도 즉시 트리거 */
   var observer = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
       if (entry.isIntersecting) {
         entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.1 });
+  }, { threshold: 0, rootMargin: "0px 0px -40px 0px" });
 
   document.querySelectorAll('.fade-up').forEach(function(el) {
     observer.observe(el);
   });
+
+  /* 페이지 로드 즉시 — 이미 뷰포트 안에 있는 요소 바로 표시 */
+  function checkVisible() {
+    document.querySelectorAll('.fade-up:not(.visible)').forEach(function(el) {
+      var r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight + 40) el.classList.add('visible');
+    });
+  }
+  window.addEventListener('load', checkVisible);
+  window.addEventListener('scroll', checkVisible, { passive: true });
+  setTimeout(checkVisible, 100); /* 폰트 로드 후 재확인 */
 
   /* 앵커 스무스 스크롤 */
   document.querySelectorAll('a[href^="#"]').forEach(function(a) {
