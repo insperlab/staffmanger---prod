@@ -69,6 +69,7 @@ exports.handler = async (event) => {
           checkin_method,
           wifi_enabled,
           wifi_registered_ip,
+          wifi_registered_ip_v6,
           wifi_ip_updated_at,
           wifi_ip_mismatch_detected,
           wifi_ip_mismatch_at,
