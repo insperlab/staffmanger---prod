@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -577,27 +576,28 @@
                     const accuracy = position.coords.accuracy; // 오차 반경(m)
 
                     if (accuracy <= 100) {
-                        // ✅ 정확도 100m 이내: 유효한 위치
+                        // ✅ 정확도 100m 이내: 우수
                         currentLocation.latitude  = position.coords.latitude;
                         currentLocation.longitude = position.coords.longitude;
                         currentLocation.accuracy  = accuracy;
                         setGpsStatus('good', `📍 위치 확인됨 (오차 ±${Math.round(accuracy)}m)`);
-                    } else if (accuracy <= 500) {
-                        // ⚠️ 정확도 100~500m: 저정확도 — 위치는 저장하되 경고 표시
+                    } else if (accuracy <= 2000) {
+                        // ⚠️ 정확도 100~2000m: 저정확도 — 위치는 전송, 서버가 반경으로 판단
+                        // 실내·지하·오래된 폰에서 흔한 현상 (셀타워/WiFi 기반 위치)
                         currentLocation.latitude  = position.coords.latitude;
                         currentLocation.longitude = position.coords.longitude;
                         currentLocation.accuracy  = accuracy;
                         setGpsStatus('poor',
                             `⚠️ GPS 신호 약함 (오차 ±${Math.round(accuracy)}m) — ` +
-                            '창가/외부로 이동하거나 잠시 후 다시 시도해주세요.'
+                            '실외·창가에서 더 정확합니다. 서버 검증은 계속 진행됩니다.'
                         );
                     } else {
-                        // ❌ 정확도 500m 초과: 신뢰 불가 → 위치 미전송
+                        // ❌ 2000m 초과: 사실상 위치 모름 → 미전송
                         currentLocation.latitude  = null;
                         currentLocation.longitude = null;
                         setGpsStatus('failed',
                             `GPS 정확도가 너무 낮습니다 (오차 ±${Math.round(accuracy)}m). ` +
-                            'PC/실내 환경이라면 모바일로 시도해주세요.'
+                            '실외로 이동하거나 모바일 데이터를 켜고 다시 시도해주세요.'
                         );
                     }
                 },

@@ -952,13 +952,31 @@ function renderBizWifiCard(biz) {
          style="display:${showWifi ? 'block' : 'none'}">
       <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">
         📶 WiFi 공인 IP 등록
+        <span style="font-size:11px;font-weight:400;color:#6B7280">
+          (PC와 모바일 기기의 IP가 다를 경우 둘 다 등록하세요)
+        </span>
       </div>
+      <!-- IPv4 입력 -->
+      <div style="font-size:12px;color:#6B7280;margin-bottom:4px">IPv4 주소</div>
       <div class="wifi-ip-row">
         <input type="text" class="wifi-ip-input" id="wifiIp_${biz.id}"
                placeholder="예: 211.45.67.89" value="${ipVal}"
                oninput="validateIpInput('${biz.id}')">
         <button class="btn-getip" onclick="fetchMyIp('${biz.id}')">
           📡 현재 IP 가져오기
+        </button>
+      </div>
+      <!-- IPv6 입력 (모바일 폰이 IPv6로 접속하는 경우) -->
+      <div style="font-size:12px;color:#6B7280;margin:8px 0 4px">
+        IPv6 주소 <span style="color:#9CA3AF">(선택 · 폰이 IPv6로 접속 시 필요)</span>
+      </div>
+      <div class="wifi-ip-row">
+        <input type="text" class="wifi-ip-input" id="wifiIpV6_${biz.id}"
+               placeholder="예: 2001:e60:8833:..." 
+               value="${biz.wifi_registered_ip_v6 || ''}"
+               style="font-size:12px">
+        <button class="btn-getip" onclick="fetchMyIp('${biz.id}')">
+          📱 폰 IP 가져오기
         </button>
       </div>
       <div class="wifi-meta" id="wifiMeta_${biz.id}">${ipUpdated}</div>
@@ -1037,12 +1055,35 @@ function validateIpInput(bizId) {
 // 현재 접속 IP 자동 가져오기
 async function fetchMyIp(bizId) {
   try {
+    // Netlify 서버에서 현재 접속 IP 가져오기 (IPv4 또는 IPv6)
     const res  = await fetch('/.netlify/functions/my-ip');
     const json = await res.json();
+
     if (json.ip) {
-      document.getElementById('wifiIp_' + bizId).value = json.ip;
-      validateIpInput(bizId);
-      showToast('현재 IP: ' + json.ip + ' \n이 IP가 매장 WiFi의 공인 IP인지 확인하세요.', 'info');
+      const ip = json.ip;
+      const isIPv6 = ip.includes(':'); // ':' 포함 시 IPv6
+
+      if (isIPv6) {
+        // IPv6로 접속 중 → IPv6 필드에 입력, IPv4 필드는 유지
+        // 추가 IPv6 입력 필드가 있으면 사용, 없으면 기본 필드에 표시
+        const v6Input = document.getElementById('wifiIpV6_' + bizId);
+        if (v6Input) {
+          v6Input.value = ip;
+        } else {
+          document.getElementById('wifiIp_' + bizId).value = ip;
+        }
+        showToast(
+          '📱 IPv6로 접속 중: ' + ip + '\n\n' +
+          'PC에서도 "현재 IP 가져오기"를 클릭해 IPv4도 함께 등록하면\n' +
+          '폰/PC 모두 WiFi 인증이 가능합니다.',
+          'info'
+        );
+      } else {
+        // IPv4 → 기존 필드에 입력
+        document.getElementById('wifiIp_' + bizId).value = ip;
+        validateIpInput(bizId);
+        showToast('현재 IPv4: ' + ip + '\n이 IP가 매장 WiFi의 공인 IP인지 확인하세요.', 'info');
+      }
     }
   } catch(e) {
     showToast('IP 조회 실패: ' + e.message, 'error');
@@ -1086,19 +1127,22 @@ async function saveWifiSettings(bizId) {
   const ipInput = document.getElementById('wifiIp_' + bizId);
   const ip      = ipInput ? ipInput.value.trim() : '';
 
-  // WiFi 방식인데 IP 미입력 시 경고
-  if (wifiOn && !ip) {
-    showToast('WiFi 인증을 사용하려면 공인 IP를 입력해주세요.\n📡 현재 IP 가져오기 버튼을 사용하세요.', 'error');
+  const ipV6Input = document.getElementById('wifiIpV6_' + bizId);
+  const ipV6     = ipV6Input ? ipV6Input.value.trim() : '';
+
+  // WiFi 방식인데 IPv4/IPv6 둘 다 비어있으면 경고
+  if (wifiOn && !ip && !ipV6) {
+    showToast('WiFi 인증을 사용하려면 공인 IP를 등록해주세요.\n📡 현재 IP 가져오기 버튼을 클릭하세요.', 'error');
     return;
   }
 
-  // IP 형식 검증
+  // IPv4 형식 검증 (입력된 경우에만)
   if (wifiOn && ip) {
     const parts = ip.split('.');
     const valid = parts.length === 4 && parts.every(p => {
       const n = parseInt(p,10); return !isNaN(n) && n>=0 && n<=255 && String(n)===p;
     });
-    if (!valid) { showToast('IP 형식이 올바르지 않습니다 (예: 211.45.67.89)', 'error'); return; }
+    if (!valid) { showToast('IPv4 형식이 올바르지 않습니다 (예: 211.45.67.89)', 'error'); return; }
   }
 
   btn.disabled = true; btn.textContent = '저장 중...';
@@ -1110,7 +1154,8 @@ async function saveWifiSettings(bizId) {
         businessId:       bizId,
         checkinMethod:    method,
         wifiEnabled:      wifiOn,
-        wifiRegisteredIp: wifiOn ? ip : undefined,
+        wifiRegisteredIp:   wifiOn && ip   ? ip   : undefined,
+        wifiRegisteredIpV6: wifiOn && ipV6 ? ipV6 : undefined,
         // GPS 좌표 — 값이 있을 때만 전송
         ...(document.getElementById('gpsLat_' + bizId)?.value
           ? {
