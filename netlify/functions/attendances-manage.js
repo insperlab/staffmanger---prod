@@ -1,36 +1,45 @@
 // netlify/functions/attendances-manage.js
 // 수동 출퇴근 등록 / 수정 / 삭제 API
-//
 // POST   → 신규 등록
 // PUT    → 기존 기록 수정 (body에 id 필수)
 // DELETE → 기록 삭제   (쿼리스트링 ?id= 필수)
 
 const { createClient } = require('@supabase/supabase-js');
-// ✅ handleCors 사용 (auth.js 실제 export명)
-const { verifyToken, handleCors, errorResponse } = require('./lib/auth');
+const { verifyToken } = require('./lib/auth');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// ✅ 프로젝트 표준 패턴 — CORS 헤더 직접 선언
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
+function resp(statusCode, body) {
+  return { statusCode, headers: corsHeaders, body: JSON.stringify(body) };
+}
 
 exports.handler = async (event) => {
-  // CORS preflight 처리
-  const cors = handleCors(event);
-  if (event.httpMethod === 'OPTIONS') return cors;
+  // CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: corsHeaders, body: '' };
+  }
 
   // 인증 확인
   const auth = verifyToken(event);
-  if (!auth.valid) {
-    return { statusCode: 401, headers: cors.headers, body: JSON.stringify({ success: false, error: '인증이 필요합니다' }) };
-  }
+  if (!auth.valid) return resp(401, { success: false, error: '인증이 필요합니다' });
 
   const { companyId, role } = auth.payload;
 
   // owner / manager 만 허용
   if (!['owner', 'manager'].includes(role)) {
-    return { statusCode: 403, headers: cors.headers, body: JSON.stringify({ success: false, error: '권한이 없습니다' }) };
+    return resp(403, { success: false, error: '권한이 없습니다' });
   }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
   const method = event.httpMethod;
 
@@ -40,21 +49,19 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const { employeeId, workDate, checkInTime, checkOutTime, notes } = body;
 
-      if (!employeeId)  return { statusCode: 400, headers: cors.headers, body: JSON.stringify({ success: false, error: '직원을 선택해주세요' }) };
-      if (!workDate)    return { statusCode: 400, headers: cors.headers, body: JSON.stringify({ success: false, error: '근무일을 입력해주세요' }) };
-      if (!checkInTime) return { statusCode: 400, headers: cors.headers, body: JSON.stringify({ success: false, error: '출근 시간을 입력해주세요' }) };
+      if (!employeeId)  return resp(400, { success: false, error: '직원을 선택해주세요' });
+      if (!workDate)    return resp(400, { success: false, error: '근무일을 입력해주세요' });
+      if (!checkInTime) return resp(400, { success: false, error: '출근 시간을 입력해주세요' });
 
       // 직원이 같은 회사 소속인지 확인
       const { data: emp, error: empErr } = await supabase
         .from('employees')
-        .select('id, business_id')
+        .select('id')
         .eq('id', employeeId)
         .eq('company_id', companyId)
         .single();
 
-      if (empErr || !emp) {
-        return { statusCode: 404, headers: cors.headers, body: JSON.stringify({ success: false, error: '등록되지 않은 직원입니다' }) };
-      }
+      if (empErr || !emp) return resp(404, { success: false, error: '등록되지 않은 직원입니다' });
 
       // 같은 날 출근 기록 중복 체크
       const { data: existing } = await supabase
@@ -66,13 +73,13 @@ exports.handler = async (event) => {
         .lte('check_in_time', workDate + 'T23:59:59')
         .maybeSingle();
 
-      if (existing) {
-        return { statusCode: 409, headers: cors.headers, body: JSON.stringify({ success: false, error: '해당 날짜에 이미 출퇴근 기록이 존재합니다' }) };
-      }
+      if (existing) return resp(409, { success: false, error: '해당 날짜에 이미 출퇴근 기록이 존재합니다' });
 
+      // 출퇴근 시간 조합
       const checkIn  = `${workDate}T${checkInTime}:00`;
       const checkOut = checkOutTime ? `${workDate}T${checkOutTime}:00` : null;
 
+      // 근무 시간 계산 (시간 단위)
       let workHours = null;
       if (checkOut) {
         const diffMs = new Date(checkOut) - new Date(checkIn);
@@ -96,10 +103,10 @@ exports.handler = async (event) => {
 
       if (insertErr) {
         console.error('수동 등록 오류:', insertErr);
-        return { statusCode: 500, headers: cors.headers, body: JSON.stringify({ success: false, error: '등록 실패: ' + insertErr.message }) };
+        return resp(500, { success: false, error: '등록 실패: ' + insertErr.message });
       }
 
-      return { statusCode: 201, headers: cors.headers, body: JSON.stringify({ success: true, data: record }) };
+      return resp(201, { success: true, data: record });
     }
 
     // ── PUT: 기존 기록 수정 ──────────────────────────────
@@ -107,20 +114,19 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const { id, workDate, checkInTime, checkOutTime, notes } = body;
 
-      if (!id)          return { statusCode: 400, headers: cors.headers, body: JSON.stringify({ success: false, error: '수정할 기록 ID가 필요합니다' }) };
-      if (!workDate)    return { statusCode: 400, headers: cors.headers, body: JSON.stringify({ success: false, error: '근무일을 입력해주세요' }) };
-      if (!checkInTime) return { statusCode: 400, headers: cors.headers, body: JSON.stringify({ success: false, error: '출근 시간을 입력해주세요' }) };
+      if (!id)          return resp(400, { success: false, error: '수정할 기록 ID가 필요합니다' });
+      if (!workDate)    return resp(400, { success: false, error: '근무일을 입력해주세요' });
+      if (!checkInTime) return resp(400, { success: false, error: '출근 시간을 입력해주세요' });
 
+      // 해당 기록이 같은 회사 소속인지 확인
       const { data: target } = await supabase
         .from('attendances')
         .select('id')
         .eq('id', id)
         .eq('company_id', companyId)
-        .single();
+        .maybeSingle();
 
-      if (!target) {
-        return { statusCode: 404, headers: cors.headers, body: JSON.stringify({ success: false, error: '수정할 기록을 찾을 수 없습니다' }) };
-      }
+      if (!target) return resp(404, { success: false, error: '수정할 기록을 찾을 수 없습니다' });
 
       const checkIn  = `${workDate}T${checkInTime}:00`;
       const checkOut = checkOutTime ? `${workDate}T${checkOutTime}:00` : null;
@@ -148,17 +154,16 @@ exports.handler = async (event) => {
 
       if (updateErr) {
         console.error('수정 오류:', updateErr);
-        return { statusCode: 500, headers: cors.headers, body: JSON.stringify({ success: false, error: '수정 실패: ' + updateErr.message }) };
+        return resp(500, { success: false, error: '수정 실패: ' + updateErr.message });
       }
 
-      return { statusCode: 200, headers: cors.headers, body: JSON.stringify({ success: true, data: updated }) };
+      return resp(200, { success: true, data: updated });
     }
 
     // ── DELETE: 기록 삭제 ────────────────────────────────
     if (method === 'DELETE') {
       const id = event.queryStringParameters?.id;
-
-      if (!id) return { statusCode: 400, headers: cors.headers, body: JSON.stringify({ success: false, error: '삭제할 기록 ID가 필요합니다' }) };
+      if (!id) return resp(400, { success: false, error: '삭제할 기록 ID가 필요합니다' });
 
       const { data: target } = await supabase
         .from('attendances')
@@ -167,9 +172,7 @@ exports.handler = async (event) => {
         .eq('company_id', companyId)
         .maybeSingle();
 
-      if (!target) {
-        return { statusCode: 404, headers: cors.headers, body: JSON.stringify({ success: false, error: '삭제할 기록을 찾을 수 없습니다' }) };
-      }
+      if (!target) return resp(404, { success: false, error: '삭제할 기록을 찾을 수 없습니다' });
 
       const { error: deleteErr } = await supabase
         .from('attendances')
@@ -179,16 +182,16 @@ exports.handler = async (event) => {
 
       if (deleteErr) {
         console.error('삭제 오류:', deleteErr);
-        return { statusCode: 500, headers: cors.headers, body: JSON.stringify({ success: false, error: '삭제 실패: ' + deleteErr.message }) };
+        return resp(500, { success: false, error: '삭제 실패: ' + deleteErr.message });
       }
 
-      return { statusCode: 200, headers: cors.headers, body: JSON.stringify({ success: true, message: '삭제되었습니다' }) };
+      return resp(200, { success: true, message: '삭제되었습니다' });
     }
 
-    return { statusCode: 405, headers: cors.headers, body: JSON.stringify({ success: false, error: '허용되지 않는 메서드' }) };
+    return resp(405, { success: false, error: '허용되지 않는 메서드' });
 
   } catch (err) {
     console.error('attendances-manage 오류:', err);
-    return { statusCode: 500, headers: cors.headers, body: JSON.stringify({ success: false, error: '서버 오류: ' + err.message }) };
+    return resp(500, { success: false, error: '서버 오류: ' + err.message });
   }
 };
