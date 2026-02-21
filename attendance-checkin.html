@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -507,20 +508,9 @@
                 return;
             }
 
-            // ── GPS 방식 사전 검증 ────────────────────────────────────
-            const gpsBar = document.getElementById('gpsStatusBar');
-            // GPS 상태 바는 항상 표시 → 위치 미확보 시 제출 전 안내만 (방식과 무관하게)
-            // 실제 차단은 서버에서 method 기준으로 처리됨
-            if (gpsBar && !currentLocation.latitude) {
-                const isSearching = gpsBar.classList.contains('searching');
-                if (isSearching) {
-                    showStatus('GPS 위치를 가져오는 중입니다. 잠시 후 다시 시도해주세요.', 'info');
-                } else {
-                    showStatus('GPS 위치 정보를 가져올 수 없습니다. 창가/외부로 이동 후 새로고침해주세요.', 'error');
-                    fetchGpsLocation(); // 재시도
-                }
-                return;
-            }
+            // ── GPS 사전 검증: 프론트는 차단 안 함, 서버가 방식 기준으로 판단
+            // GPS 상태 바는 순수 정보 표시용 — 위치 없어도 제출 허용
+            // (WiFi 방식이면 서버가 GPS 없어도 통과시킴)
 
             // 출근 API 호출
             await submitAttendance('check-in', phoneNumber);
