@@ -275,6 +275,24 @@
         </div>
       </div>
 
+      <!-- 지연이자 행 (기한 초과 시 표시) -->
+      <div id="delay-interest-row" style="display:none; background:#fff3cd; border:1px solid #ffc107;
+           border-radius:10px; padding:14px 18px; margin-top:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <span style="font-weight:700; color:#856404;">🚨 지급 지연 이자</span>
+            <span id="res-delayDays" style="font-size:13px; color:#856404; margin-left:8px;"></span>
+            <span style="font-size:12px; color:#856404;"> (연 20%)</span>
+          </div>
+          <div style="font-weight:700; color:#dc3545; font-size:18px;" id="res-delayInterest">-</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;
+             border-top:1px solid #ffc107; margin-top:10px; padding-top:10px;">
+          <div style="font-weight:700; color:#333;">💰 총 지급해야 할 금액</div>
+          <div style="font-weight:800; color:#dc3545; font-size:22px;" id="res-totalPayable">-</div>
+        </div>
+      </div>
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
 
         <!-- 평균임금 상세 -->
@@ -348,6 +366,8 @@
 
       <!-- 지급 기한 -->
       <div class="warning-box info" id="paymentDueBox"></div>
+      <!-- 지연이자 상세 박스 (JS로 동적 생성) -->
+      <div id="delayInterestBox"></div>
 
       <!-- 확정 버튼 -->
       <div class="btn-group">
