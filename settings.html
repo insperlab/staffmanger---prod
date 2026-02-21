@@ -861,55 +861,74 @@ function renderBizWifiCard(biz) {
       <br><small>아래에서 새 IP로 업데이트하거나 무시하세요.</small>
     </div>` : '';
 
-  const wifiChecked = biz.wifi_enabled ? 'checked' : '';
-  const methodQr  = (biz.checkin_method||'qr') === 'qr'  ? 'selected' : '';
-  const methodGps = (biz.checkin_method||'qr') === 'gps' ? 'selected' : '';
+  // 현재 출퇴근 방식 (기본값: qr)
+  const method = biz.checkin_method || 'qr';
+  const methodQr       = method === 'qr'       ? 'selected' : '';
+  const methodGps      = method === 'gps'      ? 'selected' : '';
+  const methodWifi     = method === 'wifi'     ? 'selected' : '';
+  const methodGpsWifi  = method === 'gps+wifi' ? 'selected' : '';
+
+  // WiFi/GPS 섹션 초기 표시 여부
+  const showWifi = ['wifi','gps+wifi'].includes(method);
+  const showGps  = ['gps','gps+wifi'].includes(method);
+
   const ipVal     = biz.wifi_registered_ip || '';
   const ipUpdated = biz.wifi_ip_updated_at
     ? '마지막 수정: ' + new Date(biz.wifi_ip_updated_at).toLocaleString('ko-KR')
     : 'IP 미등록';
+
+  // 방식별 안내 문구
+  const methodDesc = {
+    'qr':       '직원이 사업장 QR코드를 스캔하여 출퇴근합니다.',
+    'gps':      '직원의 GPS 위치가 사업장 반경 이내일 때만 출퇴근을 허용합니다.',
+    'wifi':     '사업장 WiFi(공인 IP)에 연결된 상태에서만 출퇴근을 허용합니다.',
+    'gps+wifi': 'GPS 위치 또는 사업장 WiFi 중 하나라도 인증되면 출퇴근을 허용합니다. (이중 안전망)',
+  };
 
   return `
   <div class="biz-wifi-card" id="bizCard_${biz.id}">
     <h3>🏪 ${biz.name}${hq}</h3>
     ${alertHtml}
 
+    <!-- 주 출퇴근 방식 드롭다운 -->
     <div class="wifi-row">
       <span class="wifi-label">주 출퇴근 방식</span>
-      <select class="wifi-select" id="method_${biz.id}">
-        <option value="qr"  ${methodQr}>📱 QR 스캔 (기본)</option>
-        <option value="gps" ${methodGps}>📍 GPS 위치 인증</option>
+      <select class="wifi-select" id="method_${biz.id}"
+              onchange="onMethodChange('${biz.id}')">
+        <option value="qr"       ${methodQr}>📱 QR 스캔 (기본)</option>
+        <option value="gps"      ${methodGps}>📍 GPS 위치 인증</option>
+        <option value="wifi"     ${methodWifi}>📶 WiFi 인증</option>
+        <option value="gps+wifi" ${methodGpsWifi}>📍📶 GPS + WiFi (이중 인증)</option>
       </select>
     </div>
 
-    <div class="wifi-row">
-      <span class="wifi-label">WiFi 보조 인증</span>
-      <label class="toggle-switch">
-        <input type="checkbox" id="wifiToggle_${biz.id}" ${wifiChecked}
-               onchange="onWifiToggle('${biz.id}')">
-        <span class="toggle-slider"></span>
-      </label>
-      <span id="wifiToggleLabel_${biz.id}" style="font-size:13px;color:#6B7280">
-        ${biz.wifi_enabled ? 'ON' : 'OFF'}
-      </span>
+    <!-- 방식 설명 (드롭다운 변경 시 업데이트) -->
+    <div class="wifi-meta" id="methodDesc_${biz.id}"
+         style="margin-bottom:10px;color:#4B5563;font-size:12px;padding:8px 12px;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB">
+      ${methodDesc[method]}
     </div>
 
+    <!-- WiFi IP 설정 섹션 (wifi / gps+wifi 선택 시만 표시) -->
     <div class="wifi-ip-section" id="wifiIpSection_${biz.id}"
-         style="display:${biz.wifi_enabled ? 'block' : 'none'}">
+         style="display:${showWifi ? 'block' : 'none'}">
+      <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">
+        📶 WiFi 공인 IP 등록
+      </div>
       <div class="wifi-ip-row">
         <input type="text" class="wifi-ip-input" id="wifiIp_${biz.id}"
                placeholder="예: 211.45.67.89" value="${ipVal}"
                oninput="validateIpInput('${biz.id}')">
         <button class="btn-getip" onclick="fetchMyIp('${biz.id}')">
-          📍 현재 IP 가져오기
+          📡 현재 IP 가져오기
         </button>
       </div>
       <div class="wifi-meta" id="wifiMeta_${biz.id}">${ipUpdated}</div>
     </div>
 
-    <!-- GPS 위치 설정 섹션 -->
-    <div class="gps-section" id="gpsSection_${biz.id}">
-      <h4>📍 GPS 위치 인증 설정
+    <!-- GPS 위치 설정 섹션 (gps / gps+wifi 선택 시만 표시) -->
+    <div class="gps-section" id="gpsSection_${biz.id}"
+         style="display:${showGps ? 'block' : 'none'}">
+      <h4>📍 GPS 위치 설정
         ${biz.gps_latitude
           ? '<span class="gps-badge set">✅ 위치 등록됨</span>'
           : '<span class="gps-badge unset">미등록</span>'}
@@ -934,10 +953,6 @@ function renderBizWifiCard(biz) {
           <small>(30~2000m, 권장: 음식점 50m / 넓은 사업장 200m)</small>
         </span>
       </div>
-      <div class="gps-meta">
-        GPS 인증: 직원이 이 위치에서 설정 반경 이내에 있을 때만 출퇴근을 허용합니다.<br>
-        <b>주 출퇴근 방식이 GPS일 때만 강제 검증됩니다.</b> QR 방식에서는 참고 기록만 합니다.
-      </div>
     </div>
 
     <div style="margin-top:14px;text-align:right">
@@ -949,10 +964,25 @@ function renderBizWifiCard(biz) {
   </div>`;
 }
 
-function onWifiToggle(bizId) {
-  const on = document.getElementById('wifiToggle_' + bizId).checked;
-  document.getElementById('wifiToggleLabel_' + bizId).textContent = on ? 'ON' : 'OFF';
-  document.getElementById('wifiIpSection_' + bizId).style.display = on ? 'block' : 'none';
+// 출퇴근 방식 변경 시 → WiFi/GPS 섹션 표시/숨김 + 설명 문구 업데이트
+function onMethodChange(bizId) {
+  const method = document.getElementById('method_' + bizId).value;
+
+  const showWifi = ['wifi', 'gps+wifi'].includes(method);
+  const showGps  = ['gps',  'gps+wifi'].includes(method);
+
+  document.getElementById('wifiIpSection_' + bizId).style.display = showWifi ? 'block' : 'none';
+  document.getElementById('gpsSection_'    + bizId).style.display = showGps  ? 'block' : 'none';
+
+  // 방식 설명 문구 업데이트
+  const desc = {
+    'qr':       '직원이 사업장 QR코드를 스캔하여 출퇴근합니다.',
+    'gps':      '직원의 GPS 위치가 사업장 반경 이내일 때만 출퇴근을 허용합니다.',
+    'wifi':     '사업장 WiFi(공인 IP)에 연결된 상태에서만 출퇴근을 허용합니다.',
+    'gps+wifi': 'GPS 위치 또는 사업장 WiFi 중 하나라도 인증되면 출퇴근을 허용합니다. (이중 안전망)',
+  };
+  const descEl = document.getElementById('methodDesc_' + bizId);
+  if (descEl) descEl.textContent = desc[method] || '';
 }
 
 // IP 형식 실시간 검증
@@ -1010,10 +1040,18 @@ function fetchMyLocation(bizId) {
 // WiFi 설정 저장
 async function saveWifiSettings(bizId) {
   const btn = document.getElementById('saveBtn_' + bizId);
-  const method    = document.getElementById('method_' + bizId).value;
-  const wifiOn    = document.getElementById('wifiToggle_' + bizId).checked;
-  const ipInput   = document.getElementById('wifiIp_' + bizId);
-  const ip        = ipInput ? ipInput.value.trim() : '';
+  const method  = document.getElementById('method_' + bizId).value;
+
+  // 드롭다운 방식에 따라 WiFi 활성화 여부 자동 결정
+  const wifiOn  = ['wifi', 'gps+wifi'].includes(method);
+  const ipInput = document.getElementById('wifiIp_' + bizId);
+  const ip      = ipInput ? ipInput.value.trim() : '';
+
+  // WiFi 방식인데 IP 미입력 시 경고
+  if (wifiOn && !ip) {
+    showToast('WiFi 인증을 사용하려면 공인 IP를 입력해주세요.\n📡 현재 IP 가져오기 버튼을 사용하세요.', 'error');
+    return;
+  }
 
   // IP 형식 검증
   if (wifiOn && ip) {
