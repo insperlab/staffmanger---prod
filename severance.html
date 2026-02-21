@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>퇴직금 관리 | StaffManager</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    /* ── 공통 레이아웃 ── */
+    .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .page-title { font-size:22px; font-weight:700; color:#1a1a2e; }
+
+    /* ── 탭 ── */
+    .tab-nav { display:flex; gap:4px; border-bottom:2px solid #e5e7eb; margin-bottom:24px; }
+    .tab-btn { padding:10px 20px; border:none; background:none; font-size:14px; font-weight:500;
+               color:#6b7280; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; }
+    .tab-btn.active { color:#4f46e5; border-bottom-color:#4f46e5; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ── 카드 ── */
+    .card { background:#fff; border-radius:12px; border:1px solid #e5e7eb; padding:24px; margin-bottom:16px; }
+    .card-title { font-size:15px; font-weight:600; color:#374151; margin-bottom:16px;
+                  padding-bottom:12px; border-bottom:1px solid #f3f4f6; }
+
+    /* ── 폼 ── */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+    .form-group { display:flex; flex-direction:column; gap:6px; }
+    .form-group.full { grid-column:1/-1; }
+    .form-label { font-size:13px; font-weight:500; color:#374151; }
+    .form-label .required { color:#ef4444; margin-left:2px; }
+    .form-input, .form-select { padding:9px 12px; border:1px solid #d1d5db; border-radius:8px;
+                                 font-size:14px; color:#111827; outline:none; }
+    .form-input:focus, .form-select:focus { border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,.1); }
+    .form-hint { font-size:12px; color:#9ca3af; }
+
+    /* ── 토글 ── */
+    .toggle-group { display:flex; align-items:center; gap:10px; padding:10px 14px;
+                    background:#f9fafb; border-radius:8px; border:1px solid #e5e7eb; }
+    .toggle { position:relative; width:40px; height:22px; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; inset:0; background:#d1d5db; border-radius:20px;
+                     cursor:pointer; transition:.2s; }
+    .toggle-slider:before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px;
+                             background:#fff; border-radius:50%; transition:.2s; }
+    .toggle input:checked + .toggle-slider { background:#4f46e5; }
+    .toggle input:checked + .toggle-slider:before { transform:translateX(18px); }
+    .toggle-label { font-size:13px; color:#374151; }
+
+    /* ── 버튼 ── */
+    .btn { padding:9px 18px; border-radius:8px; font-size:14px; font-weight:500;
+           cursor:pointer; border:none; transition:.15s; }
+    .btn-primary { background:#4f46e5; color:#fff; }
+    .btn-primary:hover { background:#4338ca; }
+    .btn-secondary { background:#f3f4f6; color:#374151; border:1px solid #d1d5db; }
+    .btn-secondary:hover { background:#e5e7eb; }
+    .btn-danger { background:#fee2e2; color:#dc2626; }
+    .btn-danger:hover { background:#fecaca; }
+    .btn-lg { padding:12px 28px; font-size:15px; }
+    .btn-sm { padding:6px 12px; font-size:13px; }
+    .btn-group { display:flex; gap:10px; margin-top:20px; }
+
+    /* ── 결과 박스 ── */
+    .result-section { display:none; }
+    .result-section.show { display:block; }
+    .result-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+    .result-box { background:#f9fafb; border-radius:10px; padding:16px; text-align:center; }
+    .result-box.highlight { background:#eef2ff; border:1px solid #c7d2fe; }
+    .result-box.refund { background:#f0fdf4; border:1px solid #86efac; }
+    .result-box .label { font-size:12px; color:#6b7280; margin-bottom:6px; }
+    .result-box .value { font-size:20px; font-weight:700; color:#111827; }
+    .result-box .value.green { color:#16a34a; }
+    .result-box .value.purple { color:#4f46e5; }
+
+    /* ── 계산 상세 테이블 ── */
+    .calc-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .calc-table th { background:#f9fafb; padding:10px 14px; text-align:left;
+                     font-weight:500; color:#6b7280; border-bottom:1px solid #e5e7eb; }
+    .calc-table td { padding:10px 14px; border-bottom:1px solid #f3f4f6; color:#374151; }
+    .calc-table tr:last-child td { border-bottom:none; }
+    .calc-table .total-row td { font-weight:700; color:#111827; background:#f9fafb; }
+    .calc-table .indent { padding-left:28px; color:#6b7280; }
+    .calc-table .amount { text-align:right; font-variant-numeric:tabular-nums; }
+
+    /* ── 경고 ── */
+    .warning-box { background:#fffbeb; border:1px solid #fcd34d; border-radius:8px;
+                   padding:12px 16px; margin-bottom:12px; font-size:13px; color:#92400e; }
+    .warning-box.info { background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8; }
+    .warning-box.danger { background:#fef2f2; border-color:#fca5a5; color:#dc2626; }
+    .warning-box.success { background:#f0fdf4; border-color:#86efac; color:#15803d; }
+
+    /* ── IRP 절세 시뮬 ── */
+    .irp-sim { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px; }
+    .irp-card { border-radius:10px; padding:14px; text-align:center; border:1px solid #e5e7eb; }
+    .irp-card .irp-label { font-size:12px; color:#6b7280; margin-bottom:8px; }
+    .irp-card .irp-tax { font-size:18px; font-weight:700; color:#374151; }
+    .irp-card .irp-save { font-size:12px; color:#16a34a; margin-top:4px; }
+    .irp-card.best { background:#f0fdf4; border-color:#86efac; }
+
+    /* ── 지급 목록 ── */
+    .list-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .list-table th { background:#f9fafb; padding:11px 14px; text-align:left;
+                     font-weight:500; color:#6b7280; border-bottom:2px solid #e5e7eb; }
+    .list-table td { padding:11px 14px; border-bottom:1px solid #f3f4f6; color:#374151; }
+    .list-table tr:hover td { background:#f9fafb; }
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; }
+    .badge-pending { background:#fef3c7; color:#d97706; }
+    .badge-paid { background:#d1fae5; color:#059669; }
+    .badge-overdue { background:#fee2e2; color:#dc2626; }
+
+    /* ── 빈 상태 ── */
+    .empty-state { text-align:center; padding:60px 20px; color:#9ca3af; }
+    .empty-state .icon { font-size:48px; margin-bottom:12px; }
+    .empty-state p { font-size:15px; }
+
+    /* ── 로딩 ── */
+    .spinner { display:inline-block; width:18px; height:18px; border:2px solid #c7d2fe;
+               border-top-color:#4f46e5; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── 섹션 구분선 ── */
+    .section-divider { height:1px; background:#f3f4f6; margin:20px 0; }
+  </style>
+</head>
+<body>
+<!-- 사이드바 include -->
+<div id="sidebar-placeholder"></div>
+
+<main class="main-content" id="mainContent">
+  <div class="page-header">
+    <div class="page-title">💰 퇴직금 관리</div>
+  </div>
+
+  <!-- 탭 네비게이션 -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="calc">퇴직금 계산</button>
+    <button class="tab-btn" data-tab="list">지급 내역</button>
+    <button class="tab-btn" data-tab="dc">DC 부담금</button>
+    <button class="tab-btn" data-tab="sim">시뮬레이터</button>
+  </div>
+
+  <!-- ══════════════════════════════════
+       탭 1: 퇴직금 계산
+  ══════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-calc">
+
+    <!-- 입력 카드 -->
+    <div class="card">
+      <div class="card-title">📋 퇴직금 계산 정보 입력</div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">직원 선택 <span class="required">*</span></label>
+          <select class="form-select" id="selEmployee">
+            <option value="">-- 직원을 선택해주세요 --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">퇴직일 <span class="required">*</span></label>
+          <input type="date" class="form-input" id="retirementDate" />
+          <span class="form-hint">마지막 근무일 기준</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">퇴직연금 유형</label>
+          <select class="form-select" id="selSeveranceType">
+            <option value="lump_sum">퇴직금 (사내)</option>
+            <option value="db">DB형 확정급여</option>
+            <option value="dc">DC형 확정기여</option>
+            <option value="pureunssieat">푸른씨앗 (공단)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">IRP 계좌번호</label>
+          <input type="text" class="form-input" id="irpAccount" placeholder="000-00-000000-0" />
+          <span class="form-hint">2022.4.14~ 의무화</span>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- 상여금 설정 (핵심 옵션) -->
+      <div class="card-title">💡 상여금 포함 설정</div>
+      <div class="toggle-group" style="margin-bottom:16px;">
+        <label class="toggle">
+          <input type="checkbox" id="toggleBonus" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">퇴직금 계산 시 상여금 포함</span>
+        <span class="form-hint" style="margin-left:auto;">
+          ℹ️ 취업규칙에 명시된 정기상여 포함 권장 (명절상여·불규칙상여 제외)
+        </span>
+      </div>
+
+      <div class="form-grid" id="bonusInputArea">
+        <div class="form-group">
+          <label class="form-label">연간 상여금 총액</label>
+          <input type="number" class="form-input" id="bonusAnnualAmount"
+                 placeholder="0" min="0" step="10000" />
+          <span class="form-hint">직접 입력 (비워두면 직원 정보의 상여금 사용)</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">계산에 반영되는 상여금 (3/12)</label>
+          <input type="text" class="form-input" id="bonus3mPreview" readonly
+                 style="background:#f9fafb; color:#6b7280;" value="0원" />
+          <span class="form-hint">연간 상여금 ÷ 12 × 3</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary btn-lg" id="btnPreview">
+          🔍 퇴직금 미리보기
+        </button>
+        <button class="btn btn-secondary" id="btnReset">초기화</button>
+      </div>
+    </div>
+
+    <!-- 경고 영역 -->
+    <div id="warningArea"></div>
+
+    <!-- 결과 카드 -->
+    <div class="result-section" id="resultSection">
+
+      <!-- 요약 -->
+      <div class="result-summary">
+        <div class="result-box">
+          <div class="label">재직 기간</div>
+          <div class="value" id="res-servicePeriod">-</div>
+        </div>
+        <div class="result-box highlight">
+          <div class="label">퇴직금 (세전)</div>
+          <div class="value purple" id="res-severancePay">-</div>
+        </div>
+        <div class="result-box">
+          <div class="label">퇴직소득세 합계</div>
+          <div class="value" id="res-totalTax">-</div>
+        </div>
+        <div class="result-box refund">
+          <div class="label">실 지급액</div>
+          <div class="value green" id="res-netPay">-</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+        <!-- 평균임금 상세 -->
+        <div class="card">
+          <div class="card-title">📊 평균임금 계산 상세</div>
+          <table class="calc-table">
+            <thead>
+              <tr><th>항목</th><th class="amount">금액</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>산정 기간</td><td class="amount" id="d-period">-</td></tr>
+              <tr><td>기본급 (3개월)</td><td class="amount" id="d-basePay">-</td></tr>
+              <tr><td>제수당 (3개월)</td><td class="amount" id="d-allowance">-</td></tr>
+              <tr><td class="indent">└ 야간·연장·휴일수당 포함</td><td></td></tr>
+              <tr><td>상여금 (연간 × 3/12)</td><td class="amount" id="d-bonus">-</td></tr>
+              <tr><td>연차미사용수당</td><td class="amount" id="d-unusedLeave">-</td></tr>
+              <tr class="total-row"><td>3개월 임금 합계</td><td class="amount" id="d-totalWage">-</td></tr>
+              <tr><td>산정 일수</td><td class="amount" id="d-days">-</td></tr>
+              <tr><td>1일 평균임금</td><td class="amount" id="d-dailyAvg">-</td></tr>
+              <tr><td>1일 통상임금</td><td class="amount" id="d-dailyOrd">-</td></tr>
+              <tr class="total-row"><td>적용 일급 <span id="d-whichWage" style="font-size:11px; color:#6b7280;"></span></td><td class="amount" id="d-appliedWage">-</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 퇴직소득세 상세 -->
+        <div class="card">
+          <div class="card-title">🧾 퇴직소득세 계산 상세</div>
+          <table class="calc-table">
+            <thead>
+              <tr><th>단계</th><th class="amount">금액</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>STEP 1. 퇴직소득금액</td><td class="amount" id="t-retirementIncome">-</td></tr>
+              <tr><td>STEP 2. (-) 근속연수공제</td><td class="amount" id="t-serviceDeduction">-</td></tr>
+              <tr><td>STEP 3. 환산급여</td><td class="amount" id="t-convertedSalary">-</td></tr>
+              <tr><td>STEP 4. (-) 환산급여공제</td><td class="amount" id="t-convertedDeduction">-</td></tr>
+              <tr><td>STEP 5. 과세표준</td><td class="amount" id="t-taxBase">-</td></tr>
+              <tr><td>STEP 6. 환산산출세액</td><td class="amount" id="t-convertedTax">-</td></tr>
+              <tr><td>STEP 7. 퇴직소득세</td><td class="amount" id="t-incomeTax">-</td></tr>
+              <tr><td>STEP 8. 지방소득세 (×10%)</td><td class="amount" id="t-localTax">-</td></tr>
+              <tr class="total-row"><td>합계 세액</td><td class="amount" id="t-totalTax">-</td></tr>
+            </tbody>
+          </table>
+
+          <!-- IRP 절세 -->
+          <div style="margin-top:16px;">
+            <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">
+              💡 IRP 연금 수령 시 절세 시뮬레이션
+            </div>
+            <div class="irp-sim">
+              <div class="irp-card">
+                <div class="irp-label">일시금 수령</div>
+                <div class="irp-tax" id="irp-lumpsum">-</div>
+                <div class="irp-save">기준</div>
+              </div>
+              <div class="irp-card">
+                <div class="irp-label">연금 (10년 이내)</div>
+                <div class="irp-tax" id="irp-10">-</div>
+                <div class="irp-save" id="irp-10-save">-</div>
+              </div>
+              <div class="irp-card best">
+                <div class="irp-label">연금 (10년 초과) ⭐</div>
+                <div class="irp-tax" id="irp-over10">-</div>
+                <div class="irp-save" id="irp-over10-save">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지급 기한 -->
+      <div class="warning-box info" id="paymentDueBox"></div>
+
+      <!-- 확정 버튼 -->
+      <div class="btn-group">
+        <button class="btn btn-primary btn-lg" id="btnConfirm">
+          ✅ 퇴직금 확정 및 저장
+        </button>
+        <button class="btn btn-secondary" id="btnPrint">🖨️ 인쇄</button>
+      </div>
+    </div>
+  </div><!-- /tab-calc -->
+
+  <!-- ══════════════════════════════════
+       탭 2: 지급 내역
+  ══════════════════════════════════ -->
+  <div class="tab-panel" id="tab-list">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0; border-bottom:none;">퇴직금 지급 내역</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select class="form-select" id="filterYear" style="width:120px;">
+            <option value="">전체 연도</option>
+          </select>
+          <select class="form-select" id="filterStatus" style="width:120px;">
+            <option value="">전체 상태</option>
+            <option value="pending">미지급</option>
+            <option value="paid">지급완료</option>
+            <option value="overdue">기한초과</option>
+          </select>
+        </div>
+      </div>
+      <div id="listTableArea">
+        <div class="empty-state">
+          <div class="icon">💼</div>
+          <p>퇴직금 지급 내역이 없습니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       탭 3: DC 부담금
+  ══════════════════════════════════ -->
+  <div class="tab-panel" id="tab-dc">
+    <div class="card">
+      <div class="card-title">📅 DC형 연간 부담금 현황</div>
+      <div class="warning-box info">
+        DC형(확정기여형) 퇴직연금은 매년 <strong>연간 임금 총액 ÷ 12 이상</strong>을 금융기관에 납부해야 합니다.
+        미납 시 과태료 및 이자가 발생합니다.
+      </div>
+      <div id="dcTableArea">
+        <div class="empty-state">
+          <div class="icon">📊</div>
+          <p>DC형 부담금 내역이 없습니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       탭 4: 시뮬레이터
+  ══════════════════════════════════ -->
+  <div class="tab-panel" id="tab-sim">
+    <div class="card">
+      <div class="card-title">🧮 퇴직금 간편 시뮬레이터</div>
+      <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">
+        직원 등록 없이 월급·근속연수만 입력해서 퇴직금을 빠르게 계산해보세요.
+      </p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">월 기본급</label>
+          <input type="number" class="form-input" id="sim-monthly" placeholder="3000000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">월 고정수당 (식대·교통비 등)</label>
+          <input type="number" class="form-input" id="sim-allowance" placeholder="200000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">연간 상여금</label>
+          <input type="number" class="form-input" id="sim-bonus" placeholder="6000000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">근속연수 (년)</label>
+          <input type="number" class="form-input" id="sim-years" placeholder="3" min="1" max="50" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:12px;" id="btnSimCalc">계산하기</button>
+
+      <div id="simResult" style="display:none; margin-top:20px;">
+        <div class="result-summary" style="grid-template-columns:repeat(3,1fr);">
+          <div class="result-box highlight">
+            <div class="label">퇴직금 (세전)</div>
+            <div class="value purple" id="sim-severancePay">-</div>
+          </div>
+          <div class="result-box">
+            <div class="label">퇴직소득세</div>
+            <div class="value" id="sim-tax">-</div>
+          </div>
+          <div class="result-box refund">
+            <div class="label">실 지급 예상액</div>
+            <div class="value green" id="sim-net">-</div>
+          </div>
+        </div>
+        <div class="warning-box info" style="margin-top:12px; font-size:12px;">
+          📌 이 계산은 단순 참고용입니다. 실제 퇴직금은 취업규칙·근로계약서에 따라 달라질 수 있습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main><!-- /main-content -->
+
+<script>
+// ══════════════════════════════════════════════
+// 공통 유틸
+// ══════════════════════════════════════════════
+const API = (path, body) => fetch(`/.netlify/functions/${path}`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json',
+             Authorization: `Bearer ${localStorage.getItem('token')}` },
+  body: JSON.stringify(body),
+}).then(r => r.json());
+
+const GET = (path) => fetch(`/.netlify/functions/${path}`, {
+  headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+}).then(r => r.json());
+
+const won = n => (Number(n) || 0).toLocaleString() + '원';
+const wonShort = n => {
+  const v = Number(n) || 0;
+  if (v >= 100000000) return (v / 100000000).toFixed(1) + '억원';
+  if (v >= 10000) return Math.floor(v / 10000) + '만원';
+  return v.toLocaleString() + '원';
+};
+
+// ── 탭 전환 ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    if (btn.dataset.tab === 'list') loadList();
+    if (btn.dataset.tab === 'dc') loadDc();
+  });
+});
+
+// ══════════════════════════════════════════════
+// 탭1: 퇴직금 계산
+// ══════════════════════════════════════════════
+
+// 직원 목록 로드
+async function loadEmployees() {
+  const sel = document.getElementById('selEmployee');
+  try {
+    const res = await GET('employees-list');
+    if (!res.success) return;
+    res.data.forEach(emp => {
+      const opt = document.createElement('option');
+      opt.value = emp.id;
+      opt.dataset.hire = emp.hire_date || '';
+      opt.dataset.bonus = emp.bonus_annual_amount || 0;
+      opt.dataset.irp = emp.irp_account || '';
+      opt.textContent = `${emp.name} (입사: ${emp.hire_date || '미등록'})`;
+      sel.appendChild(opt);
+    });
+  } catch {}
+}
+loadEmployees();
+
+// 직원 선택 시 IRP 자동 채우기
+document.getElementById('selEmployee').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  if (opt.dataset.irp) document.getElementById('irpAccount').value = opt.dataset.irp;
+  if (opt.dataset.bonus) document.getElementById('bonusAnnualAmount').value = opt.dataset.bonus;
+  updateBonus3mPreview();
+});
+
+// 상여금 토글
+document.getElementById('toggleBonus').addEventListener('change', function() {
+  document.getElementById('bonusInputArea').style.display = this.checked ? 'grid' : 'none';
+});
+
+// 연간 상여금 → 3/12 미리보기
+function updateBonus3mPreview() {
+  const annual = Number(document.getElementById('bonusAnnualAmount').value) || 0;
+  const bonus3m = Math.floor(annual * 3 / 12);
+  document.getElementById('bonus3mPreview').value = bonus3m.toLocaleString() + '원';
+}
+document.getElementById('bonusAnnualAmount').addEventListener('input', updateBonus3mPreview);
+
+// 퇴직금 미리보기
+let previewData = null; // 확정 저장용
+
+document.getElementById('btnPreview').addEventListener('click', async () => {
+  const employeeId = document.getElementById('selEmployee').value;
+  const retirementDate = document.getElementById('retirementDate').value;
+  if (!employeeId || !retirementDate) {
+    alert('직원과 퇴직일을 선택해주세요.');
+    return;
+  }
+
+  const btn = document.getElementById('btnPreview');
+  btn.innerHTML = '<span class="spinner"></span> 계산 중...';
+  btn.disabled = true;
+
+  try {
+    const res = await API('calculate-severance', {
+      employeeId,
+      retirementDate,
+      severanceType: document.getElementById('selSeveranceType').value,
+      includeBonus: document.getElementById('toggleBonus').checked,
+      bonusAnnualAmount: Number(document.getElementById('bonusAnnualAmount').value) || 0,
+      irpAccount: document.getElementById('irpAccount').value,
+      preview: true,
+    });
+
+    if (!res.success) {
+      showWarning(res.error, 'danger');
+      return;
+    }
+
+    previewData = res.data;
+    renderResult(res.data);
+
+  } catch (e) {
+    showWarning('계산 중 오류가 발생했습니다. 다시 시도해주세요.', 'danger');
+  } finally {
+    btn.innerHTML = '🔍 퇴직금 미리보기';
+    btn.disabled = false;
+  }
+});
+
+// 결과 렌더링
+function renderResult(d) {
+  // 요약
+  document.getElementById('res-servicePeriod').textContent = d.serviceYearsDisplay;
+  document.getElementById('res-severancePay').textContent = won(d.severancePay);
+  document.getElementById('res-totalTax').textContent = won(d.tax.totalTax);
+  document.getElementById('res-netPay').textContent = won(d.netSeverancePay);
+
+  // 평균임금 상세
+  const a = d.avgWage;
+  document.getElementById('d-period').textContent =
+    `${a.periodStart} ~ ${a.periodEnd} (${a.periodDays}일)`;
+  document.getElementById('d-basePay').textContent = won(a.basePay3m);
+  document.getElementById('d-allowance').textContent = won(a.allowance3m);
+  document.getElementById('d-bonus').textContent =
+    a.bonusIncludeOption ? won(a.bonus3m) : '0원 (제외)';
+  document.getElementById('d-unusedLeave').textContent = won(a.unusedLeavePay);
+  document.getElementById('d-totalWage').textContent = won(a.totalWage3m);
+  document.getElementById('d-days').textContent = a.periodDays + '일';
+  document.getElementById('d-dailyAvg').textContent = won(a.dailyAverageWage);
+  document.getElementById('d-dailyOrd').textContent = won(a.dailyOrdinaryWage);
+  document.getElementById('d-appliedWage').textContent = won(a.appliedDailyWage);
+  document.getElementById('d-whichWage').textContent =
+    a.usedOrdinary ? '(통상임금 적용)' : '(평균임금 적용)';
+
+  // 퇴직소득세 상세
+  const t = d.tax;
+  document.getElementById('t-retirementIncome').textContent = won(t.retirementIncome || d.severancePay);
+  document.getElementById('t-serviceDeduction').textContent = '-' + won(t.serviceYearsDeduction);
+  document.getElementById('t-convertedSalary').textContent = won(t.convertedSalary);
+  document.getElementById('t-convertedDeduction').textContent = '-' + won(t.convertedDeduction);
+  document.getElementById('t-taxBase').textContent = won(t.taxBase);
+  document.getElementById('t-convertedTax').textContent = won(t.convertedTax || 0);
+  document.getElementById('t-incomeTax').textContent = won(t.incomeTax);
+  document.getElementById('t-localTax').textContent = won(t.localIncomeTax);
+  document.getElementById('t-totalTax').textContent = won(t.totalTax);
+
+  // IRP 절세
+  const irp = d.irpBenefit;
+  document.getElementById('irp-lumpsum').textContent = won(irp.lumpSum);
+  document.getElementById('irp-10').textContent = won(irp.annuityWithin10);
+  document.getElementById('irp-10-save').textContent = `절세 ${won(irp.savingWithin10)}`;
+  document.getElementById('irp-over10').textContent = won(irp.annuityOver10);
+  document.getElementById('irp-over10-save').textContent = `절세 ${won(irp.savingOver10)}`;
+
+  // 지급 기한
+  document.getElementById('paymentDueBox').innerHTML =
+    `📅 <strong>지급 기한: ${d.paymentDueDate}</strong> (퇴직일로부터 14일 이내)
+     — 기한 초과 시 연 20% 지연이자 발생`;
+
+  // 경고
+  const warningArea = document.getElementById('warningArea');
+  warningArea.innerHTML = '';
+  (d.warnings || []).forEach(w => {
+    const cls = w.startsWith('🚨') ? 'danger' : w.startsWith('ℹ️') ? 'info' : '';
+    warningArea.innerHTML += `<div class="warning-box ${cls}">${w}</div>`;
+  });
+
+  document.getElementById('resultSection').classList.add('show');
+  document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 경고 표시
+function showWarning(msg, type = '') {
+  document.getElementById('warningArea').innerHTML =
+    `<div class="warning-box ${type}">${msg}</div>`;
+}
+
+// 확정 저장
+document.getElementById('btnConfirm').addEventListener('click', async () => {
+  if (!previewData) return;
+  if (!confirm(`${previewData.employeeName}님의 퇴직금 ${won(previewData.netSeverancePay)}을 확정 저장하시겠습니까?`)) return;
+
+  const btn = document.getElementById('btnConfirm');
+  btn.innerHTML = '<span class="spinner"></span> 저장 중...';
+  btn.disabled = true;
+
+  try {
+    const res = await API('calculate-severance', {
+      employeeId: document.getElementById('selEmployee').value,
+      retirementDate: document.getElementById('retirementDate').value,
+      severanceType: document.getElementById('selSeveranceType').value,
+      includeBonus: document.getElementById('toggleBonus').checked,
+      bonusAnnualAmount: Number(document.getElementById('bonusAnnualAmount').value) || 0,
+      irpAccount: document.getElementById('irpAccount').value,
+      preview: false,
+    });
+
+    if (res.success) {
+      alert('✅ 퇴직금이 저장되었습니다. 지급 내역 탭에서 확인하세요.');
+      document.querySelector('[data-tab="list"]').click();
+    } else {
+      alert('저장 실패: ' + res.error);
+    }
+  } finally {
+    btn.innerHTML = '✅ 퇴직금 확정 및 저장';
+    btn.disabled = false;
+  }
+});
+
+// 초기화
+document.getElementById('btnReset').addEventListener('click', () => {
+  document.getElementById('selEmployee').value = '';
+  document.getElementById('retirementDate').value = '';
+  document.getElementById('bonusAnnualAmount').value = '';
+  document.getElementById('irpAccount').value = '';
+  document.getElementById('resultSection').classList.remove('show');
+  document.getElementById('warningArea').innerHTML = '';
+  previewData = null;
+});
+
+// 인쇄
+document.getElementById('btnPrint').addEventListener('click', () => window.print());
+
+// ══════════════════════════════════════════════
+// 탭2: 지급 내역
+// ══════════════════════════════════════════════
+async function loadList() {
+  const area = document.getElementById('listTableArea');
+  area.innerHTML = '<div style="text-align:center; padding:20px;"><span class="spinner"></span></div>';
+
+  try {
+    // GET 방식으로 목록 조회
+    const res = await fetch('/.netlify/functions/severance-list', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    }).then(r => r.json());
+
+    if (!res.success || !res.data?.length) {
+      area.innerHTML = `<div class="empty-state"><div class="icon">💼</div><p>퇴직금 지급 내역이 없습니다.</p></div>`;
+      return;
+    }
+
+    const rows = res.data.map(r => {
+      const badge = r.status === 'paid'
+        ? '<span class="badge badge-paid">지급완료</span>'
+        : r.status === 'overdue'
+        ? '<span class="badge badge-overdue">기한초과</span>'
+        : '<span class="badge badge-pending">미지급</span>';
+      return `
+        <tr>
+          <td>${r.employee_name || '-'}</td>
+          <td>${r.retirement_date}</td>
+          <td>${r.service_days}일</td>
+          <td style="text-align:right;">${won(r.severance_pay)}</td>
+          <td style="text-align:right;">${won(r.total_tax)}</td>
+          <td style="text-align:right; font-weight:600;">${won(r.net_severance_pay)}</td>
+          <td>${r.payment_due_date}</td>
+          <td>${badge}</td>
+        </tr>`;
+    }).join('');
+
+    area.innerHTML = `
+      <table class="list-table">
+        <thead>
+          <tr>
+            <th>직원명</th><th>퇴직일</th><th>재직기간</th>
+            <th style="text-align:right;">퇴직금(세전)</th>
+            <th style="text-align:right;">세액</th>
+            <th style="text-align:right;">실지급액</th>
+            <th>지급기한</th><th>상태</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  } catch {
+    area.innerHTML = '<div class="warning-box danger">데이터를 불러오는 데 실패했습니다.</div>';
+  }
+}
+
+// ══════════════════════════════════════════════
+// 탭3: DC 부담금
+// ══════════════════════════════════════════════
+async function loadDc() {
+  document.getElementById('dcTableArea').innerHTML =
+    '<div style="text-align:center; padding:20px;"><span class="spinner"></span></div>';
+  // severance-list API에서 dc 타입만 필터 (추후 전용 API 분리 가능)
+  document.getElementById('dcTableArea').innerHTML =
+    '<div class="empty-state"><div class="icon">📊</div><p>DC형 부담금 내역이 없습니다.</p></div>';
+}
+
+// ══════════════════════════════════════════════
+// 탭4: 시뮬레이터
+// ══════════════════════════════════════════════
+document.getElementById('btnSimCalc').addEventListener('click', () => {
+  const monthly = Number(document.getElementById('sim-monthly').value) || 0;
+  const allowance = Number(document.getElementById('sim-allowance').value) || 0;
+  const bonusAnnual = Number(document.getElementById('sim-bonus').value) || 0;
+  const years = Number(document.getElementById('sim-years').value) || 0;
+
+  if (!monthly || !years) { alert('월 기본급과 근속연수를 입력해주세요.'); return; }
+  if (years < 1) { alert('퇴직금은 1년 이상 근무 시 발생합니다.'); return; }
+
+  // 3개월 임금 총액
+  const wage3m = (monthly + allowance) * 3 + Math.floor(bonusAnnual * 3 / 12);
+  const serviceDays = Math.round(years * 365);
+  const dailyAvg = Math.floor(wage3m / 92); // 평균 3개월 = 92일
+  const severancePay = Math.floor(dailyAvg * 30 * (serviceDays / 365));
+
+  // 퇴직소득세 (severance-tax 로직 인라인)
+  const tax = calcSeveranceTaxInline(severancePay, years);
+  const netPay = severancePay - tax;
+
+  document.getElementById('sim-severancePay').textContent = won(severancePay);
+  document.getElementById('sim-tax').textContent = won(tax);
+  document.getElementById('sim-net').textContent = won(netPay);
+  document.getElementById('simResult').style.display = 'block';
+});
+
+// 시뮬레이터용 세금 계산 (서버 없이 클라이언트 계산)
+function calcSeveranceTaxInline(severancePay, years) {
+  const roundYears = Math.ceil(years);
+
+  // 근속연수공제
+  let syd;
+  if (roundYears <= 5) syd = roundYears * 1000000;
+  else if (roundYears <= 10) syd = 5000000 + (roundYears - 5) * 2000000;
+  else if (roundYears <= 20) syd = 15000000 + (roundYears - 10) * 2500000;
+  else syd = 40000000 + (roundYears - 20) * 3000000;
+
+  // 환산급여
+  const converted = Math.floor(Math.max(severancePay - syd, 0) * 12 / roundYears);
+
+  // 환산급여공제
+  let cd;
+  if (converted <= 8000000) cd = converted;
+  else if (converted <= 70000000) cd = 8000000 + Math.floor((converted - 8000000) * 0.6);
+  else if (converted <= 100000000) cd = 45200000 + Math.floor((converted - 70000000) * 0.55);
+  else if (converted <= 300000000) cd = 61700000 + Math.floor((converted - 100000000) * 0.45);
+  else cd = 151700000 + Math.floor((converted - 300000000) * 0.35);
+
+  const taxBase = Math.max(converted - cd, 0);
+
+  // 산출세액
+  let convertedTax;
+  if (taxBase <= 14000000) convertedTax = Math.floor(taxBase * 0.06);
+  else if (taxBase <= 50000000) convertedTax = Math.floor(taxBase * 0.15 - 1260000);
+  else if (taxBase <= 88000000) convertedTax = Math.floor(taxBase * 0.24 - 5760000);
+  else if (taxBase <= 150000000) convertedTax = Math.floor(taxBase * 0.35 - 15440000);
+  else convertedTax = Math.floor(taxBase * 0.38 - 19940000);
+
+  const incomeTax = Math.floor(convertedTax * roundYears / 12);
+  const localTax = Math.floor(incomeTax * 0.1);
+  return incomeTax + localTax;
+}
+
+// 사이드바 로드
+fetch('/sidebar.html').then(r => r.text()).then(h => {
+  document.getElementById('sidebar-placeholder').innerHTML = h;
+}).catch(() => {});
+</script>
+</body>
+</html>
