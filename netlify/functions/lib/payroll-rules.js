@@ -2,6 +2,54 @@
 // 급여 룰 엔진 - 2026년 법정 요율 및 규정 기반
 // calculate-payroll.js에서 loadAllPayrollRules, getIncomeTax, calculateAge를 import함
 
+
+/**
+ * 한국 법정공휴일 체크 (연도별 하드코딩)
+ * 근거: 관공서의 공휴일에 관한 규정 (대통령령)
+ * 설날/추석 연휴는 양력으로 미리 변환하여 입력
+ * @param {Date} date - 판단할 날짜
+ * @returns {boolean} 법정 휴일(일요일 + 공휴일) 여부
+ */
+function isHoliday(date) {
+  // 일요일 = 법정 주휴일 (근로기준법 제55조)
+  if (date.getDay() === 0) return true;
+
+  // 날짜 문자열 생성 (YYYY-MM-DD)
+  const year = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const key = `${year}-${mm}-${dd}`;
+
+  // 고정 법정공휴일 (매년 동일)
+  const fixedHolidays = new Set([
+    `${year}-01-01`, // 신정
+    `${year}-03-01`, // 삼일절
+    `${year}-05-05`, // 어린이날
+    `${year}-06-06`, // 현충일
+    `${year}-08-15`, // 광복절
+    `${year}-10-03`, // 개천절
+    `${year}-10-09`, // 한글날
+    `${year}-12-25`, // 성탄절
+  ]);
+  if (fixedHolidays.has(key)) return true;
+
+  // 음력 연휴 (설날 전후, 추석 전후, 부처님오신날) - 양력 변환
+  const lunarHolidays = {
+    2024: ['2024-02-09','2024-02-10','2024-02-11','2024-02-12',
+           '2024-05-15','2024-09-16','2024-09-17','2024-09-18'],
+    2025: ['2025-01-28','2025-01-29','2025-01-30',
+           '2025-05-05','2025-10-05','2025-10-06','2025-10-07'],
+    2026: ['2026-02-17','2026-02-18','2026-02-19',
+           '2026-05-24','2026-09-24','2026-09-25','2026-09-26'],
+    2027: ['2027-02-06','2027-02-07','2027-02-08',
+           '2027-05-13','2027-10-13','2027-10-14','2027-10-15'],
+    2028: ['2028-01-26','2028-01-27','2028-01-28',
+           '2028-05-02','2028-10-02','2028-10-03','2028-10-04'],
+  };
+  const lunarSet = new Set(lunarHolidays[year] || []);
+  return lunarSet.has(key);
+}
+
 /**
  * 나이 계산 함수
  * @param {string} birthDate - 생년월일 (YYYY-MM-DD)
@@ -68,11 +116,21 @@ async function loadAllPayrollRules(supabase, payDate = new Date()) {
       localTaxRate: 0.1,     // 지방소득세 = 소득세의 10%
     },
 
-    // 연장/야간/휴일 수당 가산율 (근로기준법 제56조 — 유지)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 연장/야간/휴일 수당 가산율 (근로기준법 제56조)
+    // [v9.4 FIX] nightRate 1.5→0.5, holidayExtendedRate 2.0 추가
+    //
+    // 각 rate의 의미 (통상임금에 곱하는 "추가 지급 배수"):
+    //   연장: 별도로 시급×1.5 지급
+    //   야간: 별도로 시급×0.5 추가 지급 (연장+야간 동시 = ×1.5+×0.5 = ×2.0 자동합산)
+    //   휴일 8h 이내: 별도로 시급×1.5 지급 (평일 기본급과 별도 계산)
+    //   휴일 8h 초과: 별도로 시급×2.0 지급 (제56조 제2항 단서)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     overtime: {
-      extendedRate: 1.5,     // 연장근무 통상임금 50% 가산
-      nightRate: 1.5,        // 야간근무 통상임금 50% 가산
-      holidayRate: 1.5,      // 휴일근무 통상임금 50% 가산
+      extendedRate: 1.5,         // 연장근무: 시급×1.5 (제56조 제1항)
+      nightRate: 0.5,            // ✅ FIX 1.5→0.5: 야간 추가분 시급×0.5 (제56조 제3항)
+      holidayRate: 1.5,          // 휴일 8h 이내: 시급×1.5 (제56조 제2항)
+      holidayExtendedRate: 2.0,  // ✅ NEW: 휴일 8h 초과: 시급×2.0 (제56조 제2항 단서)
     },
 
     // 주휴수당 (근로기준법 제55조 — 유지)
@@ -197,4 +255,4 @@ function deepMerge(target, source) {
   return result;
 }
 
-module.exports = { loadAllPayrollRules, getIncomeTax, calculateAge };
+module.exports = { loadAllPayrollRules, getIncomeTax, calculateAge, isHoliday };
