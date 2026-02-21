@@ -46,6 +46,9 @@
     .status-late{background:#fff3cd;color:#856404}
     .status-absent{background:#f8d7da;color:#721c24}
     .status-early_leave{background:#fce4ec;color:#880e4f}
+    .status-completed{background:#d4edda;color:#155724}
+    .status-inprogress{background:#cce5ff;color:#004085}
+    .status-night{background:#e8e0ff;color:#4527a0}
     .biz-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:500;background:#e8eaf6;color:#3949ab}
     .loading{text-align:center;padding:60px 20px}
     .spinner{border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:0 auto 15px}
@@ -146,7 +149,7 @@
   </div>
   <div id="attendanceTable" class="table-container" style="display:none">
     <table>
-      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>방식</th><th>상태</th><th>관리</th></tr></thead>
+      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>야간</th><th>방식</th><th>상태</th><th>관리</th></tr></thead>
       <tbody id="attendanceBody"></tbody>
     </table>
   </div>
@@ -256,13 +259,13 @@
         var overtimeHours=record.overtimeHours&&record.overtimeHours>0?'<span style="color:#e74c3c;font-weight:600">+'+record.overtimeHours.toFixed(1)+'h</span>':'-';
         var statusText='',statusClass='status-normal';
         switch(record.status){
-          case 'normal':statusText='정상';statusClass='status-normal';break;
-          case 'completed':statusText='정상';statusClass='status-normal';break;
-          case 'in_progress':statusText='근무중';statusClass='status-late';break;
-          case 'late':statusText='지각';statusClass='status-late';break;
-          case 'absent':statusText='결근';statusClass='status-absent';break;
-          case 'early_leave':statusText='조퇴';statusClass='status-early_leave';break;
-          default:statusText='정상';statusClass='status-normal';
+          case 'normal':statusText='✅ 정상';statusClass='status-normal';break;
+          case 'completed':statusText='✅ 퇴근';statusClass='status-completed';break;
+          case 'in_progress':statusText='🟢 근무중';statusClass='status-inprogress';break;
+          case 'late':statusText='⚠️ 지각';statusClass='status-late';break;
+          case 'absent':statusText='❌ 결근';statusClass='status-absent';break;
+          case 'early_leave':statusText='🔶 조퇴';statusClass='status-early_leave';break;
+          default:statusText=record.status||'정상';statusClass='status-normal';
         }
         var emp=record.employee||{};
         var bizName=emp.businessId?(businessMap[emp.businessId]||'미배정'):'미배정';
@@ -270,15 +273,24 @@
         var tr=document.createElement('tr');
         
         // 출퇴근 방식 뱃지 생성
-        var method = record.checkMethod || record.check_method || 'qr';
+        var method = record.checkMethod || 'qr';
         var methodLabel = {qr:'📱 QR', gps:'📍 GPS', wifi:'📶 WiFi', manual:'✏️ 수동'}[method] || method.toUpperCase();
         var methodBadge = '<span class="method-badge '+method+'">'+methodLabel+'</span>';
+
+        // 야간근무 판별: 출근일 ≠ 퇴근일
+        var isNight = false;
+        if (record.checkInTime && record.checkOutTime) {
+          var inDate  = record.checkInTime.slice(0,10);
+          var outDate = record.checkOutTime.slice(0,10);
+          isNight = (inDate !== outDate);
+        }
+        var nightBadge = isNight ? '<span style="display:inline-block;margin-left:4px;font-size:11px;color:#4527a0">🌙 야간</span>' : '';
         
         // ✅ record를 전역 캐시에 저장 후 ID만 onclick에 전달 (JSON 큰따옴표 충돌 방지)
         window._recordCache = window._recordCache || {};
         window._recordCache[record.id] = record;
         var editBtn='<button class="row-edit-btn" onclick="openEditModal(\'' + record.id + '\')">수정</button>';
-        tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td>'+methodBadge+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td><td>'+editBtn+'</td>';
+        tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td style="text-align:center">'+nightBadge+'</td><td>'+methodBadge+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td><td>'+editBtn+'</td>';
         tbody.appendChild(tr);
       });
       document.getElementById('attendanceTable').style.display='block';
