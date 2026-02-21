@@ -68,7 +68,9 @@ exports.handler = async (event) => {
       .select(`
         id, company_id, user_id, hire_date, salary_type,
         base_salary, monthly_wage, annual_salary,
-        work_hours_per_day, work_days_per_week,
+        work_start_time, work_end_time, break_time_minutes,
+        work_days,
+        meal_allowance, car_allowance, childcare_allowance,
         pension_type, irp_account, bonus_annual_amount
       `)
       .eq('id', employeeId)
@@ -101,6 +103,19 @@ exports.handler = async (event) => {
     }
 
     const hireDate = emp.hire_date;
+
+    // work_hours_per_day: work_start_time ~ work_end_time - break_time_minutes 로 계산
+    const calcWorkHours = () => {
+      if (emp.work_start_time && emp.work_end_time) {
+        const [sh, sm] = emp.work_start_time.split(':').map(Number);
+        const [eh, em] = emp.work_end_time.split(':').map(Number);
+        const totalMin = (eh * 60 + em) - (sh * 60 + sm) - (emp.break_time_minutes || 60);
+        return Math.max(totalMin / 60, 8); // 최소 8시간
+      }
+      return 8; // 기본값
+    };
+    emp.work_hours_per_day = calcWorkHours();
+    emp.work_days_per_week = emp.work_days || 5; // work_days 컬럼 사용
     if (!hireDate) {
       return respond(400, { success: false, error: '입사일 정보가 없습니다. 직원 정보를 먼저 확인해주세요.' });
     }
@@ -211,8 +226,18 @@ exports.handler = async (event) => {
       warnings.push('⚠️ IRP 계좌가 등록되지 않았습니다. 2022.4.14부터 퇴직금은 IRP 계좌로 이전 의무화됩니다.');
     }
     const overdueDays = Math.floor((new Date() - paymentDueDate) / 86400000);
+    // 지연이자 계산: 퇴직금 × 20% × (초과일수 / 365) - 근로기준법 제37조
+    let delayInterest = 0;
+    let delayInterestDetail = null;
     if (overdueDays > 0) {
-      warnings.push(`🚨 지급 기한(${paymentDueDateStr})이 ${overdueDays}일 초과되었습니다. 지연이자(연 20%)가 발생합니다.`);
+      delayInterest = Math.floor(severancePay * 0.20 * (overdueDays / 365));
+      delayInterestDetail = {
+        overdueDays,
+        rate: 0.20,
+        amount: delayInterest,
+        paymentDueDate: paymentDueDateStr,
+      };
+      warnings.push(`🚨 지급 기한(${paymentDueDateStr})이 ${overdueDays}일 초과되었습니다. 지연이자(연 20%)가 발생합니다. 추가 지급액: ${delayInterest.toLocaleString()}원`);
     }
 
     // ── 12. 응답 데이터 구성 ──
@@ -266,6 +291,13 @@ exports.handler = async (event) => {
 
       // IRP 절세 시뮬레이션
       irpBenefit,
+
+      // 지연이자 (기한 초과 시)
+      delayInterest,
+      delayInterestDetail,
+
+      // 실제 지급해야 할 총액 (퇴직금 실수령 + 지연이자)
+      totalPayable: netSeverancePay + delayInterest,
 
       warnings,
       hasPayrollData,
