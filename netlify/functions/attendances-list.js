@@ -128,6 +128,7 @@ exports.handler = async (event, context) => {
         overtimeHours: record.overtime_hours,
         lateMinutes: record.late_minutes,
         earlyLeaveMinutes: record.early_leave_minutes,
+        checkMethod: record.check_method || 'qr',
         status: record.status,
         notes: record.notes,
         employee: {
