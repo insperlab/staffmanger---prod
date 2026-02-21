@@ -598,7 +598,7 @@ document.getElementById('btnPreview').addEventListener('click', async () => {
   btn.disabled = true;
 
   try {
-    const res = await API('calculate-severance', {
+    const res = await API('severance-calculate', {
       employeeId,
       retirementDate,
       severanceType: document.getElementById('selSeveranceType').value,
@@ -625,6 +625,17 @@ function renderResult(d) {
   document.getElementById('res-severancePay').textContent = won(d.severancePay);
   document.getElementById('res-totalTax').textContent = won(d.tax.totalTax);
   document.getElementById('res-netPay').textContent = won(d.netSeverancePay);
+
+  // 지연이자 항목 표시/숨김
+  const delayRow = document.getElementById('delay-interest-row');
+  if (d.delayInterest > 0) {
+    document.getElementById('res-delayInterest').textContent = won(d.delayInterest);
+    document.getElementById('res-delayDays').textContent = d.delayInterestDetail.overdueDays + '일 초과';
+    document.getElementById('res-totalPayable').textContent = won(d.totalPayable);
+    delayRow.style.display = '';
+  } else {
+    delayRow.style.display = 'none';
+  }
 
   const a = d.avgWage;
   document.getElementById('d-period').textContent =
@@ -664,6 +675,32 @@ function renderResult(d) {
     `📅 <strong>지급 기한: ${d.paymentDueDate}</strong> (퇴직일로부터 14일 이내)
      — 기한 초과 시 연 20% 지연이자 발생`;
 
+  // 지연이자 상세 표시
+  const di = document.getElementById('delayInterestBox');
+  if (d.delayInterest > 0) {
+    di.style.display = '';
+    di.innerHTML = `
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:16px;margin-top:12px">
+        <div style="font-weight:700;color:#856404;margin-bottom:8px">🚨 지급 지연 이자 발생</div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+          <span>초과 일수</span><span style="font-weight:600">${d.delayInterestDetail.overdueDays}일</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+          <span>지연이자율</span><span style="font-weight:600">연 20%</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-top:1px solid #ffc107;margin-top:4px">
+          <span style="font-weight:700">지연이자 금액</span>
+          <span style="font-weight:700;color:#dc3545">${won(d.delayInterest)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:15px;padding:8px 0;border-top:2px solid #ffc107;margin-top:4px">
+          <span style="font-weight:700">총 지급해야 할 금액</span>
+          <span style="font-weight:700;color:#dc3545;font-size:18px">${won(d.totalPayable)}</span>
+        </div>
+      </div>`;
+  } else {
+    di.style.display = 'none';
+  }
+
   const warningArea = document.getElementById('warningArea');
   warningArea.innerHTML = '';
   (d.warnings || []).forEach(w => {
@@ -691,7 +728,7 @@ document.getElementById('btnConfirm').addEventListener('click', async () => {
   btn.disabled = true;
 
   try {
-    const res = await API('calculate-severance', {
+    const res = await API('severance-calculate', {
       employeeId: document.getElementById('selEmployee').value,
       retirementDate: document.getElementById('retirementDate').value,
       severanceType: document.getElementById('selSeveranceType').value,
