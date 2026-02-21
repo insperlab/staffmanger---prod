@@ -76,7 +76,17 @@ exports.handler = async (event) => {
 
     if (empErr || !emp) {
       console.error('직원 조회 오류:', empErr);
-      return respond(404, { success: false, error: `직원 정보를 찾을 수 없습니다. (ID: ${employeeId})` });
+      // 디버그: 에러 상세 내용 응답에 포함
+      return respond(404, { 
+        success: false, 
+        error: '직원 정보를 찾을 수 없습니다.',
+        debug: {
+          employeeId,
+          errCode: empErr?.code,
+          errMsg: empErr?.message,
+          empNull: !emp
+        }
+      });
     }
 
     // 이름은 users 테이블에서 별도 조회
