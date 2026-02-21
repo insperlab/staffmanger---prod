@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -436,9 +437,11 @@ var authToken = null;
    페이지 진입 초기화
 ============================================================ */
 window.addEventListener('DOMContentLoaded', async function() {
-  // 1. 인증 체크
+  // 1. 인증 체크 (salary.html과 동일: authToken + userInfo 둘 다 필요)
   authToken = localStorage.getItem('authToken');
-  if (!authToken) { window.location.href = '/login.html'; return; }
+  var ui = localStorage.getItem('userInfo');
+  if (!authToken || !ui) { window.location.href = '/login.html'; return; }
+  try { JSON.parse(ui); } catch(e) { window.location.href = '/login.html'; return; }
 
   // 2. 직원 목록 로드
   await loadEmployees();
