@@ -350,6 +350,8 @@
     document.getElementById('modalDate').value = new Date().toISOString().slice(0,10);
     document.getElementById('modalCheckIn').value = '';
     document.getElementById('modalCheckOut').value = '';
+    document.getElementById('modalCheckOutDate').value = '';
+    document.getElementById('checkOutDateRow').style.display = 'none';
     document.getElementById('modalNotes').value = '';
     document.getElementById('modalDeleteBtn').style.display = 'none';
     await loadEmployeesForModal();
@@ -377,16 +379,48 @@
     }
     document.getElementById('modalCheckIn').value  = toHHMM(record.checkInTime);
     document.getElementById('modalCheckOut').value = toHHMM(record.checkOutTime);
+
+    // 퇴근일 처리: 출근일과 다르면 checkOutDateRow 표시
+    if (record.checkOutTime) {
+      var checkOutDateStr = record.checkOutTime.slice(0,10);
+      if (checkOutDateStr !== dateStr) {
+        document.getElementById('modalCheckOutDate').value = checkOutDateStr;
+        document.getElementById('checkOutDateRow').style.display = 'block';
+      } else {
+        document.getElementById('modalCheckOutDate').value = dateStr;
+        document.getElementById('checkOutDateRow').style.display = 'none';
+      }
+    } else {
+      document.getElementById('modalCheckOutDate').value = dateStr;
+      document.getElementById('checkOutDateRow').style.display = 'none';
+    }
     document.getElementById('modalNotes').value = record.notes || '';
     document.getElementById('modalDeleteBtn').style.display = 'block';
     var m=document.getElementById('attendanceModal'); m.classList.add('show'); m.style.display='flex';
   }
 
   // 모달 닫기
+  // 퇴근 시간 입력 시 퇴근일 필드 표시 (야간근무 대응)
+  function handleCheckOutChange() {
+    var checkOut = document.getElementById('modalCheckOut').value;
+    var row = document.getElementById('checkOutDateRow');
+    if (checkOut) {
+      // 퇴근일 기본값: 출근일과 동일
+      var workDate = document.getElementById('modalDate').value;
+      if (!document.getElementById('modalCheckOutDate').value) {
+        document.getElementById('modalCheckOutDate').value = workDate;
+      }
+      row.style.display = 'block';
+    } else {
+      row.style.display = 'none';
+    }
+  }
+
   function closeModal() {
     var modal = document.getElementById('attendanceModal');
     modal.classList.remove('show');
     modal.style.display = 'none'; // 인라인 style도 함께 제거
+    document.getElementById('checkOutDateRow').style.display = 'none';
   }
 
   // 저장 (등록 or 수정)
@@ -398,7 +432,7 @@
 
     if (!date)    { alert('근무일을 입력해주세요'); return; }
     if (!checkIn) { alert('출근 시간을 입력해주세요'); return; }
-    if (checkOut && checkOut <= checkIn) { alert('퇴근 시간이 출근 시간보다 늦어야 합니다'); return; }
+    // 야간근무 허용: 시간 문자열 단순 비교 제거 (API에서 날짜 포함 계산)
 
     var saveBtn = document.querySelector('.btn-modal-save');
     saveBtn.textContent = '저장 중...';
@@ -409,10 +443,12 @@
       if (modalMode === 'add') {
         var empId = document.getElementById('modalEmployee').value;
         if (!empId) { alert('직원을 선택해주세요'); return; }
-        body = { employeeId: empId, workDate: date, checkInTime: checkIn, checkOutTime: checkOut || null, notes: notes };
+        var checkOutDate = document.getElementById('modalCheckOutDate').value || date;
+        body = { employeeId: empId, workDate: date, checkInTime: checkIn, checkOutTime: checkOut || null, checkOutDate: checkOutDate, notes: notes };
         apiMethod = 'POST';
       } else {
-        body = { id: editRecordId, workDate: date, checkInTime: checkIn, checkOutTime: checkOut || null, notes: notes };
+        var checkOutDate = document.getElementById('modalCheckOutDate').value || date;
+        body = { id: editRecordId, workDate: date, checkInTime: checkIn, checkOutTime: checkOut || null, checkOutDate: checkOutDate, notes: notes };
         apiMethod = 'PUT';
       }
 
@@ -484,8 +520,15 @@
         </div>
         <div class="form-row" style="margin-bottom:0">
           <label>퇴근 시간 <span style="color:#94a3b8">(없으면 근무중)</span></label>
-          <input type="time" id="modalCheckOut">
+          <input type="time" id="modalCheckOut" onchange="handleCheckOutChange()">
         </div>
+      </div>
+
+      <!-- 야간근무 대응: 퇴근일이 출근일과 다를 경우 선택 -->
+      <div class="form-row" id="checkOutDateRow" style="display:none">
+        <label>퇴근일 <span style="color:#f59e0b">🌙 야간근무 적용됨</span></label>
+        <input type="date" id="modalCheckOutDate">
+        <small style="color:#94a3b8;margin-top:4px;display:block">출근일과 다른 날 퇴근 시 수정하세요</small>
       </div>
 
       <div class="form-row">
