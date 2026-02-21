@@ -1,7 +1,7 @@
-// netlify/functions/calculate-severance.js
+// netlify/functions/severance-calculate.js
 // Phase 11: 퇴직금 계산 엔진 메인 API
 //
-// POST /api/calculate-severance
+// POST /api/severance-calculate
 // Body: { employeeId, retirementDate, severanceType, includeBonus, bonusAnnualAmount, preview }
 //
 // preview=true  → 계산 결과만 반환 (DB 저장 안 함)
@@ -331,7 +331,7 @@ exports.handler = async (event) => {
     return respond(200, { success: true, data: responseData });
 
   } catch (err) {
-    console.error('calculate-severance 오류:', err);
+    console.error('severance-calculate 오류:', err);
     return respond(500, { success: false, error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
   }
 };
