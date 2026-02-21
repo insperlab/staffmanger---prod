@@ -193,14 +193,27 @@ exports.handler = async (event) => {
     const empUser = Array.isArray(employee.users) ? employee.users[0] : employee.users;
     employee.name = empUser?.name || '직원';
 
-    // ── 3) 사업장 WiFi 설정 조회 ─────────────────────────────
+    // ── 3) 사업장 설정 조회 ──────────────────────────────────
+    // 우선순위: 직원 지정 사업장 → 본점(is_headquarters=true) → 첫 번째 사업장
+    // business_id 없어도 반드시 사업장 설정 가져와서 GPS/WiFi 검증 수행
     let bizSettings = null;
-    if (employee.business_id) {
-      const { data: biz } = await supabase
+    {
+      let bizQuery = supabase
         .from('businesses')
         .select('id, checkin_method, wifi_enabled, wifi_registered_ip, gps_latitude, gps_longitude, gps_radius_meters')
-        .eq('id', employee.business_id)
-        .single();
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .is('deleted_at', null);
+
+      if (employee.business_id) {
+        // 직원 지정 사업장 기준
+        bizQuery = bizQuery.eq('id', employee.business_id);
+      } else {
+        // 본점 우선 fallback
+        bizQuery = bizQuery.order('is_headquarters', { ascending: false }).limit(1);
+      }
+
+      const { data: biz } = await bizQuery.maybeSingle();
       bizSettings = biz;
     }
 
