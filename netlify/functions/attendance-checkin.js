@@ -221,6 +221,9 @@ exports.handler = async (event) => {
     const clientIp = extractClientIp(event.headers);
 
     // ── 5) WiFi IP 매칭 ───────────────────────────────────────
+    // 비유: 회사 공인 IP = 사무실 현관 도어락 번호
+    //   - 맞으면 입장, 틀리면 거부 (WiFi 단독 모드)
+    //   - GPS도 켜져 있으면 GPS가 통과시켜줄 수 있음
     let wifiMatched = null; // null = WiFi 인증 미사용
     const wifiEnabled = bizSettings?.wifi_enabled === true;
     const registeredIp = bizSettings?.wifi_registered_ip || null;
@@ -228,15 +231,14 @@ exports.handler = async (event) => {
     if (wifiEnabled && registeredIp) {
       wifiMatched = (clientIp === registeredIp);
 
-      // ── 6) IP 불일치 → 사업장에 알림 플래그 저장 ────────────
+      // 불일치 시 → 사업장 알림 플래그 저장 (중복 방지)
       if (!wifiMatched) {
-        // 이미 같은 IP로 감지된 경우는 중복 업데이트 방지
         const alreadyFlagged = bizSettings?.wifi_ip_mismatch_detected === clientIp;
         if (!alreadyFlagged) {
           await supabase
             .from('businesses')
             .update({
-              wifi_ip_mismatch_detected: clientIp,   // 감지된 새 IP
+              wifi_ip_mismatch_detected: clientIp,
               wifi_ip_mismatch_at: new Date().toISOString(),
             })
             .eq('id', employee.business_id);
@@ -244,9 +246,8 @@ exports.handler = async (event) => {
       }
     }
 
-    // ── 6-2) GPS 위치 검증 ──────────────────────────────────────
-    // checkin_method가 'gps'이고 사업장에 기준 좌표가 등록된 경우만 검증
-    // GPS 좌표가 없거나 미등록 사업장은 통과 (선택적 보안)
+    // ── 6) GPS 위치 검증 ─────────────────────────────────────
+    // 비유: 사업장 반경 = 출입 허용 구역 (GPS가 울타리 역할)
     let gpsMatched   = null;  // null = GPS 인증 미사용
     let gpsDistance  = null;  // 실제 거리(m)
     const gpsEnabled = bizSettings?.gps_latitude && bizSettings?.gps_longitude;
@@ -260,23 +261,23 @@ exports.handler = async (event) => {
       );
       const allowedRadius = bizSettings.gps_radius_meters || 100; // 기본 100m
       gpsMatched  = dist <= allowedRadius;
-      gpsDistance = dist;
+      gpsDistance = Math.round(dist); // 소수점 제거
 
-      // GPS 체크인 모드(gps)이고 반경 초과 시 → 체크인 거부
+      // GPS 모드이고 반경 초과 → 차단
       if (bizSettings.checkin_method === 'gps' && !gpsMatched) {
         return {
           statusCode: 403,
           headers: CORS,
           body: JSON.stringify({
-            success:     false,
-            error:       `사업장 위치와 너무 멀리 있습니다. (현재 ${gpsDistance}m, 허용 ${allowedRadius}m 이내)`,
+            success:      false,
+            error:        `사업장 위치와 너무 멀리 있습니다. (현재 ${gpsDistance}m, 허용 ${allowedRadius}m 이내)`,
             gpsDistance,
             allowedRadius,
           }),
         };
       }
     } else if (gpsEnabled && !location?.latitude) {
-      // GPS 모드인데 좌표를 못 받은 경우
+      // GPS 모드인데 좌표 수신 실패
       if (bizSettings.checkin_method === 'gps') {
         return {
           statusCode: 400,
@@ -287,6 +288,31 @@ exports.handler = async (event) => {
           }),
         };
       }
+    }
+
+    // ── 7) WiFi 차단 판정 ────────────────────────────────────
+    // 규칙:
+    //   - WiFi 단독 모드 (GPS 미사용): WiFi 불일치 → 체크인 거부
+    //   - WiFi + GPS 동시: GPS 통과 시 WiFi는 참고만 (OR 로직)
+    //     → 사업장 내부 WiFi 안 잡혀도 GPS로 위치 확인되면 허용
+    if (wifiEnabled && wifiMatched === false) {
+      const gpsAlsoEnabled = gpsEnabled; // GPS가 함께 설정되어 있는가
+      const gpsPassedLocally = gpsAlsoEnabled && gpsMatched === true; // GPS 통과 여부
+
+      if (!gpsPassedLocally) {
+        // WiFi 단독 불일치, 또는 GPS+WiFi 둘 다 실패
+        return {
+          statusCode: 403,
+          headers: CORS,
+          body: JSON.stringify({
+            success: false,
+            error:   'WiFi 인증 실패: 사업장 WiFi에 연결된 상태에서만 출퇴근이 가능합니다.',
+            clientIp,       // 현재 접속 IP (디버그용)
+            wifiMatched,    // false
+          }),
+        };
+      }
+      // GPS 통과 → WiFi 불일치는 로그만, 체크인 허용
     }
 
     // ── 7) 출퇴근 기록 저장 ──────────────────────────────────
