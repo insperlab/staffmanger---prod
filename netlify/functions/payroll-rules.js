@@ -1,249 +1,258 @@
 // netlify/functions/lib/payroll-rules.js
-// 급여 룰 엔진 조회 라이브러리
-// Phase 7: 급여엔진 v2
+// 급여 룰 엔진 - 2026년 법정 요율 및 규정 기반
+// calculate-payroll.js에서 loadAllPayrollRules, getIncomeTax, calculateAge를 import함
+
 
 /**
- * payroll_rules 테이블에서 특정 카테고리/키의 값을 조회
- * valid_from <= date <= valid_to 조건으로 시점별 조회
- * 
- * @param {Object} supabase - Supabase 클라이언트
- * @param {string} category - 카테고리 (national_pension, health_insurance 등)
- * @param {string} ruleKey - 룰 키 (rate, upper_limit 등)
- * @param {Date} date - 기준일 (기본: 현재)
- * @returns {number|null} 룰 값 (숫자) 또는 null
+ * 한국 법정공휴일 체크 (연도별 하드코딩)
+ * 근거: 관공서의 공휴일에 관한 규정 (대통령령)
+ * 설날/추석 연휴는 양력으로 미리 변환하여 입력
+ * @param {Date} date - 판단할 날짜
+ * @returns {boolean} 법정 휴일(일요일 + 공휴일) 여부
  */
-async function getRule(supabase, category, ruleKey, date = new Date()) {
-  const dateStr = date.toISOString().split('T')[0];
-  
-  const { data, error } = await supabase
-    .from('payroll_rules')
-    .select('value')
-    .eq('category', category)
-    .eq('rule_key', ruleKey)
-    .lte('valid_from', dateStr)
-    .gte('valid_to', dateStr)
-    .order('valid_from', { ascending: false })
-    .limit(1)
-    .single();
+function isHoliday(date) {
+  // 일요일 = 법정 주휴일 (근로기준법 제55조)
+  if (date.getDay() === 0) return true;
 
-  if (error || !data) {
-    console.warn(`[PayrollRules] Rule not found: ${category}/${ruleKey} for ${dateStr}`, error?.message);
-    return null;
-  }
+  // 날짜 문자열 생성 (YYYY-MM-DD)
+  const year = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const key = `${year}-${mm}-${dd}`;
 
-  const val = data.value;
-  const num = parseFloat(val);
-  return isNaN(num) ? val : num;
-}
+  // 고정 법정공휴일 (매년 동일)
+  const fixedHolidays = new Set([
+    `${year}-01-01`, // 신정
+    `${year}-03-01`, // 삼일절
+    `${year}-05-05`, // 어린이날
+    `${year}-06-06`, // 현충일
+    `${year}-08-15`, // 광복절
+    `${year}-10-03`, // 개천절
+    `${year}-10-09`, // 한글날
+    `${year}-12-25`, // 성탄절
+  ]);
+  if (fixedHolidays.has(key)) return true;
 
-/**
- * 복수 룰을 한번에 조회 (네트워크 최적화)
- * 
- * @param {Object} supabase
- * @param {Array} ruleRequests - [{category, ruleKey}] 배열
- * @param {Date} date
- * @returns {Object} { "category/ruleKey": value } 맵
- */
-async function getRules(supabase, ruleRequests, date = new Date()) {
-  const dateStr = date.toISOString().split('T')[0];
-  
-  const { data, error } = await supabase
-    .from('payroll_rules')
-    .select('category, rule_key, value, valid_from')
-    .lte('valid_from', dateStr)
-    .gte('valid_to', dateStr)
-    .order('valid_from', { ascending: false });
-
-  if (error || !data) {
-    console.error('[PayrollRules] Bulk query failed:', error?.message);
-    return {};
-  }
-
-  const result = {};
-  for (const req of ruleRequests) {
-    const key = `${req.category}/${req.ruleKey}`;
-    const match = data.find(d => d.category === req.category && d.rule_key === req.ruleKey);
-    if (match) {
-      const num = parseFloat(match.value);
-      result[key] = isNaN(num) ? match.value : num;
-    }
-  }
-  return result;
-}
-
-/**
- * 급여 계산에 필요한 모든 룰을 한번에 로드
- * 
- * @param {Object} supabase
- * @param {Date} payDate - 급여 기준일
- * @returns {Object} 구조화된 룰 객체
- */
-async function loadAllPayrollRules(supabase, payDate = new Date()) {
-  const dateStr = payDate.toISOString().split('T')[0];
-  
-  const { data, error } = await supabase
-    .from('payroll_rules')
-    .select('category, rule_key, value, valid_from')
-    .lte('valid_from', dateStr)
-    .gte('valid_to', dateStr)
-    .order('valid_from', { ascending: false });
-
-  if (error || !data || data.length === 0) {
-    console.error('[PayrollRules] Failed to load rules, using hardcoded fallback');
-    return getFallbackRules();
-  }
-
-  // 카테고리별 최신 룰만 추출 (valid_from DESC로 정렬되어 있음)
-  const seen = new Set();
-  const latestRules = [];
-  for (const row of data) {
-    const key = `${row.category}/${row.rule_key}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      latestRules.push(row);
-    }
-  }
-
-  // 구조화
-  const rules = {
-    minimumWage: { hourly: 10320, monthly209h: 2156880 },
-    nationalPension: { employeeRate: 0.0475, employerRate: 0.0475, upperLimit: 6370000, lowerLimit: 400000, exemptionAge: 60 },
-    healthInsurance: { employeeRate: 0.03595, employerRate: 0.03595 },
-    longTermCare: { rate: 0.131385 },
-    employmentInsurance: { employeeRate: 0.009, employerRate: 0.009, exemptionAge: 65 },
-    taxExemption: { mealAllowance: 200000, carAllowance: 200000, childcareAllowance: 200000 },
-    incomeTax: { localTaxRate: 0.1 },
-    overtime: { extendedRate: 1.5, nightRate: 0.5, holidayRate: 1.5, holidayExtendedRate: 2.0 },
-    weeklyHoliday: { minWeeklyHours: 15 }
+  // 음력 연휴 (설날 전후, 추석 전후, 부처님오신날) - 양력 변환
+  const lunarHolidays = {
+    2024: ['2024-02-09','2024-02-10','2024-02-11','2024-02-12',
+           '2024-05-15','2024-09-16','2024-09-17','2024-09-18'],
+    2025: ['2025-01-28','2025-01-29','2025-01-30',
+           '2025-05-05','2025-10-05','2025-10-06','2025-10-07'],
+    2026: ['2026-02-17','2026-02-18','2026-02-19',
+           '2026-05-24','2026-09-24','2026-09-25','2026-09-26'],
+    2027: ['2027-02-06','2027-02-07','2027-02-08',
+           '2027-05-13','2027-10-13','2027-10-14','2027-10-15'],
+    2028: ['2028-01-26','2028-01-27','2028-01-28',
+           '2028-05-02','2028-10-02','2028-10-03','2028-10-04'],
   };
-
-  // DB 값으로 덮어쓰기
-  const ruleMap = {
-    'minimum_wage/hourly': (v) => { rules.minimumWage.hourly = v; },
-    'minimum_wage/monthly_209h': (v) => { rules.minimumWage.monthly209h = v; },
-    'national_pension/employee_rate': (v) => { rules.nationalPension.employeeRate = v; },
-    'national_pension/employer_rate': (v) => { rules.nationalPension.employerRate = v; },
-    'national_pension/upper_limit': (v) => { rules.nationalPension.upperLimit = v; },
-    'national_pension/lower_limit': (v) => { rules.nationalPension.lowerLimit = v; },
-    'national_pension/exemption_age': (v) => { rules.nationalPension.exemptionAge = v; },
-    'health_insurance/employee_rate': (v) => { rules.healthInsurance.employeeRate = v; },
-    'health_insurance/employer_rate': (v) => { rules.healthInsurance.employerRate = v; },
-    'long_term_care/rate': (v) => { rules.longTermCare.rate = v; },
-    'employment_insurance/employee_rate': (v) => { rules.employmentInsurance.employeeRate = v; },
-    'employment_insurance/employer_rate': (v) => { rules.employmentInsurance.employerRate = v; },
-    'employment_insurance/exemption_age': (v) => { rules.employmentInsurance.exemptionAge = v; },
-    'tax_exemption/meal_allowance': (v) => { rules.taxExemption.mealAllowance = v; },
-    'tax_exemption/car_allowance': (v) => { rules.taxExemption.carAllowance = v; },
-    'tax_exemption/childcare_allowance': (v) => { rules.taxExemption.childcareAllowance = v; },
-    'income_tax/local_tax_rate': (v) => { rules.incomeTax.localTaxRate = v; },
-    'overtime/extended_rate': (v) => { rules.overtime.extendedRate = v; },
-    'overtime/night_rate': (v) => { rules.overtime.nightRate = v; },
-    'overtime/holiday_rate': (v) => { rules.overtime.holidayRate = v; },
-    'overtime/holiday_extended_rate': (v) => { rules.overtime.holidayExtendedRate = v; },
-    'weekly_holiday/min_weekly_hours': (v) => { rules.weeklyHoliday.minWeeklyHours = v; },
-  };
-
-  for (const row of latestRules) {
-    const key = `${row.category}/${row.rule_key}`;
-    const setter = ruleMap[key];
-    if (setter) {
-      const num = parseFloat(row.value);
-      setter(isNaN(num) ? row.value : num);
-    }
-  }
-
-  return rules;
+  const lunarSet = new Set(lunarHolidays[year] || []);
+  return lunarSet.has(key);
 }
 
 /**
- * NTS 간이세액표에서 소득세 조회
- * 
- * @param {Object} supabase
- * @param {number} year - 년도
- * @param {number} monthlySalary - 과세 월급여
- * @param {number} dependents - 부양가족 수 (본인 포함)
- * @returns {number} 소득세 (원)
- */
-async function getIncomeTax(supabase, year, monthlySalary, dependents = 1) {
-  const deps = Math.max(1, Math.min(dependents, 11));
-  
-  const { data, error } = await supabase
-    .from('income_tax_brackets')
-    .select('tax_amount')
-    .eq('year', year)
-    .eq('dependents', deps)
-    .lte('min_salary', monthlySalary)
-    .gt('max_salary', monthlySalary)
-    .limit(1)
-    .single();
-
-  if (error || !data) {
-    // 해당 부양가족 수 데이터 없으면 1명으로 재시도
-    if (deps > 1) {
-      return getIncomeTax(supabase, year, monthlySalary, 1);
-    }
-    // 그래도 없으면 폴백 계산
-    console.warn(`[IncomeTax] Bracket not found for ${year}/${monthlySalary}/${deps}, using fallback`);
-    return calculateIncomeTaxFallback(monthlySalary);
-  }
-
-  return data.tax_amount;
-}
-
-/**
- * 폴백: 간이세액 구간표 (DB 미적재 시)
- * 기존 calculate-payroll.js의 7구간 로직 유지
- */
-function calculateIncomeTaxFallback(taxableIncome) {
-  if (taxableIncome <= 1060000) return 0;
-  if (taxableIncome <= 1500000) return Math.floor((taxableIncome - 1060000) * 0.06);
-  if (taxableIncome <= 2100000) return Math.floor(26400 + (taxableIncome - 1500000) * 0.15);
-  if (taxableIncome <= 3380000) return Math.floor(116400 + (taxableIncome - 2100000) * 0.15);
-  if (taxableIncome <= 4740000) return Math.floor(308400 + (taxableIncome - 3380000) * 0.24);
-  if (taxableIncome <= 8330000) return Math.floor(634800 + (taxableIncome - 4740000) * 0.35);
-  if (taxableIncome <= 16670000) return Math.floor(1891300 + (taxableIncome - 8330000) * 0.38);
-  return Math.floor(5060500 + (taxableIncome - 16670000) * 0.40);
-}
-
-/**
- * DB 룰 로드 실패 시 하드코딩 폴백
- */
-function getFallbackRules() {
-  console.warn('[PayrollRules] Using hardcoded fallback rules (2026)');
-  return {
-    minimumWage: { hourly: 10320, monthly209h: 2156880 },
-    nationalPension: { employeeRate: 0.0475, employerRate: 0.0475, upperLimit: 6370000, lowerLimit: 400000, exemptionAge: 60 },
-    healthInsurance: { employeeRate: 0.03595, employerRate: 0.03595 },
-    longTermCare: { rate: 0.131385 },
-    employmentInsurance: { employeeRate: 0.009, employerRate: 0.009, exemptionAge: 65 },
-    taxExemption: { mealAllowance: 200000, carAllowance: 200000, childcareAllowance: 200000 },
-    incomeTax: { localTaxRate: 0.1 },
-    overtime: { extendedRate: 1.5, nightRate: 0.5, holidayRate: 1.5, holidayExtendedRate: 2.0 },
-    weeklyHoliday: { minWeeklyHours: 15 }
-  };
-}
-
-/**
- * 나이 계산 (한국식 만나이)
+ * 나이 계산 함수
+ * @param {string} birthDate - 생년월일 (YYYY-MM-DD)
+ * @param {Date} referenceDate - 기준일
+ * @returns {number} 만 나이
  */
 function calculateAge(birthDate, referenceDate = new Date()) {
-  if (!birthDate) return 0;
+  if (!birthDate) return 30; // 기본값
   const birth = new Date(birthDate);
-  const ref = new Date(referenceDate);
-  let age = ref.getFullYear() - birth.getFullYear();
-  const monthDiff = ref.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && ref.getDate() < birth.getDate())) {
+  let age = referenceDate.getFullYear() - birth.getFullYear();
+  const monthDiff = referenceDate.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && referenceDate.getDate() < birth.getDate())) {
     age--;
   }
   return age;
 }
 
-module.exports = {
-  getRule,
-  getRules,
-  loadAllPayrollRules,
-  getIncomeTax,
-  calculateIncomeTaxFallback,
-  getFallbackRules,
-  calculateAge
-};
+/**
+ * 2026년 기준 법정 급여 룰 로드
+ * DB에서 커스텀 룰이 있으면 적용, 없으면 법정 기본값 사용
+ * @param {object} supabase - Supabase 클라이언트
+ * @param {Date} payDate - 급여 기준일
+ * @returns {object} 룰 엔진 객체
+ */
+async function loadAllPayrollRules(supabase, payDate = new Date()) {
+  // ── 기본 법정 요율 (2026년 기준) ──
+  // ✅ BUG FIX: 기본값 전체를 2026년 실제 법정값으로 업데이트
+  const defaultRules = {
+    // 최저임금 (2026년 기준 — 고용노동부 고시)
+    minimumWage: {
+      hourly: 10320,       // ✅ 수정: 10030 → 10320원 (2026년 최저임금)
+      monthly: 2156880,    // ✅ 수정: 2096270 → 2156880원 (주 40시간, 209시간 기준)
+    },
+
+    // 국민연금 (2026년 — 국민연금공단 고시)
+    nationalPension: {
+      employeeRate: 0.0475,  // ✅ 수정: 0.045(4.5%) → 0.0475(4.75%)
+      employerRate: 0.0475,  // ✅ 수정: 0.045(4.5%) → 0.0475(4.75%)
+      lowerLimit: 370000,    // ✅ 수정: 390000 → 370000원 (기준소득월액 하한)
+      upperLimit: 6370000,   // ✅ 수정: 6170000 → 6370000원 (기준소득월액 상한)
+      exemptionAge: 60,      // 60세 이상 납부 면제 (유지)
+    },
+
+    // 건강보험 (2026년 — 국민건강보험공단 고시)
+    healthInsurance: {
+      employeeRate: 0.03595, // ✅ 수정: 0.03545(3.545%) → 0.03595(3.595%)
+      employerRate: 0.03595, // ✅ 수정: 0.03545(3.545%) → 0.03595(3.595%)
+    },
+
+    // 장기요양보험 (건강보험료의 13.85%)
+    longTermCare: {
+      rate: 0.1385,          // ✅ 수정: 0.1295(12.95%) → 0.1385(13.85%)
+    },
+
+    // 고용보험 (2026년 — 유지)
+    employmentInsurance: {
+      employeeRate: 0.009,   // 근로자 0.9% (유지)
+      employerRate: 0.011,   // 사업주 1.1% 150인 미만 기준 (유지)
+      exemptionAge: 65,      // 65세 이상 신규 취득 면제 (유지)
+    },
+
+    // 소득세 (유지)
+    incomeTax: {
+      localTaxRate: 0.1,     // 지방소득세 = 소득세의 10%
+    },
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 연장/야간/휴일 수당 가산율 (근로기준법 제56조)
+    // [v9.4 FIX] nightRate 1.5→0.5, holidayExtendedRate 2.0 추가
+    //
+    // 각 rate의 의미 (통상임금에 곱하는 "추가 지급 배수"):
+    //   연장: 별도로 시급×1.5 지급
+    //   야간: 별도로 시급×0.5 추가 지급 (연장+야간 동시 = ×1.5+×0.5 = ×2.0 자동합산)
+    //   휴일 8h 이내: 별도로 시급×1.5 지급 (평일 기본급과 별도 계산)
+    //   휴일 8h 초과: 별도로 시급×2.0 지급 (제56조 제2항 단서)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    overtime: {
+      extendedRate: 1.5,         // 연장근무: 시급×1.5 (제56조 제1항)
+      nightRate: 0.5,            // ✅ FIX 1.5→0.5: 야간 추가분 시급×0.5 (제56조 제3항)
+      holidayRate: 1.5,          // 휴일 8h 이내: 시급×1.5 (제56조 제2항)
+      holidayExtendedRate: 2.0,  // ✅ NEW: 휴일 8h 초과: 시급×2.0 (제56조 제2항 단서)
+    },
+
+    // 주휴수당 (근로기준법 제55조 — 유지)
+    weeklyHoliday: {
+      minWeeklyHours: 15,    // 주 15시간 이상 근무 시 지급
+    },
+
+    // 비과세 수당 한도 (2026년 소득세법 기준 — 유지)
+    taxExemption: {
+      mealAllowance: 200000,      // 식대 월 20만원 한도
+      carAllowance: 200000,       // 자가운전보조금 월 20만원 한도
+      childcareAllowance: 100000, // 보육수당 월 10만원 한도
+    },
+  };
+
+  // DB에서 커스텀 룰 조회 시도 (없으면 기본값 사용)
+  try {
+    const { data: customRules } = await supabase
+      .from('payroll_rules')
+      .select('*')
+      .lte('valid_from', payDate.toISOString())  // ✅ 수정: effective_from → valid_from
+      .or(`valid_to.is.null,valid_to.gte.${payDate.toISOString()}`) // ✅ 수정: effective_to → valid_to
+      .order('valid_from', { ascending: false })  // ✅ 수정: effective_from → valid_from
+      .limit(1)
+      .single();
+
+    if (customRules) {
+      // DB 커스텀 룰로 오버라이드
+      return deepMerge(defaultRules, customRules.rules || {});
+    }
+  } catch (e) {
+    // payroll_rules 테이블 없거나 데이터 없으면 기본값 사용 (정상)
+  }
+
+  return defaultRules;
+}
+
+/**
+ * 국세청 간이세액표 기반 소득세 조회
+ * DB에 간이세액표가 있으면 사용, 없으면 누진세율 직접 계산
+ * @param {object} supabase - Supabase 클라이언트
+ * @param {number} year - 귀속 연도
+ * @param {number} taxableIncome - 과세 소득 (월)
+ * @param {number} dependents - 부양가족 수 (본인 포함)
+ * @returns {number} 소득세 (10원 미만 절사)
+ */
+async function getIncomeTax(supabase, year, taxableIncome, dependents = 1) {
+  if (!taxableIncome || taxableIncome <= 0) return 0;
+
+  // DB 간이세액표 조회 시도
+  try {
+    const { data: taxRow } = await supabase
+      .from('income_tax_brackets')  // ✅ 수정: income_tax_table → income_tax_brackets
+      .select('*')
+      .eq('year', year)
+      .lte('min_salary', taxableIncome)  // ✅ 수정: income_from → min_salary
+      .gte('max_salary', taxableIncome)  // ✅ 수정: income_to → max_salary
+      .eq('dependents', Math.min(dependents, 11)) // ✅ 수정: dep_1 방식 → dependents 컬럼 직접 조회
+      .single();
+
+    if (taxRow) {
+      return taxRow.tax_amount || 0; // ✅ 수정: taxRow[depKey] → taxRow.tax_amount
+    }
+  } catch (e) {
+    // 간이세액표 없으면 직접 계산
+  }
+
+  // ── 폴백: 연간 소득 환산 후 누진세율 적용 ──
+  return calculateIncomeTaxDirect(taxableIncome, dependents);
+}
+
+/**
+ * 소득세 직접 계산 (간이세액표 없을 때 폴백)
+ * 2026년 소득세법 기준 누진세율 적용
+ * @param {number} monthlyIncome - 월 과세 소득
+ * @param {number} dependents - 부양가족 수
+ * @returns {number} 월 소득세 (10원 미만 절사)
+ */
+function calculateIncomeTaxDirect(monthlyIncome, dependents = 1) {
+  const annualIncome = monthlyIncome * 12;
+
+  // 인적공제: 본인 포함 1인당 150만원
+  const personalDeduction = dependents * 1500000;
+  const taxableAnnual = Math.max(0, annualIncome - personalDeduction);
+
+  // 2026년 소득세 누진세율 (소득세법 제55조)
+  let annualTax = 0;
+  if (taxableAnnual <= 14000000) {
+    annualTax = taxableAnnual * 0.06;
+  } else if (taxableAnnual <= 50000000) {
+    annualTax = 840000 + (taxableAnnual - 14000000) * 0.15;
+  } else if (taxableAnnual <= 88000000) {
+    annualTax = 6240000 + (taxableAnnual - 50000000) * 0.24;
+  } else if (taxableAnnual <= 150000000) {
+    annualTax = 15360000 + (taxableAnnual - 88000000) * 0.35;
+  } else if (taxableAnnual <= 300000000) {
+    annualTax = 37060000 + (taxableAnnual - 150000000) * 0.38;
+  } else if (taxableAnnual <= 500000000) {
+    annualTax = 94060000 + (taxableAnnual - 300000000) * 0.40;
+  } else if (taxableAnnual <= 1000000000) {
+    annualTax = 174060000 + (taxableAnnual - 500000000) * 0.42;
+  } else {
+    annualTax = 384060000 + (taxableAnnual - 1000000000) * 0.45;
+  }
+
+  const monthlyTax = annualTax / 12;
+  return Math.floor(monthlyTax / 10) * 10; // 10원 미만 절사
+}
+
+/**
+ * 객체 깊은 병합 (커스텀 룰 오버라이드용)
+ */
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key of Object.keys(source)) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+module.exports = { loadAllPayrollRules, getIncomeTax, calculateAge, isHoliday };

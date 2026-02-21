@@ -5,7 +5,7 @@
 
 const { verifyToken } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
-const { loadAllPayrollRules, getIncomeTax, calculateAge } = require('./lib/payroll-rules');
+const { loadAllPayrollRules, getIncomeTax, calculateAge, isHoliday } = require('./lib/payroll-rules');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -87,19 +87,41 @@ exports.handler = async (event) => {
     const totalWorkMinutes = attendances?.reduce((sum, att) => sum + (att.work_duration_minutes || 0), 0) || 0;
     const totalWorkHours = totalWorkMinutes / 60;
 
-    let overtimeHours = 0;
-    let nightWorkHours = 0;
-    let holidayWorkHours = 0;
+    // ─── [v9.4 FIX] 근태 집계 변수 ───────────────────────────────────
+    // Bug Fix: 이전 코드는 일요일 근무를 overtimeHours + holidayWorkHours 양쪽에 중복 계산했음
+    // Fix: 휴일/평일을 먼저 분기 후 각각 별도 처리
+    let overtimeHours = 0;       // 평일 연장근무 (8h 초과분)
+    let nightWorkHours = 0;      // 야간근무 (22:00~06:00, 평일/휴일 무관하게 집계)
+    let holidayRegularHours = 0; // 휴일 8h 이내 (×1.5, 근로기준법 제56조 제2항)
+    let holidayExtendedHours = 0;// 휴일 8h 초과분 (×2.0, 동조 단서)
+    let holidayWorkDays = 0;     // 휴일 출근일수 (일급 계산용)
 
     attendances?.forEach(att => {
       const checkIn = new Date(att.check_in_time);
       const checkOut = new Date(att.check_out_time);
       const workHours = (att.work_duration_minutes || 0) / 60;
 
-      // 하루 8시간 초과 → 연장근무
-      if (workHours > 8) overtimeHours += workHours - 8;
+      if (isHoliday(checkIn)) {
+        // ── 휴일근무 (일요일 + 법정공휴일) ──────────────────────────
+        // 휴일근무는 연장근무와 별도 카테고리 (이중계산 방지)
+        // 8h 이내: ×1.5 / 8h 초과분: ×2.0 (근로기준법 제56조 제2항)
+        holidayWorkDays++;
+        if (workHours <= 8) {
+          holidayRegularHours += workHours;         // 전부 ×1.5 구간
+        } else {
+          holidayRegularHours += 8;                 // 8h까지 ×1.5
+          holidayExtendedHours += workHours - 8;    // 8h 초과분 ×2.0
+        }
+      } else {
+        // ── 평일 연장근무 (8h 초과분) ────────────────────────────────
+        // 근로기준법 제56조 제1항
+        if (workHours > 8) overtimeHours += workHours - 8;
+      }
 
-      // 야간근무 (22:00 ~ 06:00)
+      // ── 야간근무 (22:00~06:00) ────────────────────────────────────
+      // 평일/휴일 구분 없이 항상 적용 (제56조 제3항)
+      // 야간+연장 동시: overtimePay(×1.5) + nightWorkPay(×0.5) = 실질 ×2.0 자동합산
+      // 야간+휴일 동시: holidayPay(×1.5or×2.0) + nightWorkPay(×0.5) 자동합산
       const nightStart = new Date(checkIn);
       nightStart.setHours(22, 0, 0, 0);
       const nightEnd = new Date(checkIn);
@@ -111,12 +133,12 @@ exports.handler = async (event) => {
         const nightMin = (ne.getTime() - ns.getTime()) / (1000 * 60);
         if (nightMin > 0) nightWorkHours += nightMin / 60;
       }
-
-      // 휴일근무 (일요일)
-      if (checkIn.getDay() === 0) holidayWorkHours += workHours;
     });
 
-    const regularWorkHours = totalWorkHours - overtimeHours;
+    // 휴일 총 근무시간 합산
+    const holidayWorkHours = holidayRegularHours + holidayExtendedHours;
+    // 정규 근무시간 = 전체 - 평일연장 - 휴일 (휴일은 별도 수당으로 처리)
+    const regularWorkHours = totalWorkHours - overtimeHours - holidayWorkHours;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 2: 총 지급액 계산
@@ -135,11 +157,16 @@ exports.handler = async (event) => {
     }
 
     // 기본급
+    // ※ hourly/daily의 경우 휴일 근무분은 regularWorkHours/weekdayWorkDays에서 제외되어 있음
+    //   → 휴일 근무 금액은 아래 holidayWorkPay로 별도 지급
     let basicPay = 0;
     if (salaryType === 'hourly') {
+      // 시급제: 휴일 제외 정규 근무시간 × 시급
       basicPay = regularWorkHours * effectiveHourlyRate;
     } else if (salaryType === 'daily') {
-      basicPay = totalWorkDays * baseSalary;
+      // 일급제: 평일 출근일수(휴일 출근 제외) × 일급
+      const weekdayWorkDays = totalWorkDays - holidayWorkDays;
+      basicPay = weekdayWorkDays * baseSalary;
     } else if (salaryType === 'monthly') {
       basicPay = baseSalary;
     } else if (salaryType === 'annual') {
@@ -159,10 +186,15 @@ exports.handler = async (event) => {
       }
     }
 
-    // 수당 계산 (룰 엔진 가산율 적용)
+    // ─── [v9.4 FIX] 수당 계산 (근로기준법 제56조) ──────────────────
+    // 연장: 평일 8h 초과 시간 × 시급 × 1.5
     const overtimePay = Math.floor(overtimeHours * effectiveHourlyRate * rules.overtime.extendedRate);
+    // 야간: 22:00~06:00 시간 × 시급 × 0.5 (추가분만 지급, 기본급과 합산되어 실질 배수 상승)
     const nightWorkPay = Math.floor(nightWorkHours * effectiveHourlyRate * rules.overtime.nightRate);
-    const holidayWorkPay = Math.floor(holidayWorkHours * effectiveHourlyRate * rules.overtime.holidayRate);
+    // 휴일 8h 이내: × 1.5 / 휴일 8h 초과: × 2.0 (각각 별도 계산 후 합산)
+    const holidayRegularPay  = Math.floor(holidayRegularHours  * effectiveHourlyRate * rules.overtime.holidayRate);
+    const holidayExtendedPay = Math.floor(holidayExtendedHours * effectiveHourlyRate * (rules.overtime.holidayExtendedRate || 2.0));
+    const holidayWorkPay = holidayRegularPay + holidayExtendedPay;
 
     // [FIX #5] 비과세 수당 분리
     const mealAllowance = Math.min(employee.meal_allowance || 0, rules.taxExemption.mealAllowance);
@@ -279,6 +311,8 @@ exports.handler = async (event) => {
       overtime_hours: parseFloat(overtimeHours.toFixed(2)),
       night_work_hours: parseFloat(nightWorkHours.toFixed(2)),
       holiday_work_hours: parseFloat(holidayWorkHours.toFixed(2)),
+      holiday_regular_hours: parseFloat(holidayRegularHours.toFixed(2)),   // 8h 이내 (×1.5)
+      holiday_extended_hours: parseFloat(holidayExtendedHours.toFixed(2)), // 8h 초과 (×2.0)
       // 급여 기본
       salary_type: salaryType,
       base_salary: baseSalary,
