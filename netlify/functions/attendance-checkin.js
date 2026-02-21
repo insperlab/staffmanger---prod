@@ -263,7 +263,8 @@ exports.handler = async (event) => {
       gpsMatched  = dist <= allowedRadius;
       gpsDistance = Math.round(dist); // 소수점 제거
 
-      // GPS 모드이고 반경 초과 → 차단
+      // GPS 단독 모드이고 반경 초과 → 즉시 차단
+      // (gps+wifi 모드는 아래 7번 판정에서 WiFi와 함께 최종 결정)
       if (bizSettings.checkin_method === 'gps' && !gpsMatched) {
         return {
           statusCode: 403,
@@ -277,8 +278,8 @@ exports.handler = async (event) => {
         };
       }
     } else if (gpsEnabled && !location?.latitude) {
-      // GPS 모드인데 좌표 수신 실패
-      if (bizSettings.checkin_method === 'gps') {
+      // GPS 필수 모드인데 좌표 수신 실패 (gps 또는 gps+wifi)
+      if (['gps', 'gps+wifi'].includes(bizSettings.checkin_method)) {
         return {
           statusCode: 400,
           headers: CORS,
@@ -290,29 +291,48 @@ exports.handler = async (event) => {
       }
     }
 
-    // ── 7) WiFi 차단 판정 ────────────────────────────────────
-    // 규칙:
-    //   - WiFi 단독 모드 (GPS 미사용): WiFi 불일치 → 체크인 거부
-    //   - WiFi + GPS 동시: GPS 통과 시 WiFi는 참고만 (OR 로직)
-    //     → 사업장 내부 WiFi 안 잡혀도 GPS로 위치 확인되면 허용
-    if (wifiEnabled && wifiMatched === false) {
-      const gpsAlsoEnabled = gpsEnabled; // GPS가 함께 설정되어 있는가
-      const gpsPassedLocally = gpsAlsoEnabled && gpsMatched === true; // GPS 통과 여부
+    // ── 7) 인증 방식별 차단 판정 ─────────────────────────────
+    // 비유: 방식별 출입 규칙
+    //   QR      : QR만 확인 (WiFi/GPS는 로그만)
+    //   GPS     : GPS 반경 초과 시 차단 (위에서 이미 처리)
+    //   WiFi    : 사업장 IP 불일치 시 차단
+    //   GPS+WiFi: GPS 통과 OR WiFi 통과 → 둘 다 실패 시 차단
+    const finalMethod = bizSettings?.checkin_method || 'qr';
 
-      if (!gpsPassedLocally) {
-        // WiFi 단독 불일치, 또는 GPS+WiFi 둘 다 실패
+    if (finalMethod === 'wifi') {
+      // WiFi 단독 모드: IP 불일치 시 차단
+      if (wifiEnabled && wifiMatched === false) {
         return {
           statusCode: 403,
           headers: CORS,
           body: JSON.stringify({
             success: false,
             error:   'WiFi 인증 실패: 사업장 WiFi에 연결된 상태에서만 출퇴근이 가능합니다.',
-            clientIp,       // 현재 접속 IP (디버그용)
-            wifiMatched,    // false
+            clientIp,
           }),
         };
       }
-      // GPS 통과 → WiFi 불일치는 로그만, 체크인 허용
+    } else if (finalMethod === 'gps+wifi') {
+      // GPS+WiFi 이중 인증 모드: 하나라도 통과하면 허용
+      // GPS는 위에서 이미 체크 → 여기선 "GPS도 실패 AND WiFi도 실패" 케이스 차단
+      const gpsFailed  = gpsEnabled  && gpsMatched  === false;
+      const wifiFailed = wifiEnabled && wifiMatched === false;
+
+      if (gpsFailed && wifiFailed) {
+        return {
+          statusCode: 403,
+          headers: CORS,
+          body: JSON.stringify({
+            success: false,
+            error:   `GPS 및 WiFi 인증 모두 실패했습니다. 사업장 위치(현재 ${gpsDistance ?? '?'}m) 또는 사업장 WiFi에 연결 후 다시 시도해주세요.`,
+            gpsDistance,
+            wifiMatched,
+          }),
+        };
+      }
+    } else if (finalMethod !== 'gps') {
+      // QR 모드 (또는 미지정): WiFi/GPS는 참고 기록만, 차단 없음
+      // GPS 차단은 위 섹션(6번)에서 method==='gps' 조건으로 이미 처리됨
     }
 
     // ── 7) 출퇴근 기록 저장 ──────────────────────────────────

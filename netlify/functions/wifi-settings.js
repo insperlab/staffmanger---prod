@@ -130,8 +130,9 @@ exports.handler = async (event) => {
       // 업데이트할 필드 구성
       const updates = {};
       if (checkinMethod !== undefined) {
-        if (!['qr', 'gps'].includes(checkinMethod))
-          return { statusCode: 400, headers: CORS, body: JSON.stringify({ success: false, error: 'checkinMethod는 qr 또는 gps' }) };
+        // 허용 방식: qr(기본) / gps / wifi / gps+wifi(이중인증)
+        if (!['qr', 'gps', 'wifi', 'gps+wifi'].includes(checkinMethod))
+          return { statusCode: 400, headers: CORS, body: JSON.stringify({ success: false, error: 'checkinMethod는 qr / gps / wifi / gps+wifi 중 하나여야 합니다' }) };
         updates.checkin_method = checkinMethod;
       }
       if (wifiEnabled !== undefined) updates.wifi_enabled = wifiEnabled;
