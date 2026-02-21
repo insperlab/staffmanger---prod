@@ -118,20 +118,34 @@ exports.handler = async (event) => {
         if (workHours > 8) overtimeHours += workHours - 8;
       }
 
-      // ── 야간근무 (22:00~06:00) ────────────────────────────────────
-      // 평일/휴일 구분 없이 항상 적용 (제56조 제3항)
-      // 야간+연장 동시: overtimePay(×1.5) + nightWorkPay(×0.5) = 실질 ×2.0 자동합산
-      // 야간+휴일 동시: holidayPay(×1.5or×2.0) + nightWorkPay(×0.5) 자동합산
-      const nightStart = new Date(checkIn);
-      nightStart.setHours(22, 0, 0, 0);
-      const nightEnd = new Date(checkIn);
-      nightEnd.setDate(nightEnd.getDate() + 1);
-      nightEnd.setHours(6, 0, 0, 0);
-      if (checkOut > nightStart && checkIn < nightEnd) {
-        const ns = checkIn > nightStart ? checkIn : nightStart;
-        const ne = checkOut < nightEnd ? checkOut : nightEnd;
-        const nightMin = (ne.getTime() - ns.getTime()) / (1000 * 60);
-        if (nightMin > 0) nightWorkHours += nightMin / 60;
+      // ── 야간근무 (KST 22:00~06:00) ──────────────────────────────────
+      // 평일/휴일 구분 없이 항상 적용 (근로기준법 제56조 제3항)
+      // ⚠️  Netlify 서버 = UTC 환경. setHours()는 UTC 기준으로 동작하므로
+      //     KST 야간 기준(22:00~06:00)을 UTC로 변환해 계산해야 함
+      //     KST 22:00 = UTC 13:00 / KST 익일 06:00 = UTC 21:00
+      {
+        // checkIn의 KST 시각 파악
+        const checkInKstHour = Math.floor(
+          (checkIn.getTime() + 9 * 3600 * 1000) / (3600 * 1000)
+        ) % 24;
+        // KST 날짜 기준 날짜 객체 (00:00~05:59 시작이면 전날 야간구간)
+        const kstMs = checkIn.getTime() + 9 * 3600 * 1000;
+        const kstDateMs = kstMs - (kstMs % (24 * 3600 * 1000)); // KST 당일 00:00 UTC기준ms
+        const kstBaseMs = checkInKstHour < 6
+          ? kstDateMs - 24 * 3600 * 1000  // 전날 기준
+          : kstDateMs;                     // 당일 기준
+        // nightStart = KST 22:00 = kstBase + 22h - 9h (UTC 변환)
+        const nightStartMs = kstBaseMs + (22 - 9) * 3600 * 1000;
+        // nightEnd   = KST 익일 06:00 = kstBase + 30h - 9h
+        const nightEndMs   = kstBaseMs + (30 - 9) * 3600 * 1000;
+        const ciMs = checkIn.getTime();
+        const coMs = checkOut.getTime();
+        if (coMs > nightStartMs && ciMs < nightEndMs) {
+          const ns = Math.max(ciMs, nightStartMs);
+          const ne = Math.min(coMs, nightEndMs);
+          const nightMin = (ne - ns) / (1000 * 60);
+          if (nightMin > 0) nightWorkHours += nightMin / 60;
+        }
       }
     });
 
