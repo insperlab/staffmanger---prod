@@ -1169,6 +1169,22 @@ async function saveWifiSettings(bizId) {
     const alertEl = document.querySelector('#bizCard_' + bizId + ' .alert-banner');
     if (alertEl) alertEl.remove();
 
+    // 저장 후 입력 필드에 현재 값 반영 (저장됐는지 눈으로 확인 가능하도록)
+    const v4Field = document.getElementById('wifiIp_' + bizId);
+    const v6Field = document.getElementById('wifiIpV6_' + bizId);
+    if (v4Field && ip)   v4Field.value = ip;
+    if (v6Field && ipV6) v6Field.value = ipV6;
+
+    // 등록된 IP 요약 배지 표시
+    const savedIpv4 = ip   || '미등록';
+    const savedIpv6 = ipV6 || '미등록';
+    const wifiMeta2 = document.getElementById('wifiMeta_' + bizId);
+    if (wifiMeta2) {
+      wifiMeta2.innerHTML =
+        `✅ IPv4: <b>${savedIpv4}</b> &nbsp;|&nbsp; IPv6: <b>${savedIpv6}</b>` +
+        `<br><span style="color:#9CA3AF;font-size:11px">마지막 저장: ${new Date().toLocaleString('ko-KR')}</span>`;
+    }
+
     showToast('설정이 저장되었습니다.', 'success');
   } catch(e) {
     showToast('저장 실패: ' + e.message, 'error');
