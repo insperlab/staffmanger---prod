@@ -82,10 +82,23 @@ function normalizePhone(phone) {
   return (phone || '').replace(/[^0-9]/g, '');
 }
 
-// ── X-Forwarded-For 에서 실제 클라이언트 IP 추출 ──────────────
+// ── X-Forwarded-For 에서 실제 클라이언트 IP 추출 + 정규화 ──────
+// 비유: 같은 집 주소라도 "서울시 강남구" vs "Seoul Gangnam-gu"처럼
+//       표기가 달라도 같은 곳임을 알아야 함
+// IPv4-mapped IPv6: ::ffff:222.107.127.137 → 222.107.127.137 로 정규화
+function normalizeIp(ip) {
+  if (!ip) return 'unknown';
+  const trimmed = ip.trim();
+  // IPv4-mapped IPv6 변환: ::ffff:x.x.x.x 또는 ::FFFF:x.x.x.x
+  const mapped = trimmed.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (mapped) return mapped[1];
+  return trimmed;
+}
+
 function extractClientIp(headers) {
   const fwd = headers['x-forwarded-for'] || headers['X-Forwarded-For'] || '';
-  return fwd.split(',')[0].trim() || 'unknown';
+  const raw = fwd.split(',')[0].trim() || 'unknown';
+  return normalizeIp(raw);
 }
 
 exports.handler = async (event) => {
@@ -200,7 +213,7 @@ exports.handler = async (event) => {
     {
       let bizQuery = supabase
         .from('businesses')
-        .select('id, checkin_method, wifi_enabled, wifi_registered_ip, gps_latitude, gps_longitude, gps_radius_meters')
+        .select('id, checkin_method, wifi_enabled, wifi_registered_ip, wifi_registered_ip_v6, gps_latitude, gps_longitude, gps_radius_meters')
         .eq('company_id', companyId)
         .eq('status', 'active')
         .is('deleted_at', null);
@@ -228,8 +241,15 @@ exports.handler = async (event) => {
     const wifiEnabled = bizSettings?.wifi_enabled === true;
     const registeredIp = bizSettings?.wifi_registered_ip || null;
 
-    if (wifiEnabled && registeredIp) {
-      wifiMatched = (clientIp === registeredIp);
+    const registeredIpV6 = bizSettings?.wifi_registered_ip_v6 || null;
+
+    if (wifiEnabled && (registeredIp || registeredIpV6)) {
+      // IPv4 또는 IPv6 중 하나라도 일치하면 통과
+      // 비유: 사무실 출입카드 번호가 바뀌었을 때 구번호/신번호 둘 다 허용
+      const normalizedClient = normalizeIp(clientIp);
+      const ipv4Match = registeredIp   && (normalizedClient === normalizeIp(registeredIp));
+      const ipv6Match = registeredIpV6 && (normalizedClient === normalizeIp(registeredIpV6));
+      wifiMatched = ipv4Match || ipv6Match;
 
       // 불일치 시 → 사업장 알림 플래그 저장 (중복 방지)
       if (!wifiMatched) {

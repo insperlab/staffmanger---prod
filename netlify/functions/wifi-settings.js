@@ -28,7 +28,13 @@ const CORS = {
   'Content-Type': 'application/json',
 };
 
-// ── 간단한 공인 IP 형식 검증 (IPv4) ────────────────────────────
+// ── IP 형식 검증 (IPv4 / IPv6) ──────────────────────────────────
+function isValidIpv6(ip) {
+  if (!ip) return false;
+  // 기본 IPv6 형식: 콜론(:) 포함 + 16진수 그룹
+  return ip.includes(':') && /^[0-9a-fA-F:]+$/.test(ip.trim());
+}
+
 function isValidIp(ip) {
   if (!ip) return false;
   const parts = ip.trim().split('.');
@@ -103,7 +109,7 @@ exports.handler = async (event) => {
     // ════════════════════════════════════════════════
     if (event.httpMethod === 'PUT') {
       const body = JSON.parse(event.body || '{}');
-      const { businessId, checkinMethod, wifiEnabled, wifiRegisteredIp,
+      const { businessId, checkinMethod, wifiEnabled, wifiRegisteredIp, wifiRegisteredIpV6,
               gpsLatitude, gpsLongitude, gpsRadiusMeters } = body;
 
       if (!businessId) {
@@ -139,9 +145,17 @@ exports.handler = async (event) => {
       if (wifiRegisteredIp !== undefined) {
         updates.wifi_registered_ip = wifiRegisteredIp ? wifiRegisteredIp.trim() : null;
         updates.wifi_ip_updated_at = new Date().toISOString();
-        // IP 새로 등록/수정 시 불일치 알림 자동 해제
         updates.wifi_ip_mismatch_detected = null;
         updates.wifi_ip_mismatch_at = null;
+      }
+      // IPv6 저장 (폰이 IPv6로 접속하는 환경 대응)
+      if (wifiRegisteredIpV6 !== undefined) {
+        if (wifiRegisteredIpV6 && !isValidIpv6(wifiRegisteredIpV6)) {
+          return { statusCode: 400, headers: CORS, body: JSON.stringify({
+            success: false, error: 'IPv6 형식이 올바르지 않습니다.'
+          }) };
+        }
+        updates.wifi_registered_ip_v6 = wifiRegisteredIpV6 ? wifiRegisteredIpV6.trim() : null;
       }
 
       // GPS 설정 저장
