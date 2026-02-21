@@ -65,6 +65,9 @@ exports.handler = async (event, context) => {
         early_leave_minutes,
         status,
         notes,
+        check_method,
+        wifi_matched,
+        gps_matched,
         employees!inner (
           id,
           department,
