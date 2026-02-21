@@ -467,14 +467,13 @@ window.addEventListener('DOMContentLoaded', async function() {
 // API POST 호출
 const API = (path, body) => fetch(`/.netlify/functions/${path}`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json',
-             Authorization: `Bearer ${authToken}` },
+  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
   body: JSON.stringify(body),
 }).then(r => r.json());
 
-// API GET 호출
+// API GET 호출 (salary.html과 동일: 헤더에 Content-Type 포함)
 const GET = (path) => fetch(`/.netlify/functions/${path}`, {
-  headers: { Authorization: `Bearer ${authToken}` },
+  headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
 }).then(r => r.json());
 
 const won = n => (Number(n) || 0).toLocaleString() + '원';
@@ -507,9 +506,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 async function loadEmployees() {
   const sel = document.getElementById('selEmployee');
   try {
+    // salary.html과 동일: res.data.employees 가 실제 배열
     const res = await GET('employees-list');
-    if (!res.success) return;
-    res.data.forEach(emp => {
+    if (!res.success || !res.data || !res.data.employees) return;
+
+    // 재직 중인 직원만 표시 (퇴직 처리용이므로 active만)
+    const list = res.data.employees.filter(e => e.status === 'active' || !e.status);
+    list.forEach(emp => {
       const opt = document.createElement('option');
       opt.value = emp.id;
       opt.dataset.hire = emp.hire_date || '';
@@ -695,7 +698,7 @@ async function loadList() {
 
   try {
     const res = await fetch('/.netlify/functions/severance-list', {
-      headers: { Authorization: `Bearer ${authToken}` },
+      headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
     }).then(r => r.json());
 
     if (!res.success || !res.data?.length) {
