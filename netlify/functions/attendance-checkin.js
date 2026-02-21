@@ -278,8 +278,10 @@ exports.handler = async (event) => {
         };
       }
     } else if (gpsEnabled && !location?.latitude) {
-      // GPS 필수 모드인데 좌표 수신 실패 (gps 또는 gps+wifi)
-      if (['gps', 'gps+wifi'].includes(bizSettings.checkin_method)) {
+      // GPS 좌표 미수신 시 방식별 처리
+      // gps 단독   → GPS가 유일한 수단이므로 차단
+      // gps+wifi   → WiFi로 대체 가능 → 아래 7번에서 WiFi 통과 여부로 최종 판단
+      if (bizSettings.checkin_method === 'gps') {
         return {
           statusCode: 400,
           headers: CORS,
@@ -289,6 +291,7 @@ exports.handler = async (event) => {
           }),
         };
       }
+      // gps+wifi: gpsMatched = null(미측정) 상태로 7번 판정으로 넘어감
     }
 
     // ── 7) 인증 방식별 차단 판정 ─────────────────────────────
@@ -313,12 +316,15 @@ exports.handler = async (event) => {
         };
       }
     } else if (finalMethod === 'gps+wifi') {
-      // GPS+WiFi 이중 인증 모드: 하나라도 통과하면 허용
-      // GPS는 위에서 이미 체크 → 여기선 "GPS도 실패 AND WiFi도 실패" 케이스 차단
-      const gpsFailed  = gpsEnabled  && gpsMatched  === false;
-      const wifiFailed = wifiEnabled && wifiMatched === false;
+      // GPS+WiFi 이중 인증: 하나라도 통과하면 허용
+      // gpsMatched null  = GPS 좌표 자체를 못 받음 (미측정) → 실패 아님
+      // gpsMatched false = GPS 측정했지만 반경 초과 → 실패
+      // gpsMatched true  = 반경 내 → 통과
+      const gpsFailed  = (gpsMatched === false);          // null은 실패 처리 안 함
+      const wifiFailed = (wifiEnabled && wifiMatched === false);
 
       if (gpsFailed && wifiFailed) {
+        // GPS 반경 초과 AND WiFi 불일치 → 둘 다 실패
         return {
           statusCode: 403,
           headers: CORS,
@@ -330,6 +336,19 @@ exports.handler = async (event) => {
           }),
         };
       }
+      if (gpsMatched === null && wifiFailed) {
+        // GPS 미측정 AND WiFi 불일치 → WiFi가 유일한 수단인데 실패
+        return {
+          statusCode: 403,
+          headers: CORS,
+          body: JSON.stringify({
+            success: false,
+            error:   'WiFi 인증에 실패했습니다. 사업장 WiFi에 연결된 상태에서 다시 시도해주세요.',
+            wifiMatched,
+          }),
+        };
+      }
+      // 나머지: GPS 통과 또는 WiFi 통과 → 허용
     } else if (finalMethod !== 'gps') {
       // QR 모드 (또는 미지정): WiFi/GPS는 참고 기록만, 차단 없음
       // GPS 차단은 위 섹션(6번)에서 method==='gps' 조건으로 이미 처리됨
