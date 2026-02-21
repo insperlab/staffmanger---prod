@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -995,9 +994,16 @@ function fetchMyLocation(bizId) {
       showToast(`위치 획득 완료 (정확도 ±${Math.round(pos.coords.accuracy)}m)\n저장 버튼을 눌러 등록하세요.`, 'success');
     },
     (err) => {
-      showToast('위치 권한을 허용해주세요: ' + err.message, 'error');
+      // GeolocationPositionError 코드별 안내
+      // 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+      const msg = {
+        1: '위치 권한이 거부되었습니다.\n브라우저 주소창 왼쪽 🔒 아이콘 → 위치 → 허용 후 새로고침하세요.',
+        2: '위치 정보를 가져올 수 없습니다.\nPC/노트북의 경우 GPS가 없어 정확한 위치를 못 받을 수 있습니다.\n좌표를 직접 입력하거나 모바일에서 시도해주세요.',
+        3: '위치 요청 시간이 초과되었습니다. 다시 시도해주세요.',
+      }[err.code] || ('위치 오류: ' + err.message);
+      showToast(msg, 'error');
     },
-    { enableHighAccuracy: true, timeout: 10000 }
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
 
