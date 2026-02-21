@@ -544,8 +544,8 @@
             document.getElementById('userName').textContent = userInfo.name;
             document.getElementById('companyName').textContent = userInfo.companyName;
 
-            // QR코드 생성
-            await generateQRCode();
+            // QR코드 로드 (기존 유효 토큰 우선 표시, 없을 때만 신규 발급)
+            await loadOrGenerateQRCode();
 
             // WiFi 출퇴근 설정 로드
             loadWifiSettings();
@@ -555,11 +555,36 @@
         // QR코드 생성
         // ====================================
 
+        // ── QR 로드: 기존 유효 토큰 우선 → 없을 때만 신규 발급 ──
+        // 비유: 금고 확인 먼저, 비어 있을 때만 새로 인쇄
+        async function loadOrGenerateQRCode() {
+            const authToken = localStorage.getItem('authToken');
+            try {
+                // 1단계: 기존 유효 토큰 조회 (GET)
+                const getRes  = await fetch('/.netlify/functions/qr-token-generate', {
+                    method:  'GET',
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                });
+                const getData = await getRes.json();
+
+                if (getData.success && getData.token) {
+                    // 기존 유효 토큰 있음 → 재발급 없이 그대로 표시
+                    renderQRCode(getData.token, getData.qrUrl, getData.expiresAt);
+                    return;
+                }
+
+                // 2단계: 유효 토큰 없음 → 신규 발급 (POST)
+                await generateQRCode();
+
+            } catch (error) {
+                console.error('QR 로드 오류:', error);
+                showToast('QR코드 로드에 실패했습니다: ' + error.message, 'error');
+            }
+        }
+
+        // ── QR 신규 발급 (명시적 재발급 또는 최초 발급 시에만 호출) ──
         async function generateQRCode() {
             try {
-                // ── 서버에서 QR 토큰 발급 (보안 강화) ──────────────
-                // 기존: 클라이언트에서 ATT_{companyId}_{timestamp} 직접 생성 → 위조 가능
-                // 변경: 서버가 암호학적 난수(256비트)로 생성 → 예측 불가, DB 저장, 만료 관리
                 const authToken = localStorage.getItem('authToken');
                 const tokenRes  = await fetch('/.netlify/functions/qr-token-generate', {
                     method:  'POST',
@@ -573,6 +598,20 @@
                 if (!tokenData.success) {
                     throw new Error(tokenData.error || 'QR 토큰 발급 실패');
                 }
+
+                renderQRCode(tokenData.token, tokenData.qrUrl, tokenData.expiresAt);
+
+            } catch (error) {
+                console.error('QR코드 생성 오류:', error);
+                showToast('QR코드 생성에 실패했습니다: ' + error.message, 'error');
+                document.getElementById('qrLoadingState').style.display = 'none';
+            }
+        }
+
+        // ── QR 코드 화면 렌더링 (토큰 → 이미지) ────────────────
+        function renderQRCode(token, qrUrl, expiresAt) {
+            try {
+                const tokenData = { token, qrUrl, expiresAt, success: true };
 
                 // 서버에서 받은 토큰과 URL 사용
                 attendanceToken = tokenData.token;
