@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -428,18 +427,51 @@
 </main><!-- /main-content -->
 
 <script>
-// ══════════════════════════════════════════════
-// 공통 유틸
-// ══════════════════════════════════════════════
+/* ============================================================
+   전역 변수 (다른 페이지와 동일한 패턴)
+============================================================ */
+var authToken = null;
+
+/* ============================================================
+   페이지 진입 초기화
+============================================================ */
+window.addEventListener('DOMContentLoaded', async function() {
+  // 1. 인증 체크
+  authToken = localStorage.getItem('authToken');
+  if (!authToken) { window.location.href = '/login.html'; return; }
+
+  // 2. 직원 목록 로드
+  await loadEmployees();
+
+  // 3. 연도 필터 초기화
+  const sel = document.getElementById('filterYear');
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear; y >= currentYear - 5; y--) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y + '년';
+    sel.appendChild(opt);
+  }
+
+  // 4. 사이드바 로드
+  fetch('/sidebar.html').then(r => r.text()).then(h => {
+    document.getElementById('sidebar-placeholder').innerHTML = h;
+  }).catch(() => {});
+});
+
+/* ============================================================
+   공통 유틸
+============================================================ */
+// API POST 호출
 const API = (path, body) => fetch(`/.netlify/functions/${path}`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json',
-             Authorization: `Bearer ${localStorage.getItem('token')}` },
+             Authorization: `Bearer ${authToken}` },
   body: JSON.stringify(body),
 }).then(r => r.json());
 
+// API GET 호출
 const GET = (path) => fetch(`/.netlify/functions/${path}`, {
-  headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  headers: { Authorization: `Bearer ${authToken}` },
 }).then(r => r.json());
 
 const won = n => (Number(n) || 0).toLocaleString() + '원';
@@ -450,7 +482,9 @@ const wonShort = n => {
   return v.toLocaleString() + '원';
 };
 
-// ── 탭 전환 ──
+/* ============================================================
+   탭 전환
+============================================================ */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -462,9 +496,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// ══════════════════════════════════════════════
-// 탭1: 퇴직금 계산
-// ══════════════════════════════════════════════
+/* ============================================================
+   탭1: 퇴직금 계산
+============================================================ */
 
 // 직원 목록 로드
 async function loadEmployees() {
@@ -481,11 +515,10 @@ async function loadEmployees() {
       opt.textContent = `${emp.name} (입사: ${emp.hire_date || '미등록'})`;
       sel.appendChild(opt);
     });
-  } catch {}
+  } catch(e) { console.error('직원 목록 로드 실패:', e); }
 }
-loadEmployees();
 
-// 직원 선택 시 IRP 자동 채우기
+// 직원 선택 시 자동 채우기
 document.getElementById('selEmployee').addEventListener('change', function() {
   const opt = this.options[this.selectedIndex];
   if (opt.dataset.irp) document.getElementById('irpAccount').value = opt.dataset.irp;
@@ -507,7 +540,7 @@ function updateBonus3mPreview() {
 document.getElementById('bonusAnnualAmount').addEventListener('input', updateBonus3mPreview);
 
 // 퇴직금 미리보기
-let previewData = null; // 확정 저장용
+var previewData = null;
 
 document.getElementById('btnPreview').addEventListener('click', async () => {
   const employeeId = document.getElementById('selEmployee').value;
@@ -532,14 +565,9 @@ document.getElementById('btnPreview').addEventListener('click', async () => {
       preview: true,
     });
 
-    if (!res.success) {
-      showWarning(res.error, 'danger');
-      return;
-    }
-
+    if (!res.success) { showWarning(res.error, 'danger'); return; }
     previewData = res.data;
     renderResult(res.data);
-
   } catch (e) {
     showWarning('계산 중 오류가 발생했습니다. 다시 시도해주세요.', 'danger');
   } finally {
@@ -550,13 +578,11 @@ document.getElementById('btnPreview').addEventListener('click', async () => {
 
 // 결과 렌더링
 function renderResult(d) {
-  // 요약
   document.getElementById('res-servicePeriod').textContent = d.serviceYearsDisplay;
   document.getElementById('res-severancePay').textContent = won(d.severancePay);
   document.getElementById('res-totalTax').textContent = won(d.tax.totalTax);
   document.getElementById('res-netPay').textContent = won(d.netSeverancePay);
 
-  // 평균임금 상세
   const a = d.avgWage;
   document.getElementById('d-period').textContent =
     `${a.periodStart} ~ ${a.periodEnd} (${a.periodDays}일)`;
@@ -573,7 +599,6 @@ function renderResult(d) {
   document.getElementById('d-whichWage').textContent =
     a.usedOrdinary ? '(통상임금 적용)' : '(평균임금 적용)';
 
-  // 퇴직소득세 상세
   const t = d.tax;
   document.getElementById('t-retirementIncome').textContent = won(t.retirementIncome || d.severancePay);
   document.getElementById('t-serviceDeduction').textContent = '-' + won(t.serviceYearsDeduction);
@@ -585,7 +610,6 @@ function renderResult(d) {
   document.getElementById('t-localTax').textContent = won(t.localIncomeTax);
   document.getElementById('t-totalTax').textContent = won(t.totalTax);
 
-  // IRP 절세
   const irp = d.irpBenefit;
   document.getElementById('irp-lumpsum').textContent = won(irp.lumpSum);
   document.getElementById('irp-10').textContent = won(irp.annuityWithin10);
@@ -593,12 +617,10 @@ function renderResult(d) {
   document.getElementById('irp-over10').textContent = won(irp.annuityOver10);
   document.getElementById('irp-over10-save').textContent = `절세 ${won(irp.savingOver10)}`;
 
-  // 지급 기한
   document.getElementById('paymentDueBox').innerHTML =
     `📅 <strong>지급 기한: ${d.paymentDueDate}</strong> (퇴직일로부터 14일 이내)
      — 기한 초과 시 연 20% 지연이자 발생`;
 
-  // 경고
   const warningArea = document.getElementById('warningArea');
   warningArea.innerHTML = '';
   (d.warnings || []).forEach(w => {
@@ -659,20 +681,18 @@ document.getElementById('btnReset').addEventListener('click', () => {
   previewData = null;
 });
 
-// 인쇄
 document.getElementById('btnPrint').addEventListener('click', () => window.print());
 
-// ══════════════════════════════════════════════
-// 탭2: 지급 내역
-// ══════════════════════════════════════════════
+/* ============================================================
+   탭2: 지급 내역
+============================================================ */
 async function loadList() {
   const area = document.getElementById('listTableArea');
   area.innerHTML = '<div style="text-align:center; padding:20px;"><span class="spinner"></span></div>';
 
   try {
-    // GET 방식으로 목록 조회
     const res = await fetch('/.netlify/functions/severance-list', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { Authorization: `Bearer ${authToken}` },
     }).then(r => r.json());
 
     if (!res.success || !res.data?.length) {
@@ -717,20 +737,17 @@ async function loadList() {
   }
 }
 
-// ══════════════════════════════════════════════
-// 탭3: DC 부담금
-// ══════════════════════════════════════════════
+/* ============================================================
+   탭3: DC 부담금
+============================================================ */
 async function loadDc() {
-  document.getElementById('dcTableArea').innerHTML =
-    '<div style="text-align:center; padding:20px;"><span class="spinner"></span></div>';
-  // severance-list API에서 dc 타입만 필터 (추후 전용 API 분리 가능)
   document.getElementById('dcTableArea').innerHTML =
     '<div class="empty-state"><div class="icon">📊</div><p>DC형 부담금 내역이 없습니다.</p></div>';
 }
 
-// ══════════════════════════════════════════════
-// 탭4: 시뮬레이터
-// ══════════════════════════════════════════════
+/* ============================================================
+   탭4: 시뮬레이터
+============================================================ */
 document.getElementById('btnSimCalc').addEventListener('click', () => {
   const monthly = Number(document.getElementById('sim-monthly').value) || 0;
   const allowance = Number(document.getElementById('sim-allowance').value) || 0;
@@ -743,10 +760,8 @@ document.getElementById('btnSimCalc').addEventListener('click', () => {
   // 3개월 임금 총액
   const wage3m = (monthly + allowance) * 3 + Math.floor(bonusAnnual * 3 / 12);
   const serviceDays = Math.round(years * 365);
-  const dailyAvg = Math.floor(wage3m / 92); // 평균 3개월 = 92일
+  const dailyAvg = Math.floor(wage3m / 92);
   const severancePay = Math.floor(dailyAvg * 30 * (serviceDays / 365));
-
-  // 퇴직소득세 (severance-tax 로직 인라인)
   const tax = calcSeveranceTaxInline(severancePay, years);
   const netPay = severancePay - tax;
 
@@ -756,10 +771,9 @@ document.getElementById('btnSimCalc').addEventListener('click', () => {
   document.getElementById('simResult').style.display = 'block';
 });
 
-// 시뮬레이터용 세금 계산 (서버 없이 클라이언트 계산)
+// 시뮬레이터 세금 계산 (클라이언트 사이드)
 function calcSeveranceTaxInline(severancePay, years) {
   const roundYears = Math.ceil(years);
-
   // 근속연수공제
   let syd;
   if (roundYears <= 5) syd = roundYears * 1000000;
@@ -767,7 +781,6 @@ function calcSeveranceTaxInline(severancePay, years) {
   else if (roundYears <= 20) syd = 15000000 + (roundYears - 10) * 2500000;
   else syd = 40000000 + (roundYears - 20) * 3000000;
 
-  // 환산급여
   const converted = Math.floor(Math.max(severancePay - syd, 0) * 12 / roundYears);
 
   // 환산급여공제
@@ -780,7 +793,7 @@ function calcSeveranceTaxInline(severancePay, years) {
 
   const taxBase = Math.max(converted - cd, 0);
 
-  // 산출세액
+  // 세율 구간
   let convertedTax;
   if (taxBase <= 14000000) convertedTax = Math.floor(taxBase * 0.06);
   else if (taxBase <= 50000000) convertedTax = Math.floor(taxBase * 0.15 - 1260000);
@@ -789,14 +802,8 @@ function calcSeveranceTaxInline(severancePay, years) {
   else convertedTax = Math.floor(taxBase * 0.38 - 19940000);
 
   const incomeTax = Math.floor(convertedTax * roundYears / 12);
-  const localTax = Math.floor(incomeTax * 0.1);
-  return incomeTax + localTax;
+  return incomeTax + Math.floor(incomeTax * 0.1);
 }
-
-// 사이드바 로드
-fetch('/sidebar.html').then(r => r.text()).then(h => {
-  document.getElementById('sidebar-placeholder').innerHTML = h;
-}).catch(() => {});
 </script>
 </body>
 </html>
