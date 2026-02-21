@@ -355,6 +355,20 @@
   .btn-save-wifi:hover { background: #1a45b0; }
   .btn-save-wifi:disabled { opacity: 0.5; cursor: not-allowed; }
   .wifi-meta { font-size: 11px; color: #9CA3AF; margin-top: 8px; }
+  /* GPS 설정 섹션 */
+  .gps-section { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 16px; margin-top: 12px; }
+  .gps-section h4 { font-size: 13px; font-weight: 700; color: #166534; margin: 0 0 12px 0; }
+  .gps-coords-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .gps-input { flex: 1; min-width: 140px; padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 13px; font-family: monospace; }
+  .gps-input:focus { outline: none; border-color: #22C55E; }
+  .gps-radius-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .gps-radius-input { width: 90px; padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 13px; text-align: center; }
+  .gps-meta { font-size: 11px; color: #6B7280; margin-top: 8px; }
+  .btn-get-location { padding: 8px 14px; background: #22C55E; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-get-location:hover { background: #16A34A; }
+  .gps-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; border-radius: 12px; margin-left: 8px; }
+  .gps-badge.set { background: #DCFCE7; color: #166534; }
+  .gps-badge.unset { background: #F3F4F6; color: #9CA3AF; }
   .alert-banner {
     background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 10px;
     padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: #9A3412;
@@ -894,6 +908,39 @@ function renderBizWifiCard(biz) {
       <div class="wifi-meta" id="wifiMeta_${biz.id}">${ipUpdated}</div>
     </div>
 
+    <!-- GPS 위치 설정 섹션 -->
+    <div class="gps-section" id="gpsSection_${biz.id}">
+      <h4>📍 GPS 위치 인증 설정
+        ${biz.gps_latitude
+          ? '<span class="gps-badge set">✅ 위치 등록됨</span>'
+          : '<span class="gps-badge unset">미등록</span>'}
+      </h4>
+      <div class="gps-coords-row">
+        <input type="number" class="gps-input" id="gpsLat_${biz.id}"
+               placeholder="위도 (예: 37.5665)" step="0.0000001"
+               value="${biz.gps_latitude || ''}">
+        <input type="number" class="gps-input" id="gpsLng_${biz.id}"
+               placeholder="경도 (예: 126.9780)" step="0.0000001"
+               value="${biz.gps_longitude || ''}">
+        <button class="btn-get-location" onclick="fetchMyLocation('${biz.id}')">
+          📍 현재 위치 가져오기
+        </button>
+      </div>
+      <div class="gps-radius-row">
+        <span style="font-size:13px;font-weight:600;color:#374151">허용 반경</span>
+        <input type="number" class="gps-radius-input" id="gpsRadius_${biz.id}"
+               min="30" max="2000" step="10"
+               value="${biz.gps_radius_meters || 100}">
+        <span style="font-size:13px;color:#6B7280">m
+          <small>(30~2000m, 권장: 음식점 50m / 넓은 사업장 200m)</small>
+        </span>
+      </div>
+      <div class="gps-meta">
+        GPS 인증: 직원이 이 위치에서 설정 반경 이내에 있을 때만 출퇴근을 허용합니다.<br>
+        <b>주 출퇴근 방식이 GPS일 때만 강제 검증됩니다.</b> QR 방식에서는 참고 기록만 합니다.
+      </div>
+    </div>
+
     <div style="margin-top:14px;text-align:right">
       <button class="btn-save-wifi" id="saveBtn_${biz.id}"
               onclick="saveWifiSettings('${biz.id}')">
@@ -934,6 +981,26 @@ async function fetchMyIp(bizId) {
   }
 }
 
+// 현재 위치(GPS) 가져오기 → 사업장 기준 좌표로 설정
+function fetchMyLocation(bizId) {
+  if (!navigator.geolocation) {
+    showToast('이 브라우저는 GPS를 지원하지 않습니다.', 'error');
+    return;
+  }
+  showToast('위치 정보를 가져오는 중...', 'info');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      document.getElementById('gpsLat_' + bizId).value = pos.coords.latitude.toFixed(7);
+      document.getElementById('gpsLng_' + bizId).value = pos.coords.longitude.toFixed(7);
+      showToast(`위치 획득 완료 (정확도 ±${Math.round(pos.coords.accuracy)}m)\n저장 버튼을 눌러 등록하세요.`, 'success');
+    },
+    (err) => {
+      showToast('위치 권한을 허용해주세요: ' + err.message, 'error');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
 // WiFi 설정 저장
 async function saveWifiSettings(bizId) {
   const btn = document.getElementById('saveBtn_' + bizId);
@@ -957,10 +1024,18 @@ async function saveWifiSettings(bizId) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
       body: JSON.stringify({
-        businessId:      bizId,
-        checkinMethod:   method,
-        wifiEnabled:     wifiOn,
+        businessId:       bizId,
+        checkinMethod:    method,
+        wifiEnabled:      wifiOn,
         wifiRegisteredIp: wifiOn ? ip : undefined,
+        // GPS 좌표 — 값이 있을 때만 전송
+        ...(document.getElementById('gpsLat_' + bizId)?.value
+          ? {
+              gpsLatitude:       parseFloat(document.getElementById('gpsLat_' + bizId).value),
+              gpsLongitude:      parseFloat(document.getElementById('gpsLng_' + bizId).value),
+              gpsRadiusMeters:   parseInt(document.getElementById('gpsRadius_' + bizId).value, 10),
+            }
+          : {}),
       })
     });
     const json = await res.json();
