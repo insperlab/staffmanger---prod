@@ -1,13 +1,14 @@
 // netlify/functions/wifi-settings.js
-// M3: 사업장별 WiFi 출퇴근 설정 조회/수정
+// M3: 사업장별 WiFi / GPS 출퇴근 설정 조회/수정
 //
 // GET  /.netlify/functions/wifi-settings?businessId=xxx
-//   → 특정 사업장 WiFi 설정 조회
+//   → 특정 사업장 설정 조회 (WiFi + GPS 포함)
 //   → businessId 없으면 회사 전체 사업장 설정 목록 반환
 //
 // PUT  /.netlify/functions/wifi-settings
-//   Body: { businessId, checkinMethod, wifiEnabled, wifiRegisteredIp }
-//   → WiFi 설정 저장 + IP 불일치 알림 자동 해제
+//   Body: { businessId, checkinMethod, wifiEnabled, wifiRegisteredIp,
+//           gpsLatitude, gpsLongitude, gpsRadiusMeters }
+//   → WiFi/GPS 설정 저장
 //
 // DELETE /.netlify/functions/wifi-settings?businessId=xxx
 //   → WiFi 비활성화 (wifi_enabled=false, 등록 IP 유지)
@@ -64,7 +65,10 @@ exports.handler = async (event) => {
           wifi_registered_ip,
           wifi_ip_updated_at,
           wifi_ip_mismatch_detected,
-          wifi_ip_mismatch_at
+          wifi_ip_mismatch_at,
+          gps_latitude,
+          gps_longitude,
+          gps_radius_meters
         `)
         .eq('company_id', companyId)
         .eq('status', 'active')
@@ -99,7 +103,8 @@ exports.handler = async (event) => {
     // ════════════════════════════════════════════════
     if (event.httpMethod === 'PUT') {
       const body = JSON.parse(event.body || '{}');
-      const { businessId, checkinMethod, wifiEnabled, wifiRegisteredIp } = body;
+      const { businessId, checkinMethod, wifiEnabled, wifiRegisteredIp,
+              gpsLatitude, gpsLongitude, gpsRadiusMeters } = body;
 
       if (!businessId) {
         return { statusCode: 400, headers: CORS, body: JSON.stringify({ success: false, error: 'businessId 필수' }) };
@@ -138,6 +143,28 @@ exports.handler = async (event) => {
         updates.wifi_ip_mismatch_at = null;
       }
 
+      // GPS 설정 저장
+      if (gpsLatitude !== undefined || gpsLongitude !== undefined) {
+        // 위도/경도 유효성 검증 (위도 -90~90, 경도 -180~180)
+        const lat = parseFloat(gpsLatitude);
+        const lng = parseFloat(gpsLongitude);
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+          return { statusCode: 400, headers: CORS, body: JSON.stringify({ success: false, error: '위도 값이 올바르지 않습니다 (-90 ~ 90)' }) };
+        }
+        if (isNaN(lng) || lng < -180 || lng > 180) {
+          return { statusCode: 400, headers: CORS, body: JSON.stringify({ success: false, error: '경도 값이 올바르지 않습니다 (-180 ~ 180)' }) };
+        }
+        updates.gps_latitude  = lat;
+        updates.gps_longitude = lng;
+      }
+      if (gpsRadiusMeters !== undefined) {
+        const radius = parseInt(gpsRadiusMeters, 10);
+        if (isNaN(radius) || radius < 30 || radius > 2000) {
+          return { statusCode: 400, headers: CORS, body: JSON.stringify({ success: false, error: '허용 반경은 30~2000m 사이여야 합니다' }) };
+        }
+        updates.gps_radius_meters = radius;
+      }
+
       if (Object.keys(updates).length === 0) {
         return { statusCode: 400, headers: CORS, body: JSON.stringify({ success: false, error: '변경할 내용 없음' }) };
       }
@@ -146,7 +173,7 @@ exports.handler = async (event) => {
         .from('businesses')
         .update(updates)
         .eq('id', businessId)
-        .select('id, name, checkin_method, wifi_enabled, wifi_registered_ip, wifi_ip_updated_at')
+        .select('id, name, checkin_method, wifi_enabled, wifi_registered_ip, wifi_ip_updated_at, gps_latitude, gps_longitude, gps_radius_meters')
         .single();
 
       if (updateErr) throw updateErr;
@@ -154,7 +181,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: CORS,
-        body: JSON.stringify({ success: true, data: updated, message: 'WiFi 설정이 저장되었습니다.' }),
+        body: JSON.stringify({ success: true, data: updated, message: '설정이 저장되었습니다.' }),
       };
     }
 

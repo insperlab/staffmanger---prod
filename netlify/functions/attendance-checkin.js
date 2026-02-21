@@ -45,6 +45,23 @@ function calcNightHours(checkInISO, checkOutISO) {
   }
   return Math.max(0, parseFloat((nightMs / MS_HOUR).toFixed(2)));
 }
+// ─────────────────────────────────────────────────────────────
+// 하버사인 공식 — 두 GPS 좌표 사이의 직선 거리 계산 (미터)
+// 비유: 지구가 완전한 구라고 가정하고 두 점 사이의 호 길이 계산
+// 오차: ±0.5% (지구 타원형 때문에 극지방에서 약간 부정확하지만 한국 기준 충분)
+// ─────────────────────────────────────────────────────────────
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R   = 6371000; // 지구 반지름 (미터)
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+          + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180)
+          * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c); // 미터 단위 정수 반환
+}
+
+
 
 
 
@@ -181,7 +198,7 @@ exports.handler = async (event) => {
     if (employee.business_id) {
       const { data: biz } = await supabase
         .from('businesses')
-        .select('id, checkin_method, wifi_enabled, wifi_registered_ip')
+        .select('id, checkin_method, wifi_enabled, wifi_registered_ip, gps_latitude, gps_longitude, gps_radius_meters')
         .eq('id', employee.business_id)
         .single();
       bizSettings = biz;
@@ -211,6 +228,51 @@ exports.handler = async (event) => {
             })
             .eq('id', employee.business_id);
         }
+      }
+    }
+
+    // ── 6-2) GPS 위치 검증 ──────────────────────────────────────
+    // checkin_method가 'gps'이고 사업장에 기준 좌표가 등록된 경우만 검증
+    // GPS 좌표가 없거나 미등록 사업장은 통과 (선택적 보안)
+    let gpsMatched   = null;  // null = GPS 인증 미사용
+    let gpsDistance  = null;  // 실제 거리(m)
+    const gpsEnabled = bizSettings?.gps_latitude && bizSettings?.gps_longitude;
+
+    if (gpsEnabled && location?.latitude) {
+      const dist = haversineDistance(
+        location.latitude,
+        location.longitude,
+        bizSettings.gps_latitude,
+        bizSettings.gps_longitude
+      );
+      const allowedRadius = bizSettings.gps_radius_meters || 100; // 기본 100m
+      gpsMatched  = dist <= allowedRadius;
+      gpsDistance = dist;
+
+      // GPS 체크인 모드(gps)이고 반경 초과 시 → 체크인 거부
+      if (bizSettings.checkin_method === 'gps' && !gpsMatched) {
+        return {
+          statusCode: 403,
+          headers: CORS,
+          body: JSON.stringify({
+            success:     false,
+            error:       `사업장 위치와 너무 멀리 있습니다. (현재 ${gpsDistance}m, 허용 ${allowedRadius}m 이내)`,
+            gpsDistance,
+            allowedRadius,
+          }),
+        };
+      }
+    } else if (gpsEnabled && !location?.latitude) {
+      // GPS 모드인데 좌표를 못 받은 경우
+      if (bizSettings.checkin_method === 'gps') {
+        return {
+          statusCode: 400,
+          headers: CORS,
+          body: JSON.stringify({
+            success: false,
+            error:   'GPS 위치 정보가 필요합니다. 브라우저 위치 권한을 허용해주세요.',
+          }),
+        };
       }
     }
 
@@ -257,6 +319,9 @@ exports.handler = async (event) => {
             check_in_latitude:  location.latitude,
             check_in_longitude: location.longitude,
           } : {}),
+          // GPS 검증 결과 저장 (null = 미사용, true/false = 검증 결과)
+          gps_matched:  gpsMatched,
+          gps_distance: gpsDistance,
         })
         .select('id, check_in_time')
         .single();
@@ -272,6 +337,8 @@ exports.handler = async (event) => {
           employeeName: employee.name,
           checkinTime: att.check_in_time,
           wifiMatched,           // null=미사용, true=일치, false=불일치
+          gpsMatched,            // null=미사용, true=반경내, false=반경외
+          gpsDistance,           // 사업장까지 실제 거리(m)
           checkinMethod,
           message: `${employee.name}님 출근이 기록되었습니다.`,
         }),
