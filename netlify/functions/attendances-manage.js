@@ -54,7 +54,7 @@ exports.handler = async (event) => {
     // ── POST: 신규 등록 ──────────────────────────────────
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { employeeId, workDate, checkInTime, checkOutTime, notes } = body;
+      const { employeeId, workDate, checkInTime, checkOutTime, checkOutDate, notes } = body;
 
       if (!employeeId)  return resp(400, { success: false, error: '직원을 선택해주세요' });
       if (!workDate)    return resp(400, { success: false, error: '근무일을 입력해주세요' });
@@ -83,7 +83,9 @@ exports.handler = async (event) => {
       if (existing) return resp(409, { success: false, error: '해당 날짜에 이미 출퇴근 기록이 있습니다' });
 
       const checkIn  = `${workDate}T${checkInTime}:00`;
-      const checkOut = checkOutTime ? `${workDate}T${checkOutTime}:00` : null;
+      // 야간근무: checkOutDate가 있으면 그 날짜 사용, 없으면 workDate
+      const outDate  = checkOutDate || workDate;
+      const checkOut = checkOutTime ? `${outDate}T${checkOutTime}:00` : null;
 
       let workHours = null;
       if (checkOut) {
@@ -117,7 +119,7 @@ exports.handler = async (event) => {
     // ── PUT: 기존 기록 수정 ──────────────────────────────
     if (method === 'PUT') {
       const body = JSON.parse(event.body || '{}');
-      const { id, workDate, checkInTime, checkOutTime, notes } = body;
+      const { id, workDate, checkInTime, checkOutTime, checkOutDate, notes } = body;
 
       if (!id)          return resp(400, { success: false, error: '수정할 기록 ID가 필요합니다' });
       if (!workDate)    return resp(400, { success: false, error: '근무일을 입력해주세요' });
@@ -133,7 +135,9 @@ exports.handler = async (event) => {
       if (!target) return resp(404, { success: false, error: '수정할 기록을 찾을 수 없습니다' });
 
       const checkIn  = `${workDate}T${checkInTime}:00`;
-      const checkOut = checkOutTime ? `${workDate}T${checkOutTime}:00` : null;
+      // 야간근무: checkOutDate가 있으면 그 날짜 사용, 없으면 workDate
+      const outDate  = checkOutDate || workDate;
+      const checkOut = checkOutTime ? `${outDate}T${checkOutTime}:00` : null;
 
       let workHours = null;
       if (checkOut) {
