@@ -20,6 +20,33 @@
 //  7) attendances INSERT (check_method, client_ip, wifi_matched 포함)
 
 const { createClient } = require('@supabase/supabase-js');
+// ─────────────────────────────────────────────────────────────
+// 야간근로 시간 계산 (근로기준법 제56조) — 22:00~06:00 구간
+// ─────────────────────────────────────────────────────────────
+function calcNightHours(checkInISO, checkOutISO) {
+  if (!checkInISO || !checkOutISO) return 0;
+  const inTime  = new Date(checkInISO);
+  const outTime = new Date(checkOutISO);
+  if (outTime <= inTime) return 0;
+  const MS_HOUR = 3600 * 1000;
+  let nightMs = 0;
+  const startDay = new Date(inTime);
+  startDay.setHours(0, 0, 0, 0);
+  for (let d = -1; d <= 2; d++) {
+    const nightStart = new Date(startDay);
+    nightStart.setDate(nightStart.getDate() + d);
+    nightStart.setHours(22, 0, 0, 0);
+    const nightEnd = new Date(nightStart);
+    nightEnd.setDate(nightEnd.getDate() + 1);
+    nightEnd.setHours(6, 0, 0, 0);
+    const overlapStart = Math.max(inTime.getTime(), nightStart.getTime());
+    const overlapEnd   = Math.min(outTime.getTime(), nightEnd.getTime());
+    if (overlapEnd > overlapStart) nightMs += overlapEnd - overlapStart;
+  }
+  return Math.max(0, parseFloat((nightMs / MS_HOUR).toFixed(2)));
+}
+
+
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -62,22 +89,47 @@ exports.handler = async (event) => {
     const checkTime = timestamp ? new Date(timestamp) : new Date();
     if (isNaN(checkTime)) return err400('timestamp 형식 오류');
 
-    // ── 1) QR 토큰 → companyId 파싱 ─────────────────────────
-    // 토큰 형식: ATT_{companyId}_{timestamp}
-    // DB 조회 없이 직접 파싱 (settings.html이 클라이언트에서 생성하는 구조)
-    if (!token.startsWith('ATT_')) {
-      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드입니다.' }) };
-    }
-    // ATT_ 제거 후 첫 번째 UUID (companyId) 추출
-    // 형식: ATT_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx_1234567890
-    const tokenBody = token.slice(4); // "ATT_" 제거
-    // UUID는 36자 (8-4-4-4-12)
-    const companyId = tokenBody.slice(0, 36);
-    if (!companyId || companyId.length !== 36) {
-      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드 형식입니다.' }) };
+    // ── 1) QR 토큰 → DB 조회로 companyId 확인 ──────────────
+    // 변경: 클라이언트 파싱(ATT_{companyId}_{timestamp}) 제거
+    //       → 서버 발급 토큰을 qr_tokens 테이블에서 조회
+    // 보안: 토큰 위조 불가, 만료/폐기 상태 서버에서 검증
+
+    // 구형 토큰(ATT_) 하위 호환성 — 마이그레이션 기간 동안만 허용
+    if (token.startsWith('ATT_')) {
+      return {
+        statusCode: 410,
+        headers: CORS,
+        body: JSON.stringify({
+          success: false,
+          error: 'QR코드가 만료되었습니다. 관리자에게 새 QR코드 발급을 요청해주세요.',
+        }),
+      };
     }
 
-    // companyId 실존 여부 확인
+    // qr_tokens 테이블에서 토큰 조회
+    const { data: tokenRecord, error: tokenErr } = await supabase
+      .from('qr_tokens')
+      .select('id, company_id, expires_at, revoked_at')
+      .eq('token', token)
+      .single();
+
+    if (tokenErr || !tokenRecord) {
+      return { statusCode: 404, headers: CORS, body: JSON.stringify({ success: false, error: '유효하지 않은 QR코드입니다.' }) };
+    }
+
+    // 폐기 여부 확인
+    if (tokenRecord.revoked_at) {
+      return { statusCode: 410, headers: CORS, body: JSON.stringify({ success: false, error: 'QR코드가 폐기되었습니다. 관리자에게 새 QR코드를 요청해주세요.' }) };
+    }
+
+    // 만료 여부 확인
+    if (new Date(tokenRecord.expires_at) < new Date()) {
+      return { statusCode: 410, headers: CORS, body: JSON.stringify({ success: false, error: 'QR코드가 만료되었습니다. 관리자에게 새 QR코드를 요청해주세요.' }) };
+    }
+
+    const companyId = tokenRecord.company_id;
+
+    // 회사명 조회 (응답 메시지용)
     const { data: company, error: compErr } = await supabase
       .from('companies')
       .select('id, company_name')
@@ -252,11 +304,15 @@ exports.handler = async (event) => {
       const workMinutes = Math.max(0, (checkOut - checkIn) / 60000);
       const workHours   = Math.round(workMinutes / 60 * 100) / 100;
 
+      // 야간근로 시간 계산 (22:00~06:00 구간)
+      const nightHours = calcNightHours(existing.check_in_time, checkOut.toISOString());
+
       const { data: att, error: upErr } = await supabase
         .from('attendances')
         .update({
           check_out_time: checkOut.toISOString(),
           work_hours:     workHours,
+          night_hours:    nightHours,  // 야간근로 시간 저장
           status:         'completed',
           // 퇴근 시 WiFi/IP 도 기록 (client_ip는 출근 때 이미 저장됨)
           ...(location?.latitude ? {
