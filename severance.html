@@ -551,10 +551,11 @@ async function loadEmployees() {
     list.forEach(emp => {
       const opt = document.createElement('option');
       opt.value = emp.id;
-      opt.dataset.hire = emp.hire_date || '';
-      opt.dataset.bonus = emp.bonus_annual_amount || 0;
-      opt.dataset.irp = emp.irp_account || '';
-      opt.textContent = `${emp.name} (입사: ${emp.hire_date || '미등록'})`;
+      // employees-list API는 camelCase로 반환
+      opt.dataset.hire = emp.hireDate || '';
+      opt.dataset.bonus = emp.bonusAnnualAmount || 0;
+      opt.dataset.irp = emp.irpAccount || '';
+      opt.textContent = `${emp.name} (${emp.position || '직원'}) - 입사: ${emp.hireDate || '미등록'}`;
       sel.appendChild(opt);
     });
   } catch(e) { console.error('직원 목록 로드 실패:', e); }
