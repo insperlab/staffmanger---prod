@@ -277,14 +277,20 @@
         var methodLabel = {qr:'📱 QR', gps:'📍 GPS', wifi:'📶 WiFi', manual:'✏️ 수동'}[method] || method.toUpperCase();
         var methodBadge = '<span class="method-badge '+method+'">'+methodLabel+'</span>';
 
-        // 야간근무 판별: 출근일 ≠ 퇴근일
-        var isNight = false;
-        if (record.checkInTime && record.checkOutTime) {
+        // 야간근로 시간 표시 (DB 저장값 우선, 없으면 날짜 비교로 판별)
+        var nightHours = record.nightHours || 0;
+        var nightBadge = '';
+        if (nightHours > 0) {
+          // DB에 저장된 야간 시간 표시
+          nightBadge = '<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:10px;background:#ede7f6;color:#4527a0;font-size:11px;font-weight:600">🌙 ' + nightHours.toFixed(1) + 'h</span>';
+        } else if (record.checkInTime && record.checkOutTime) {
+          // 구형 데이터: 날짜 비교로만 판별
           var inDate  = record.checkInTime.slice(0,10);
           var outDate = record.checkOutTime.slice(0,10);
-          isNight = (inDate !== outDate);
+          if (inDate !== outDate) {
+            nightBadge = '<span style="color:#9575cd;font-size:11px">🌙 야간</span>';
+          }
         }
-        var nightBadge = isNight ? '<span style="display:inline-block;margin-left:4px;font-size:11px;color:#4527a0">🌙 야간</span>' : '';
         
         // ✅ record를 전역 캐시에 저장 후 ID만 onclick에 전달 (JSON 큰따옴표 충돌 방지)
         window._recordCache = window._recordCache || {};
