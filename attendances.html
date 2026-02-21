@@ -64,6 +64,30 @@
     .method-badge.manual{background:#F9FAFB;color:#6B7280;border:1px solid #E5E7EB}
 
     
+
+    /* ── 수동 등록 모달 ── */
+    .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+    .modal-backdrop.show{display:flex}
+    .modal{background:#fff;border-radius:16px;padding:28px 32px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative}
+    .modal-title{font-size:18px;font-weight:700;color:#1e293b;margin-bottom:20px}
+    .modal-close{position:absolute;top:16px;right:20px;background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8}
+    .modal-close:hover{color:#1e293b}
+    .form-row{margin-bottom:14px}
+    .form-row label{display:block;font-size:13px;font-weight:600;color:#475569;margin-bottom:5px}
+    .form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;color:#1e293b;box-sizing:border-box}
+    .form-row input:focus,.form-row select:focus{outline:none;border-color:#6366f1}
+    .form-row textarea{resize:vertical;min-height:60px}
+    .form-row-half{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+    .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+    .btn-modal-cancel{padding:9px 20px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;font-size:14px;font-weight:600;cursor:pointer}
+    .btn-modal-save{padding:9px 20px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+    .btn-modal-save:hover{background:#4f46e5}
+    .btn-modal-delete{padding:9px 20px;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+    .btn-modal-delete:hover{background:#dc2626}
+    .btn-add-record{padding:8px 16px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+    .btn-add-record:hover{background:#4f46e5}
+    .row-edit-btn{background:none;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:11px;color:#64748b;cursor:pointer;margin-left:4px}
+    .row-edit-btn:hover{background:#f1f5f9;color:#1e293b}
 </style>
 </head>
 <body>
@@ -250,7 +274,10 @@
         var methodLabel = {qr:'📱 QR', gps:'📍 GPS', wifi:'📶 WiFi', manual:'✏️ 수동'}[method] || method.toUpperCase();
         var methodBadge = '<span class="method-badge '+method+'">'+methodLabel+'</span>';
         
-        var editBtn='<button class="row-edit-btn" onclick="openEditModal('+JSON.stringify(record)+')">수정</button>';
+        // ✅ record를 전역 캐시에 저장 후 ID만 onclick에 전달 (JSON 큰따옴표 충돌 방지)
+        window._recordCache = window._recordCache || {};
+        window._recordCache[record.id] = record;
+        var editBtn='<button class="row-edit-btn" onclick="openEditModal(\'' + record.id + '\')">수정</button>';
         tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td>'+methodBadge+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td><td>'+editBtn+'</td>';
         tbody.appendChild(tr);
       });
@@ -326,11 +353,13 @@
     document.getElementById('modalNotes').value = '';
     document.getElementById('modalDeleteBtn').style.display = 'none';
     await loadEmployeesForModal();
-    document.getElementById('attendanceModal').classList.add('show');
+    var m=document.getElementById('attendanceModal'); m.classList.add('show'); m.style.display='flex';
   }
 
   // 수정 모달 열기 (테이블 행의 수정 버튼 클릭 시)
-  function openEditModal(record) {
+  function openEditModal(recordId) {
+    var record = (window._recordCache || {})[recordId];
+    if (!record) { alert('기록 정보를 찾을 수 없습니다. 새로고침 후 다시 시도해주세요.'); return; }
     modalMode = 'edit';
     editRecordId = record.id;
     document.getElementById('modalTitle').textContent = '✏️ 출퇴근 기록 수정';
@@ -350,12 +379,14 @@
     document.getElementById('modalCheckOut').value = toHHMM(record.checkOutTime);
     document.getElementById('modalNotes').value = record.notes || '';
     document.getElementById('modalDeleteBtn').style.display = 'block';
-    document.getElementById('attendanceModal').classList.add('show');
+    var m=document.getElementById('attendanceModal'); m.classList.add('show'); m.style.display='flex';
   }
 
   // 모달 닫기
   function closeModal() {
-    document.getElementById('attendanceModal').classList.remove('show');
+    var modal = document.getElementById('attendanceModal');
+    modal.classList.remove('show');
+    modal.style.display = 'none'; // 인라인 style도 함께 제거
   }
 
   // 저장 (등록 or 수정)
@@ -429,7 +460,7 @@
   </script>
 
   <!-- ── 수동 출퇴근 등록/수정 모달 ── -->
-  <div class="modal-backdrop" id="attendanceModal">
+  <div class="modal-backdrop" id="attendanceModal" style="display:none">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()">✕</button>
       <div class="modal-title" id="modalTitle">✏️ 수동 출퇴근 등록</div>
