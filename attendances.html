@@ -61,10 +61,11 @@
   
     /* 출퇴근 방식 뱃지 (M8) */
     .method-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600}
-    .method-badge.qr    {background:#EFF6FF;color:#1D4ED8}
-    .method-badge.gps   {background:#F0FDF4;color:#15803D}
-    .method-badge.wifi  {background:#FDF4FF;color:#7E22CE}
-    .method-badge.manual{background:#F9FAFB;color:#6B7280;border:1px solid #E5E7EB}
+    .method-badge.qr       {background:#EFF6FF;color:#1D4ED8}
+    .method-badge.gps      {background:#F0FDF4;color:#15803D}
+    .method-badge.wifi     {background:#FDF4FF;color:#7E22CE}
+    .method-badge.gpswifi  {background:#FFF7ED;color:#C2410C}
+    .method-badge.manual   {background:#F9FAFB;color:#6B7280;border:1px solid #E5E7EB}
 
     
 
@@ -274,8 +275,16 @@
         
         // 출퇴근 방식 뱃지 생성
         var method = record.checkMethod || 'qr';
-        var methodLabel = {qr:'📱 QR', gps:'📍 GPS', wifi:'📶 WiFi', manual:'✏️ 수동'}[method] || method.toUpperCase();
-        var methodBadge = '<span class="method-badge '+method+'">'+methodLabel+'</span>';
+        // gps+wifi는 CSS 클래스명에 '+' 사용 불가 → 'gpswifi'로 변환
+        var methodClass = method.replace('+', '');
+        var methodLabel = {
+          qr:       '📱 QR',
+          gps:      '📍 GPS',
+          wifi:     '📶 WiFi',
+          'gps+wifi': '📍📶 GPS+WiFi',
+          manual:   '✏️ 수동'
+        }[method] || method.toUpperCase();
+        var methodBadge = '<span class="method-badge '+methodClass+'">'+methodLabel+'</span>';
 
         // 야간근로 시간 표시 (DB 저장값 우선, 없으면 날짜 비교로 판별)
         var nightHours = record.nightHours || 0;
