@@ -544,37 +544,56 @@
 
         async function generateQRCode() {
             try {
-                // QR코드용 고유 토큰 생성
-                // 실제 구현에서는 서버 API를 호출하여 토큰을 받아와야 함
-                // 지금은 클라이언트에서 임시로 생성
-                attendanceToken = `ATT_${userInfo.companyId}_${Date.now()}`;
-                
-                // QR코드가 가리킬 URL
-                const attendanceURL = `https://staffmanager.io/attendance-checkin.html?token=${attendanceToken}`;
-                
+                // ── 서버에서 QR 토큰 발급 (보안 강화) ──────────────
+                // 기존: 클라이언트에서 ATT_{companyId}_{timestamp} 직접 생성 → 위조 가능
+                // 변경: 서버가 암호학적 난수(256비트)로 생성 → 예측 불가, DB 저장, 만료 관리
+                const authToken = localStorage.getItem('authToken');
+                const tokenRes  = await fetch('/.netlify/functions/qr-token-generate', {
+                    method:  'POST',
+                    headers: {
+                        'Content-Type':  'application/json',
+                        'Authorization': `Bearer ${authToken}`,
+                    },
+                });
+
+                const tokenData = await tokenRes.json();
+                if (!tokenData.success) {
+                    throw new Error(tokenData.error || 'QR 토큰 발급 실패');
+                }
+
+                // 서버에서 받은 토큰과 URL 사용
+                attendanceToken = tokenData.token;
+                const attendanceURL = tokenData.qrUrl;
+
+                // 만료일 표시 업데이트
+                const expiresDate = new Date(tokenData.expiresAt).toLocaleDateString('ko-KR');
+                const expireEl = document.getElementById('qrExpiresAt');
+                if (expireEl) expireEl.textContent = `유효기간: ${expiresDate}`;
+
                 // QR코드 생성 영역 초기화
                 const qrContainer = document.getElementById('qrCodeCanvas');
                 qrContainer.innerHTML = '';
-                
+
                 // QR코드 생성
                 qrCodeInstance = new QRCode(qrContainer, {
                     text: attendanceURL,
                     width: 256,
                     height: 256,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H  // 높은 오류 수정 레벨
+                    colorDark:    "#000000",
+                    colorLight:   "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
                 });
 
-                // 로딩 상태 숨기고 QR코드 표시
+                // 로딩 숨기고 QR 표시
                 document.getElementById('qrLoadingState').style.display = 'none';
                 document.getElementById('qrContentState').style.display = 'block';
 
-                console.log('QR코드 생성 완료:', attendanceURL);
+                console.log('QR코드 생성 완료 (서버 발급):', attendanceURL);
 
             } catch (error) {
                 console.error('QR코드 생성 오류:', error);
-                showToast('QR코드 생성에 실패했습니다.', 'error');
+                showToast('QR코드 생성에 실패했습니다: ' + error.message, 'error');
+                document.getElementById('qrLoadingState').style.display = 'none';
             }
         }
 
@@ -723,7 +742,7 @@
         // ====================================
 
         async function regenerateQRCode() {
-            if (!confirm('새로운 QR코드를 생성하시겠습니까? 기존 QR코드는 사용할 수 없게 됩니다.')) {
+            if (!confirm('새로운 QR코드를 생성하시겠습니까?\n기존에 인쇄된 QR코드는 즉시 사용 불가합니다.')) {
                 return;
             }
 
@@ -732,7 +751,35 @@
 
             await generateQRCode();
 
-            showToast('새로운 QR코드가 생성되었습니다.', 'success');
+            showToast('새로운 QR코드가 발급되었습니다. 기존 QR은 폐기됩니다.', 'success');
+        }
+
+        // ── QR 코드 즉시 폐기 (분실 시) ─────────────────────────
+        async function revokeQRCode() {
+            if (!confirm('QR코드를 즉시 폐기하시겠습니까?\nQR코드를 분실하거나 도용이 의심될 때 사용하세요.\n\n폐기 후 새 QR코드를 발급해야 합니다.')) {
+                return;
+            }
+
+            try {
+                const authToken = localStorage.getItem('authToken');
+                const res = await fetch('/.netlify/functions/qr-token-generate', {
+                    method:  'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    // QR 화면 초기화
+                    document.getElementById('qrCodeCanvas').innerHTML = '';
+                    document.getElementById('qrContentState').style.display = 'none';
+                    document.getElementById('qrLoadingState').style.display = 'block';
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                showToast('폐기 실패: ' + err.message, 'error');
+            }
         }
 
         // ====================================
