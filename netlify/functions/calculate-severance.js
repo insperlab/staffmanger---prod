@@ -61,21 +61,33 @@ exports.handler = async (event) => {
       return respond(400, { success: false, error: '직원 ID와 퇴직일은 필수입니다.' });
     }
 
-    // ── 1. 직원 기본 정보 조회 (users 테이블 JOIN 필수) ──
+    // ── 1. 직원 기본 정보 조회 ──
+    // users JOIN 대신 employees만 먼저 조회 (RLS + FK 설정에 따라 JOIN 실패 방지)
     const { data: emp, error: empErr } = await supabase
       .from('employees')
       .select(`
         id, company_id, user_id, hire_date, salary_type,
         base_salary, monthly_wage, annual_salary,
         work_hours_per_day, work_days_per_week,
-        pension_type, irp_account, bonus_annual_amount,
-        users ( name, phone )
+        pension_type, irp_account, bonus_annual_amount
       `)
       .eq('id', employeeId)
       .single();
 
     if (empErr || !emp) {
-      return respond(404, { success: false, error: '직원 정보를 찾을 수 없습니다.' });
+      console.error('직원 조회 오류:', empErr);
+      return respond(404, { success: false, error: `직원 정보를 찾을 수 없습니다. (ID: ${employeeId})` });
+    }
+
+    // 이름은 users 테이블에서 별도 조회
+    let employeeName = '직원';
+    if (emp.user_id) {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', emp.user_id)
+        .single();
+      if (userRow?.name) employeeName = userRow.name;
     }
 
     const hireDate = emp.hire_date;
@@ -196,7 +208,7 @@ exports.handler = async (event) => {
     // ── 12. 응답 데이터 구성 ──
     const responseData = {
       // 직원 정보
-      employeeName: emp.users?.name || '이름 없음',
+      employeeName: employeeName || '이름 없음',
       employeeId,
       hireDate,
       retirementDate,
