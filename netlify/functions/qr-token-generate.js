@@ -48,7 +48,8 @@ exports.handler = async (event) => {
     const userInfo   = verifyToken(authHeader); // 실패 시 throw
     const { companyId, userId, role } = userInfo;
 
-    if (!['admin', 'manager'].includes(role)) {
+    // role 값: 'owner' (사업주), 'manager' (관리자), 'employee' (직원)
+    if (!['owner', 'manager'].includes(role)) {
       return resp(403, { success: false, error: '관리자만 QR 토큰을 발급할 수 있습니다.' });
     }
 
