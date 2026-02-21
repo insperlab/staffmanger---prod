@@ -1,3 +1,5 @@
+복사
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -666,8 +668,8 @@ function displayPayslip(d, empId, year, month) {
         { label: '기본급', value: d.basic_pay || 0 },
         { label: '주휴수당', value: d.weekly_holiday_pay || 0 },
         { label: '연장근로수당', value: d.overtime_pay || 0 },
-        { label: '야간근로수당', value: d.night_pay || 0 },
-        { label: '휴일근로수당', value: d.holiday_pay || 0 }
+        { label: '야간근로수당', value: d.night_work_pay || 0 },
+        { label: '휴일근로수당', value: d.holiday_work_pay || 0 }
     ].filter(function(i) { return i.value > 0; });
     var totalPayment = d.total_payment || 0;
     renderSection('paymentSection', payItems, totalPayment);
