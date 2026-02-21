@@ -287,6 +287,35 @@
   .wifi-badge.unmatched{ background: #FFF7ED; color: #EA580C; border: 1px solid #FED7AA; }
   .wifi-badge.unused   { display: none; }
 
+  /* GPS 상태 표시 바 */
+  .gps-status-bar {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; padding: 8px 12px; border-radius: 8px;
+    margin-bottom: 12px; transition: all 0.3s;
+  }
+  .gps-status-bar.searching {
+    background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;
+  }
+  .gps-status-bar.good {
+    background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0;
+  }
+  .gps-status-bar.poor {
+    background: #FFF7ED; color: #C2410C; border: 1px solid #FED7AA;
+  }
+  .gps-status-bar.failed {
+    background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA;
+  }
+  .gps-status-bar.hidden { display: none; }
+  /* GPS 배지 (결과 표시용) */
+  .gps-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px; margin-top: 4px;
+  }
+  .gps-badge.matched   { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+  .gps-badge.unmatched { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+  .gps-badge.unused    { display: none; }
+
 </style>
 </head>
 <body>
@@ -303,6 +332,12 @@
             <div class="time-label">현재 시각</div>
             <div class="time-display" id="currentTime">--:--</div>
             <div class="date-display" id="currentDate">----년 --월 --일</div>
+        </div>
+
+        <!-- GPS 위치 상태 표시 바 (방식이 GPS일 때 노출) -->
+        <div id="gpsStatusBar" class="gps-status-bar searching">
+          <span id="gpsStatusIcon">📡</span>
+          <span id="gpsStatusText">위치 정보를 가져오는 중... (권한 허용 필요)</span>
         </div>
 
         <!-- 상태 메시지 -->
@@ -390,24 +425,12 @@
             updateCurrentTime();
             setInterval(updateCurrentTime, 1000);  // 1초마다 갱신
 
-            // GPS 위치 정보 가져오기 (비동기, 에러 무시)
-            try {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            currentLocation.latitude = position.coords.latitude;
-                            currentLocation.longitude = position.coords.longitude;
-                            console.log('위치 정보 획득 성공:', currentLocation);
-                        },
-                        (error) => {
-                            console.warn('위치 정보 획득 실패:', error.message);
-                            // 위치 정보는 선택사항이므로 실패해도 계속 진행
-                        }
-                    );
-                }
-            } catch (error) {
-                console.warn('위치 정보 접근 불가:', error);
-            }
+            // ── GPS 위치 정보 취득 (정확도 검증 포함) ───────────────────
+            // 비유: GPS = 위성 신호 잡기. 도심/실내에서는 약할 수 있음
+            //   - 정확도 100m 이내만 유효로 처리
+            //   - 취득 상태를 직원에게 실시간으로 표시
+            //   - PC 브라우저 등 GPS 없는 환경도 친절하게 안내
+            fetchGpsLocation();
 
             // 전화번호 입력 필드에 자동 포맷팅 적용
             setupPhoneNumberFormatting();
@@ -484,6 +507,21 @@
                 return;
             }
 
+            // ── GPS 방식 사전 검증 ────────────────────────────────────
+            const gpsBar = document.getElementById('gpsStatusBar');
+            // GPS 상태 바는 항상 표시 → 위치 미확보 시 제출 전 안내만 (방식과 무관하게)
+            // 실제 차단은 서버에서 method 기준으로 처리됨
+            if (gpsBar && !currentLocation.latitude) {
+                const isSearching = gpsBar.classList.contains('searching');
+                if (isSearching) {
+                    showStatus('GPS 위치를 가져오는 중입니다. 잠시 후 다시 시도해주세요.', 'info');
+                } else {
+                    showStatus('GPS 위치 정보를 가져올 수 없습니다. 창가/외부로 이동 후 새로고침해주세요.', 'error');
+                    fetchGpsLocation(); // 재시도
+                }
+                return;
+            }
+
             // 출근 API 호출
             await submitAttendance('check-in', phoneNumber);
         }
@@ -515,6 +553,82 @@
         // ====================================
         // 출퇴근 API 호출
         // ====================================
+
+        // ── GPS 상태 표시 헬퍼 ───────────────────────────────────────
+        function setGpsStatus(state, text) {
+            const bar  = document.getElementById('gpsStatusBar');
+            const icon = document.getElementById('gpsStatusIcon');
+            const msg  = document.getElementById('gpsStatusText');
+            const icons = {
+                searching : '📡',
+                good      : '✅',
+                poor      : '⚠️',
+                failed    : '❌',
+                hidden    : '',
+            };
+            bar.className = `gps-status-bar ${state}`;
+            icon.textContent = icons[state] || '📍';
+            msg.textContent  = text;
+        }
+
+        // ── GPS 취득 함수 (정확도 검증 포함) ────────────────────────
+        // 페이지 로드 시 즉시 호출 → 버튼 클릭 전에 미리 위치 확보
+        function fetchGpsLocation() {
+            // GPS 미지원 브라우저 (드물지만 대비)
+            if (!navigator.geolocation) {
+                setGpsStatus('failed', 'GPS를 지원하지 않는 브라우저입니다. 모바일 크롬을 사용해주세요.');
+                return;
+            }
+
+            setGpsStatus('searching', '위치 정보를 가져오는 중... (최초 1회 권한 허용 필요)');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const accuracy = position.coords.accuracy; // 오차 반경(m)
+
+                    if (accuracy <= 100) {
+                        // ✅ 정확도 100m 이내: 유효한 위치
+                        currentLocation.latitude  = position.coords.latitude;
+                        currentLocation.longitude = position.coords.longitude;
+                        currentLocation.accuracy  = accuracy;
+                        setGpsStatus('good', `📍 위치 확인됨 (오차 ±${Math.round(accuracy)}m)`);
+                    } else if (accuracy <= 500) {
+                        // ⚠️ 정확도 100~500m: 저정확도 — 위치는 저장하되 경고 표시
+                        currentLocation.latitude  = position.coords.latitude;
+                        currentLocation.longitude = position.coords.longitude;
+                        currentLocation.accuracy  = accuracy;
+                        setGpsStatus('poor',
+                            `⚠️ GPS 신호 약함 (오차 ±${Math.round(accuracy)}m) — ` +
+                            '창가/외부로 이동하거나 잠시 후 다시 시도해주세요.'
+                        );
+                    } else {
+                        // ❌ 정확도 500m 초과: 신뢰 불가 → 위치 미전송
+                        currentLocation.latitude  = null;
+                        currentLocation.longitude = null;
+                        setGpsStatus('failed',
+                            `GPS 정확도가 너무 낮습니다 (오차 ±${Math.round(accuracy)}m). ` +
+                            'PC/실내 환경이라면 모바일로 시도해주세요.'
+                        );
+                    }
+                },
+                (error) => {
+                    // GeolocationPositionError 코드별 안내
+                    const messages = {
+                        1: '위치 권한이 거부되었습니다. 브라우저 주소창 🔒 → 위치 → 허용 후 새로고침하세요.',
+                        2: 'PC/실내에서는 GPS를 받지 못할 수 있습니다. 모바일 기기로 시도해주세요.',
+                        3: 'GPS 신호 수신 시간이 초과됐습니다. 창가로 이동 후 새로고침해주세요.',
+                    };
+                    setGpsStatus('failed', messages[error.code] || `위치 오류: ${error.message}`);
+                    currentLocation.latitude  = null;
+                    currentLocation.longitude = null;
+                },
+                {
+                    enableHighAccuracy : true,   // 고정밀 모드 (GPS 우선)
+                    timeout            : 15000,  // 15초 내 응답 없으면 에러
+                    maximumAge         : 30000,  // 30초 내 캐시 위치 재사용 허용
+                }
+            );
+        }
 
         async function submitAttendance(type, phoneNumber) {
             try {
@@ -563,15 +677,29 @@
                     const actionName = type === 'check-in' ? '출근' : '퇴근';
                     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     
-                    // WiFi 뱃지 상태 결정
+                    // WiFi 배지
                     let wifiBadge = '';
                     if (data.wifiMatched === true) {
                         wifiBadge = '<div class="wifi-badge matched">✅ WiFi 인증됨</div>';
                     } else if (data.wifiMatched === false) {
-                        wifiBadge = '<div class="wifi-badge unmatched">⚠️ WiFi 미인증 (기록은 완료)</div>';
+                        wifiBadge = '<div class="wifi-badge unmatched">⚠️ WiFi 외부접속 (기록 완료)</div>';
                     }
+
+                    // GPS 배지 (gpsMatched: null=미사용, true=반경내, false=반경외)
+                    let gpsBadge = '';
+                    if (data.gpsMatched === true) {
+                        const dist = data.gpsDistance ? ` (${data.gpsDistance}m)` : '';
+                        gpsBadge = `<div class="gps-badge matched">📍 GPS 인증됨${dist}</div>`;
+                    } else if (data.gpsMatched === false) {
+                        const dist = data.gpsDistance ? ` (${data.gpsDistance}m)` : '';
+                        gpsBadge = `<div class="gps-badge unmatched">📍 GPS 범위 외${dist}</div>`;
+                    }
+
+                    // GPS 상태 바 숨기기 (성공 후)
+                    setGpsStatus('hidden', '');
+
                     showStatus(
-                        `${actionName}이 기록되었습니다. (${timeStr})${wifiBadge}`,
+                        `${actionName}이 기록되었습니다. (${timeStr})${wifiBadge}${gpsBadge}`,
                         'success',
                         true  // HTML 허용
                     );
