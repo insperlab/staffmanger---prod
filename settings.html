@@ -1059,32 +1059,25 @@ async function fetchMyIp(bizId) {
     const res  = await fetch('/.netlify/functions/my-ip');
     const json = await res.json();
 
-    if (json.ip) {
-      const ip = json.ip;
-      const isIPv6 = ip.includes(':'); // ':' 포함 시 IPv6
+    if (!json.ip) return;
 
-      if (isIPv6) {
-        // IPv6로 접속 중 → IPv6 필드에 입력, IPv4 필드는 유지
-        // 추가 IPv6 입력 필드가 있으면 사용, 없으면 기본 필드에 표시
-        const v6Input = document.getElementById('wifiIpV6_' + bizId);
-        if (v6Input) {
-          v6Input.value = ip;
-        } else {
-          document.getElementById('wifiIp_' + bizId).value = ip;
-        }
-        showToast(
-          '📱 IPv6로 접속 중: ' + ip + '\n\n' +
-          'PC에서도 "현재 IP 가져오기"를 클릭해 IPv4도 함께 등록하면\n' +
-          '폰/PC 모두 WiFi 인증이 가능합니다.',
-          'info'
-        );
-      } else {
-        // IPv4 → 기존 필드에 입력
-        document.getElementById('wifiIp_' + bizId).value = ip;
-        validateIpInput(bizId);
-        showToast('현재 IPv4: ' + ip + '\n이 IP가 매장 WiFi의 공인 IP인지 확인하세요.', 'info');
-      }
+    const ip     = json.ip;
+    const isIPv6 = ip.includes(':'); // ':' 포함 시 IPv6
+
+    // ── 1) 필드에 채우기 ──────────────────────────────────────────
+    if (isIPv6) {
+      const v6Input = document.getElementById('wifiIpV6_' + bizId);
+      if (v6Input) v6Input.value = ip;
+    } else {
+      const v4Input = document.getElementById('wifiIp_' + bizId);
+      if (v4Input) { v4Input.value = ip; validateIpInput(bizId); }
     }
+
+    // ── 2) 즉시 저장 (버튼 한 번으로 등록 완료) ──────────────────
+    showToast('IP 확인 중... 자동 저장합니다.', 'info');
+    await saveWifiSettings(bizId);
+    // saveWifiSettings 내부에서 성공 토스트를 띄우므로 별도 메시지 불필요
+
   } catch(e) {
     showToast('IP 조회 실패: ' + e.message, 'error');
   }
