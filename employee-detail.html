@@ -1,7 +1,3 @@
-Claude는 AI이며 실수할 수 있습니다. 응답을 다시 한번 확인해 주세요.
-Employee detail · HTML
-복사
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -235,9 +231,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif
       <div class="section-subtitle">급여 정보</div>
       <div class="info-grid">
         <div class="info-group"><div class="info-label">급여 유형</div><div class="info-value" id="infoSalaryType">-</div></div>
-        <div class="info-group"><div class="info-label">기본급</div><div class="info-value highlight" id="infoBaseSalary">-</div></div>
-        <div class="info-group"><div class="info-label">월급</div><div class="info-value highlight" id="infoMonthlyWage">-</div></div>
-        <div class="info-group"><div class="info-label">연봉</div><div class="info-value highlight" id="infoAnnualSalary">-</div></div>
+        <!-- 기본급: 시급제(hourly) / 일급제(daily) 일 때만 표시 -->
+        <div class="info-group" id="rowBaseSalary"><div class="info-label">기본 시급/일급</div><div class="info-value highlight" id="infoBaseSalary">-</div></div>
+        <!-- 월급: 월급제(monthly) 일 때만 표시 -->
+        <div class="info-group" id="rowMonthlyWage"><div class="info-label">월급</div><div class="info-value highlight" id="infoMonthlyWage">-</div></div>
+        <!-- 연봉: 연봉제(annual) 일 때만 표시 -->
+        <div class="info-group" id="rowAnnualSalary"><div class="info-label">연봉</div><div class="info-value highlight" id="infoAnnualSalary">-</div></div>
       </div>
       <hr class="section-divider">
       <div class="section-subtitle">계좌 정보</div>
@@ -563,7 +562,17 @@ function renderDetail() {
 
   /* ─ 탭3: 급여 정보 ─ */
   var salaryTypeMap = { monthly: '월급제', hourly: '시급제', daily: '일급제', annual: '연봉제' };
-  setText('infoSalaryType',   salaryTypeMap[d.salaryType] || d.salaryType);
+  setText('infoSalaryType', salaryTypeMap[d.salaryType] || d.salaryType);
+
+  // 급여 유형에 따라 해당 행만 표시, 나머지 숨김
+  var isHourlyOrDaily = (d.salaryType === 'hourly' || d.salaryType === 'daily');
+  var isMonthly       = (d.salaryType === 'monthly');
+  var isAnnual        = (d.salaryType === 'annual');
+
+  document.getElementById('rowBaseSalary').style.display  = isHourlyOrDaily ? '' : 'none';
+  document.getElementById('rowMonthlyWage').style.display = isMonthly        ? '' : 'none';
+  document.getElementById('rowAnnualSalary').style.display = isAnnual         ? '' : 'none';
+
   setText('infoBaseSalary',   fmtCur(d.baseSalary));
   setText('infoMonthlyWage',  fmtCur(d.monthlyWage));
   setText('infoAnnualSalary', fmtCur(d.annualSalary));
@@ -669,6 +678,13 @@ async function saveEmployee() {
     /* 섹션4: 급여 정보 */
     salaryType: document.getElementById('editSalaryType').value,
     baseSalary: parseFloat(document.getElementById('editBaseSalary').value) || null,
+    // 급여 유형 변경 시 이전 유형 금액 DB에서 초기화 (잔존 데이터 방지)
+    monthlyWage:  document.getElementById('editSalaryType').value === 'monthly'
+                  ? (parseFloat(document.getElementById('editBaseSalary').value) || null)
+                  : null,
+    annualSalary: document.getElementById('editSalaryType').value === 'annual'
+                  ? (parseFloat(document.getElementById('editBaseSalary').value) || null)
+                  : null,
 
     /* 섹션5: 계좌 정보 */
     bankName:      document.getElementById('editBankName').value,
