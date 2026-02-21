@@ -1,6 +1,10 @@
 // netlify/functions/qr-token-generate.js
 // QR 토큰 서버 발급 API
 //
+// GET  /.netlify/functions/qr-token-generate
+//   → 현재 유효한 QR 토큰 조회 (재발급 없음)
+//   Response: { success, token, expiresAt, qrUrl } or { success, token: null }
+//
 // POST /.netlify/functions/qr-token-generate
 //   → 새 QR 토큰 발급 (기존 토큰 자동 폐기)
 //   Response: { token, expiresAt, qrUrl }
@@ -13,18 +17,14 @@ const { createClient } = require('@supabase/supabase-js');
 const { verifyToken }  = require('./lib/auth');
 const crypto           = require('crypto');
 
-// Netlify Functions는 Node.js 환경 — crypto 기본 내장
-
 const corsHeaders = {
   'Access-Control-Allow-Origin':  'https://staffmanager.io',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Content-Type': 'application/json',
 };
 
 // QR 토큰 유효 기간: 기본 365일
-// 소상공인 특성상 QR 인쇄 후 오래 쓰는 경우가 많음
-// 필요 시 재발급(regenerate)으로 즉시 교체 가능
 const TOKEN_EXPIRE_DAYS = 365;
 
 function resp(statusCode, body) {
@@ -37,20 +37,18 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
 
-  // POST / DELETE 만 허용
-  if (!['POST', 'DELETE'].includes(event.httpMethod)) {
+  if (!['GET', 'POST', 'DELETE'].includes(event.httpMethod)) {
     return resp(405, { success: false, error: '허용되지 않는 메서드' });
   }
 
   try {
-    // ── 인증 (관리자만 QR 토큰 발급 가능) ────────────────────
+    // ── 인증 (관리자만 QR 토큰 발급/조회 가능) ───────────────
     const authHeader = event.headers.authorization || event.headers.Authorization;
-    const userInfo   = verifyToken(authHeader); // 실패 시 throw
+    const userInfo   = verifyToken(authHeader);
     const { companyId, userId, role } = userInfo;
 
-    // role 값: 'owner' (사업주), 'manager' (관리자), 'employee' (직원)
     if (!['owner', 'manager'].includes(role)) {
-      return resp(403, { success: false, error: '관리자만 QR 토큰을 발급할 수 있습니다.' });
+      return resp(403, { success: false, error: '관리자만 QR 토큰을 관리할 수 있습니다.' });
     }
 
     const supabase = createClient(
@@ -58,13 +56,49 @@ exports.handler = async (event) => {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
+    // ── GET: 현재 유효 토큰 조회 (재발급 없음) ────────────────
+    // 비유: 금고 안에 이미 QR이 있으면 그냥 꺼내서 보여줌 (새로 인쇄 X)
+    if (event.httpMethod === 'GET') {
+      const now = new Date().toISOString();
+      const { data: existing, error } = await supabase
+        .from('qr_tokens')
+        .select('id, token, expires_at')
+        .eq('company_id', companyId)
+        .is('revoked_at', null)          // 폐기 안 된 것
+        .gt('expires_at', now)           // 만료 안 된 것
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();                  // 없으면 null (에러 아님)
+
+      if (error) throw error;
+
+      if (existing) {
+        // 유효한 토큰 존재 → 그대로 반환
+        const qrUrl = `https://staffmanager.io/attendance-checkin.html?token=${existing.token}`;
+        return resp(200, {
+          success:   true,
+          token:     existing.token,
+          expiresAt: existing.expires_at,
+          qrUrl,
+          isExisting: true,  // 기존 토큰임을 표시 (신규 발급 아님)
+        });
+      } else {
+        // 유효 토큰 없음 → null 반환 (프론트에서 신규 발급 유도)
+        return resp(200, {
+          success: true,
+          token:   null,
+          message: '유효한 QR 토큰이 없습니다. 새로 발급해주세요.',
+        });
+      }
+    }
+
     // ── DELETE: 토큰 즉시 폐기 (QR 분실 대응) ─────────────────
     if (event.httpMethod === 'DELETE') {
       const { data, error } = await supabase
         .from('qr_tokens')
         .update({ revoked_at: new Date().toISOString() })
         .eq('company_id', companyId)
-        .is('revoked_at', null)  // 아직 폐기되지 않은 것만
+        .is('revoked_at', null)
         .select('id');
 
       if (error) throw error;
@@ -76,20 +110,17 @@ exports.handler = async (event) => {
       });
     }
 
-    // ── POST: 새 QR 토큰 발급 ─────────────────────────────────
-
-    // 1) 기존 유효 토큰 모두 폐기 (재발급 시 기존 QR 무효화)
+    // ── POST: 새 QR 토큰 발급 (명시적 재발급 시에만 호출) ──────
+    // 1) 기존 유효 토큰 모두 폐기
     await supabase
       .from('qr_tokens')
       .update({ revoked_at: new Date().toISOString() })
       .eq('company_id', companyId)
       .is('revoked_at', null);
 
-    // 2) 새 토큰 생성 — 서버에서 암호학적 난수 생성
-    // crypto.randomBytes(32) = 256비트 랜덤 → hex 64자
-    // 기존 ATT_{companyId}_{timestamp} 패턴 제거 → 예측 불가 토큰
+    // 2) 새 토큰 생성 — 256비트 암호학적 난수
     const randomPart = crypto.randomBytes(32).toString('hex');
-    const newToken   = `QRT_${randomPart}`; // QRT_ = QR Token 식별자
+    const newToken   = `QRT_${randomPart}`;
 
     // 3) 만료일 계산
     const expiresAt = new Date();
@@ -109,7 +140,7 @@ exports.handler = async (event) => {
 
     if (insertErr) throw insertErr;
 
-    // 5) QR 코드에 담을 URL 생성
+    // 5) QR URL 생성
     const qrUrl = `https://staffmanager.io/attendance-checkin.html?token=${newToken}`;
 
     return resp(200, {
@@ -117,11 +148,11 @@ exports.handler = async (event) => {
       token:     tokenRecord.token,
       expiresAt: tokenRecord.expires_at,
       qrUrl,
+      isExisting: false,
       message:   `새 QR 토큰이 발급되었습니다. (${TOKEN_EXPIRE_DAYS}일 유효)`,
     });
 
   } catch (err) {
-    // verifyToken 실패 시 401
     if (err.message?.includes('token') || err.message?.includes('인증')) {
       return resp(401, { success: false, error: '인증이 필요합니다.' });
     }
