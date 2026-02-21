@@ -114,6 +114,7 @@
     </select>
     <button class="btn-secondary" onclick="loadAttendances()">🔍 조회</button>
     <button class="btn-secondary" onclick="resetFilters()">🔄 필터 초기화</button>
+    <button class="btn-add-record" onclick="openAddModal()">✏️ 수동 등록</button>
   </div>
   <div class="result-count" id="resultCount"></div>
   <div id="loadingState" class="table-container">
@@ -121,7 +122,7 @@
   </div>
   <div id="attendanceTable" class="table-container" style="display:none">
     <table>
-      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>방식</th><th>상태</th></tr></thead>
+      <thead><tr><th>근무일</th><th>직원명</th><th>사업장</th><th>부서</th><th>출근 시간</th><th>퇴근 시간</th><th>근무 시간</th><th>연장 근무</th><th>방식</th><th>상태</th><th>관리</th></tr></thead>
       <tbody id="attendanceBody"></tbody>
     </table>
   </div>
@@ -249,7 +250,8 @@
         var methodLabel = {qr:'📱 QR', gps:'📍 GPS', wifi:'📶 WiFi', manual:'✏️ 수동'}[method] || method.toUpperCase();
         var methodBadge = '<span class="method-badge '+method+'">'+methodLabel+'</span>';
         
-        tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td>'+methodBadge+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td>';
+        var editBtn='<button class="row-edit-btn" onclick="openEditModal('+JSON.stringify(record)+')">수정</button>';
+        tr.innerHTML='<td>'+workDate+'</td><td class="employee-name">'+escapeHtml(emp.name||'-')+'</td><td>'+bizHtml+'</td><td>'+escapeHtml(emp.department||'-')+'</td><td>'+checkIn+'</td><td>'+checkOut+'</td><td>'+workHours+'</td><td>'+overtimeHours+'</td><td>'+methodBadge+'</td><td><span class="status-badge '+statusClass+'">'+statusText+'</span></td><td>'+editBtn+'</td>';
         tbody.appendChild(tr);
       });
       document.getElementById('attendanceTable').style.display='block';
@@ -282,5 +284,190 @@
     }
   }
 </script>
+
+  <script>
+  // ====================================
+  // 수동 출퇴근 등록/수정 모달 함수
+  // ====================================
+
+  var modalMode = 'add';    // 'add' | 'edit'
+  var editRecordId = null;  // 수정 모드일 때 기록 ID
+  var allEmployees = [];    // 직원 목록 캐시
+
+  // 직원 목록 로드 (최초 1회만)
+  async function loadEmployeesForModal() {
+    if (allEmployees.length > 0) return;
+    try {
+      var res = await fetch('/.netlify/functions/employees-list', {
+        headers: { Authorization: 'Bearer ' + authToken }
+      });
+      var data = await res.json();
+      allEmployees = (data.data?.employees || []).filter(function(e){ return e.status === 'active'; });
+      var sel = document.getElementById('modalEmployee');
+      allEmployees.forEach(function(e) {
+        var opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = (e.name || '-') + (e.department ? ' · ' + e.department : '');
+        sel.appendChild(opt);
+      });
+    } catch(e) { console.error('직원 목록 로드 오류:', e); }
+  }
+
+  // 신규 등록 모달 열기
+  async function openAddModal() {
+    modalMode = 'add';
+    editRecordId = null;
+    document.getElementById('modalTitle').textContent = '✏️ 수동 출퇴근 등록';
+    document.getElementById('employeeRow').style.display = 'block';
+    document.getElementById('modalEmployee').value = '';
+    document.getElementById('modalDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('modalCheckIn').value = '';
+    document.getElementById('modalCheckOut').value = '';
+    document.getElementById('modalNotes').value = '';
+    document.getElementById('modalDeleteBtn').style.display = 'none';
+    await loadEmployeesForModal();
+    document.getElementById('attendanceModal').classList.add('show');
+  }
+
+  // 수정 모달 열기 (테이블 행의 수정 버튼 클릭 시)
+  function openEditModal(record) {
+    modalMode = 'edit';
+    editRecordId = record.id;
+    document.getElementById('modalTitle').textContent = '✏️ 출퇴근 기록 수정';
+    document.getElementById('employeeRow').style.display = 'none'; // 수정 시 직원 변경 불가
+
+    // 날짜 추출
+    var dateStr = record.checkInTime ? record.checkInTime.slice(0,10) : '';
+    document.getElementById('modalDate').value = dateStr;
+
+    // HH:MM 형식으로 시간 파싱
+    function toHHMM(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+    document.getElementById('modalCheckIn').value  = toHHMM(record.checkInTime);
+    document.getElementById('modalCheckOut').value = toHHMM(record.checkOutTime);
+    document.getElementById('modalNotes').value = record.notes || '';
+    document.getElementById('modalDeleteBtn').style.display = 'block';
+    document.getElementById('attendanceModal').classList.add('show');
+  }
+
+  // 모달 닫기
+  function closeModal() {
+    document.getElementById('attendanceModal').classList.remove('show');
+  }
+
+  // 저장 (등록 or 수정)
+  async function saveRecord() {
+    var date     = document.getElementById('modalDate').value;
+    var checkIn  = document.getElementById('modalCheckIn').value;
+    var checkOut = document.getElementById('modalCheckOut').value;
+    var notes    = document.getElementById('modalNotes').value;
+
+    if (!date)    { alert('근무일을 입력해주세요'); return; }
+    if (!checkIn) { alert('출근 시간을 입력해주세요'); return; }
+    if (checkOut && checkOut <= checkIn) { alert('퇴근 시간이 출근 시간보다 늦어야 합니다'); return; }
+
+    var saveBtn = document.querySelector('.btn-modal-save');
+    saveBtn.textContent = '저장 중...';
+    saveBtn.disabled = true;
+
+    try {
+      var body, apiMethod;
+      if (modalMode === 'add') {
+        var empId = document.getElementById('modalEmployee').value;
+        if (!empId) { alert('직원을 선택해주세요'); return; }
+        body = { employeeId: empId, workDate: date, checkInTime: checkIn, checkOutTime: checkOut || null, notes: notes };
+        apiMethod = 'POST';
+      } else {
+        body = { id: editRecordId, workDate: date, checkInTime: checkIn, checkOutTime: checkOut || null, notes: notes };
+        apiMethod = 'PUT';
+      }
+
+      var res = await fetch('/.netlify/functions/attendances-manage', {
+        method: apiMethod,
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+        body: JSON.stringify(body)
+      });
+      var data = await res.json();
+      if (data.success) {
+        closeModal();
+        loadAttendances(); // 목록 새로고침
+      } else {
+        alert(data.error || '저장에 실패했습니다');
+      }
+    } catch(e) {
+      alert('오류: ' + e.message);
+    } finally {
+      saveBtn.textContent = '저장';
+      saveBtn.disabled = false;
+    }
+  }
+
+  // 삭제
+  async function deleteRecord() {
+    if (!editRecordId) return;
+    if (!confirm('이 출퇴근 기록을 삭제하시겠습니까?\n삭제된 기록은 복구할 수 없습니다.')) return;
+    try {
+      var res = await fetch('/.netlify/functions/attendances-manage?id=' + editRecordId, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + authToken }
+      });
+      var data = await res.json();
+      if (data.success) { closeModal(); loadAttendances(); }
+      else alert(data.error || '삭제에 실패했습니다');
+    } catch(e) { alert('오류: ' + e.message); }
+  }
+
+  // 모달 바깥 클릭 시 닫기
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('attendanceModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+  });
+  </script>
+
+  <!-- ── 수동 출퇴근 등록/수정 모달 ── -->
+  <div class="modal-backdrop" id="attendanceModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-title" id="modalTitle">✏️ 수동 출퇴근 등록</div>
+
+      <div class="form-row" id="employeeRow">
+        <label>직원 <span style="color:#ef4444">*</span></label>
+        <select id="modalEmployee">
+          <option value="">직원을 선택하세요</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>근무일 <span style="color:#ef4444">*</span></label>
+        <input type="date" id="modalDate">
+      </div>
+
+      <div class="form-row-half">
+        <div class="form-row" style="margin-bottom:0">
+          <label>출근 시간 <span style="color:#ef4444">*</span></label>
+          <input type="time" id="modalCheckIn">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>퇴근 시간 <span style="color:#94a3b8">(없으면 근무중)</span></label>
+          <input type="time" id="modalCheckOut">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>메모</label>
+        <textarea id="modalNotes" placeholder="관리자 메모 (선택)"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-modal-delete" id="modalDeleteBtn" onclick="deleteRecord()" style="display:none;margin-right:auto">🗑 삭제</button>
+        <button class="btn-modal-cancel" onclick="closeModal()">취소</button>
+        <button class="btn-modal-save" onclick="saveRecord()">저장</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
