@@ -113,6 +113,22 @@
     .empty-state .icon { font-size:48px; margin-bottom:12px; }
     .empty-state p { font-size:15px; }
 
+    /* ── navbar (salary.html과 동일) ── */
+    .navbar{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:0 30px;height:70px;
+            display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+    .navbar-brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700;
+                  color:#667eea;text-decoration:none}
+    .navbar-menu{display:flex;gap:24px;align-items:center}
+    .navbar-menu a{text-decoration:none;color:#666;font-weight:500;font-size:14px;transition:color .3s}
+    .navbar-menu a:hover,.navbar-menu a.active{color:#667eea;font-weight:600}
+    .user-menu{display:flex;align-items:center;gap:15px}
+    .user-info{text-align:right}
+    .user-name{font-weight:600;color:#333;font-size:14px}
+    .company-name{font-size:12px;color:#999}
+    .logout-btn{padding:8px 20px;background:#f5f7fa;border:none;border-radius:6px;
+                color:#666;cursor:pointer;font-weight:600;transition:all .3s}
+    .logout-btn:hover{background:#667eea;color:#fff}
+    .container{max-width:1100px;margin:0 auto;padding:30px 20px}
     /* ── 로딩 ── */
     .spinner { display:inline-block; width:18px; height:18px; border:2px solid #c7d2fe;
                border-top-color:#4f46e5; border-radius:50%; animation:spin .7s linear infinite; }
@@ -123,13 +139,32 @@
   </style>
 </head>
 <body>
-<!-- 사이드바 include -->
-<div id="sidebar-placeholder"></div>
+  <!-- salary.html과 동일한 상단 navbar -->
+  <nav class="navbar">
+    <a href="/dashboard.html" class="navbar-brand"><span>🎯</span><span>StaffManager</span></a>
+    <div class="navbar-menu">
+      <a href="/dashboard.html">대시보드</a>
+      <a href="/employees.html">직원 관리</a>
+      <a href="/attendances.html">출퇴근 관리</a>
+      <a href="/calendar.html">휴가 관리</a>
+      <a href="/salary.html">급여 관리</a>
+      <a href="/contracts.html">계약 관리</a>
+      <a href="/severance.html" class="active">퇴직금 관리</a>
+      <a href="/settings.html">설정</a>
+    </div>
+    <div class="user-menu">
+      <div class="user-info">
+        <div class="user-name" id="userName">사용자</div>
+        <div class="company-name" id="companyName">회사명</div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+    </div>
+  </nav>
 
-<main class="main-content" id="mainContent">
-  <div class="page-header">
-    <div class="page-title">💰 퇴직금 관리</div>
-  </div>
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">💰 퇴직금 관리</h1>
+    </div>
 
   <!-- 탭 네비게이션 -->
   <div class="tab-nav">
@@ -424,7 +459,7 @@
     </div>
   </div>
 
-</main><!-- /main-content -->
+  </div><!-- /container -->
 
 <script>
 /* ============================================================
@@ -440,7 +475,11 @@ window.addEventListener('DOMContentLoaded', async function() {
   authToken = localStorage.getItem('authToken');
   var ui = localStorage.getItem('userInfo');
   if (!authToken || !ui) { window.location.href = '/login.html'; return; }
-  try { JSON.parse(ui); } catch(e) { window.location.href = '/login.html'; return; }
+  var userInfo;
+  try { userInfo = JSON.parse(ui); } catch(e) { window.location.href = '/login.html'; return; }
+  // navbar 사용자 정보 표시 (salary.html과 동일)
+  document.getElementById('userName').textContent = userInfo.name || '사용자';
+  document.getElementById('companyName').textContent = userInfo.companyName || '';
 
   // 2. 직원 목록 로드
   await loadEmployees();
@@ -455,9 +494,7 @@ window.addEventListener('DOMContentLoaded', async function() {
   }
 
   // 4. 사이드바 로드
-  fetch('/sidebar.html').then(r => r.text()).then(h => {
-    document.getElementById('sidebar-placeholder').innerHTML = h;
-  }).catch(() => {});
+
 });
 
 /* ============================================================
@@ -777,6 +814,13 @@ document.getElementById('btnSimCalc').addEventListener('click', () => {
 });
 
 // 시뮬레이터 세금 계산 (클라이언트 사이드)
+// 로그아웃 (salary.html과 동일)
+function handleLogout() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('userInfo');
+  window.location.href = '/login.html';
+}
+
 function calcSeveranceTaxInline(severancePay, years) {
   const roundYears = Math.ceil(years);
   // 근속연수공제
