@@ -1,3 +1,7 @@
+Claude는 AI이며 실수할 수 있습니다. 응답을 다시 한번 확인해 주세요.
+Employee detail · HTML
+복사
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -215,8 +219,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif
         <!-- infoBreakTime: breakTimeMinutes + "분" -->
         <div class="info-group"><div class="info-label">휴게 시간</div><div class="info-value" id="infoBreakTime">-</div></div>
         <div class="info-group"><div class="info-label">주휴일</div><div class="info-value" id="infoWeeklyHoliday">-</div></div>
-        <!-- ★ infoWorkLocation: work_location 컬럼 (이번 수정의 핵심) ★ -->
-        <div class="info-group"><div class="info-label">근무지</div><div class="info-value" id="infoWorkLocation">-</div></div>
         <!-- infoProbation: probationMonths + "개월" -->
         <div class="info-group"><div class="info-label">수습 기간</div><div class="info-value" id="infoProbation">-</div></div>
       </div>
@@ -319,14 +321,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif
               <option value="part_time">파트타임</option>
               <option value="contract">계약직</option>
               <option value="daily">일용직</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>근무지</label>
-            <!-- employees.work_location 컬럼 → 사업장 드롭다운 (businesses-list API) -->
-            <!-- loadBusinessList()가 API로 가져온 사업장 목록을 동적 추가 -->
-            <select id="editWorkLocation">
-              <option value="">미배정</option>
             </select>
           </div>
         </div>
@@ -458,26 +452,12 @@ async function loadBusinessList() {
     var res = await r.json();
     if (res.success && res.businesses) {
       businessList = res.businesses;
-
-      // ── editBusiness 드롭다운 채우기 (사업장 배정용, id 저장) ──
       var sel = document.getElementById('editBusiness');
-      // ── editWorkLocation 드롭다운 채우기 (근무지 표시용, 이름 저장) ──
-      var selLoc = document.getElementById('editWorkLocation');
-
       res.businesses.forEach(function(b) {
-        var label = b.name + (b.is_headquarters ? ' (본점)' : '');
-
-        // editBusiness: value = b.id (business_id FK 저장)
-        var opt1 = document.createElement('option');
-        opt1.value       = b.id;
-        opt1.textContent = label;
-        sel.appendChild(opt1);
-
-        // editWorkLocation: value = b.name (work_location 텍스트 저장, 이름으로 매칭)
-        var opt2 = document.createElement('option');
-        opt2.value       = b.name;
-        opt2.textContent = label;
-        selLoc.appendChild(opt2);
+        var opt       = document.createElement('option');
+        opt.value     = b.id;
+        opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
+        sel.appendChild(opt);
       });
     }
   } catch(e) {
@@ -577,7 +557,6 @@ function renderDetail() {
   }
   setText('infoBreakTime',     d.breakTimeMinutes ? d.breakTimeMinutes + '분' : null);
   setText('infoWeeklyHoliday', d.weeklyHoliday);
-  setText('infoWorkLocation',  d.workLocation);   /* ★ 근무지 표시 ★ */
   setText('infoProbation',     d.probationMonths ? d.probationMonths + '개월' : '없음');
   setText('infoContractStart', fmtDate(d.contractStartDate));
   setText('infoContractEnd',   fmtDate(d.contractEndDate) || '무기한');
@@ -612,7 +591,6 @@ function openEditModal() {
 
   /* ─ 섹션2: 근무 조건 (★★★ 이번 수정으로 새로 추가된 필드들 ★★★) ─ */
   document.getElementById('editWorkType').value     = d.workType      || '';
-  document.getElementById('editWorkLocation').value = d.workLocation  || '';
   document.getElementById('editWorkStart').value    = d.workStartTime || '';
   document.getElementById('editWorkEnd').value      = d.workEndTime   || '';
   document.getElementById('editBreakTime').value    = d.breakTimeMinutes || '';
@@ -678,7 +656,6 @@ async function saveEmployee() {
 
     /* 섹션2: 근무 조건 (★★★ 신규 필드 ★★★) */
     workType:         document.getElementById('editWorkType').value     || null,
-    workLocation:     document.getElementById('editWorkLocation').value.trim() || null,
     workStartTime:    document.getElementById('editWorkStart').value    || null,
     workEndTime:      document.getElementById('editWorkEnd').value      || null,
     breakTimeMinutes: parseInt(document.getElementById('editBreakTime').value) || null,
@@ -716,7 +693,6 @@ async function saveEmployee() {
       jobTitle:         payload.jobTitle,
       hireDate:         payload.hireDate,
       workType:         payload.workType,         /* ★ 신규 */
-      workLocation:     payload.workLocation,     /* ★ 신규 */
       workStartTime:    payload.workStartTime,    /* ★ 신규 */
       workEndTime:      payload.workEndTime,      /* ★ 신규 */
       breakTimeMinutes: payload.breakTimeMinutes, /* ★ 신규 */
