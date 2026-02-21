@@ -60,6 +60,7 @@ exports.handler = async (event, context) => {
         check_out_time,
         work_hours,
         overtime_hours,
+        night_hours,
         late_minutes,
         early_leave_minutes,
         status,
@@ -126,6 +127,7 @@ exports.handler = async (event, context) => {
         checkOutTime: record.check_out_time,
         workHours: record.work_hours,
         overtimeHours: record.overtime_hours,
+        nightHours: record.night_hours || 0,  // 야간근로 시간
         lateMinutes: record.late_minutes,
         earlyLeaveMinutes: record.early_leave_minutes,
         checkMethod: record.check_method || 'qr',

@@ -6,6 +6,54 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { verifyToken } = require('./lib/auth');
+// ─────────────────────────────────────────────────────────────
+// 야간근로 시간 계산 (근로기준법 제56조)
+// 야간근로 구간: 22:00 ~ 익일 06:00
+// 반환값: 야간 구간과 겹치는 시간 (소수점 2자리, 단위: 시간)
+// ─────────────────────────────────────────────────────────────
+function calcNightHours(checkInISO, checkOutISO) {
+  if (!checkInISO || !checkOutISO) return 0;
+
+  const inTime  = new Date(checkInISO);
+  const outTime = new Date(checkOutISO);
+  if (outTime <= inTime) return 0;
+
+  // 하루(24h) 슬라이딩 윈도우로 야간 구간과 교차 계산
+  // 날짜가 바뀌어도 처리 가능하도록 루프
+  let nightMs = 0;
+  
+  // 총 구간을 1분 단위로 순회하는 대신 구간 교차 계산
+  // 야간 구간: 당일 22:00 ~ 익일 06:00 → 8시간 블록 반복
+  const MS_HOUR = 3600 * 1000;
+  
+  // checkIn 날짜 기준으로 야간 블록을 생성해 교차 확인
+  // 최대 3일치 야간 블록만 체크 (실질적으로 연속 근무 최대 24h 가정)
+  const startDay = new Date(inTime);
+  startDay.setHours(0, 0, 0, 0); // 당일 자정
+
+  for (let d = -1; d <= 2; d++) {
+    // 야간 블록 시작: (startDay + d일) 22:00
+    const nightStart = new Date(startDay);
+    nightStart.setDate(nightStart.getDate() + d);
+    nightStart.setHours(22, 0, 0, 0);
+
+    // 야간 블록 끝: 다음날 06:00
+    const nightEnd = new Date(nightStart);
+    nightEnd.setDate(nightEnd.getDate() + 1);
+    nightEnd.setHours(6, 0, 0, 0);
+
+    // 교차 구간 계산
+    const overlapStart = Math.max(inTime.getTime(), nightStart.getTime());
+    const overlapEnd   = Math.min(outTime.getTime(), nightEnd.getTime());
+    if (overlapEnd > overlapStart) {
+      nightMs += overlapEnd - overlapStart;
+    }
+  }
+
+  return Math.max(0, parseFloat((nightMs / MS_HOUR).toFixed(2)));
+}
+
+
 
 // ✅ 프로젝트 표준 CORS 헤더 (employees-list.js 동일 패턴)
 const headers = {
@@ -88,9 +136,11 @@ exports.handler = async (event) => {
       const checkOut = checkOutTime ? `${outDate}T${checkOutTime}:00` : null;
 
       let workHours = null;
+      let nightHours = 0;
       if (checkOut) {
         const diffMs = new Date(checkOut) - new Date(checkIn);
-        workHours = Math.max(0, parseFloat((diffMs / 1000 / 3600).toFixed(2)));
+        workHours  = Math.max(0, parseFloat((diffMs / 1000 / 3600).toFixed(2)));
+        nightHours = calcNightHours(checkIn, checkOut); // 야간근로 시간 자동 계산
       }
 
       const { data: record, error: insertErr } = await supabase
@@ -101,6 +151,7 @@ exports.handler = async (event) => {
           check_in_time:  checkIn,
           check_out_time: checkOut,
           work_hours:     workHours,
+          night_hours:    nightHours,  // 야간근로 시간 저장
           status:         checkOut ? 'completed' : 'in_progress',
           check_method:   'manual',
           notes:          notes || '수동 등록',
@@ -140,9 +191,11 @@ exports.handler = async (event) => {
       const checkOut = checkOutTime ? `${outDate}T${checkOutTime}:00` : null;
 
       let workHours = null;
+      let nightHours = 0;
       if (checkOut) {
         const diffMs = new Date(checkOut) - new Date(checkIn);
-        workHours = Math.max(0, parseFloat((diffMs / 1000 / 3600).toFixed(2)));
+        workHours  = Math.max(0, parseFloat((diffMs / 1000 / 3600).toFixed(2)));
+        nightHours = calcNightHours(checkIn, checkOut); // 야간근로 시간 재계산
       }
 
       const { data: updated, error: updateErr } = await supabase
@@ -151,6 +204,7 @@ exports.handler = async (event) => {
           check_in_time:  checkIn,
           check_out_time: checkOut,
           work_hours:     workHours,
+          night_hours:    nightHours,  // 야간근로 시간 업데이트
           status:         checkOut ? 'completed' : 'in_progress',
           check_method:   'manual',
           notes:          notes || null,
