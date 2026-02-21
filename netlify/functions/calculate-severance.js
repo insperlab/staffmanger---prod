@@ -68,7 +68,9 @@ exports.handler = async (event) => {
       .select(`
         id, company_id, user_id, hire_date, salary_type,
         base_salary, monthly_wage, annual_salary,
-        work_hours_per_day, work_days_per_week,
+        work_start_time, work_end_time, break_time_minutes,
+        work_days,
+        meal_allowance, car_allowance, childcare_allowance,
         pension_type, irp_account, bonus_annual_amount
       `)
       .eq('id', employeeId)
@@ -76,7 +78,17 @@ exports.handler = async (event) => {
 
     if (empErr || !emp) {
       console.error('직원 조회 오류:', empErr);
-      return respond(404, { success: false, error: `직원 정보를 찾을 수 없습니다. (ID: ${employeeId})` });
+      // 디버그: 에러 상세 내용 응답에 포함
+      return respond(404, { 
+        success: false, 
+        error: '직원 정보를 찾을 수 없습니다.',
+        debug: {
+          employeeId,
+          errCode: empErr?.code,
+          errMsg: empErr?.message,
+          empNull: !emp
+        }
+      });
     }
 
     // 이름은 users 테이블에서 별도 조회
@@ -91,6 +103,19 @@ exports.handler = async (event) => {
     }
 
     const hireDate = emp.hire_date;
+
+    // work_hours_per_day: work_start_time ~ work_end_time - break_time_minutes 로 계산
+    const calcWorkHours = () => {
+      if (emp.work_start_time && emp.work_end_time) {
+        const [sh, sm] = emp.work_start_time.split(':').map(Number);
+        const [eh, em] = emp.work_end_time.split(':').map(Number);
+        const totalMin = (eh * 60 + em) - (sh * 60 + sm) - (emp.break_time_minutes || 60);
+        return Math.max(totalMin / 60, 8); // 최소 8시간
+      }
+      return 8; // 기본값
+    };
+    emp.work_hours_per_day = calcWorkHours();
+    emp.work_days_per_week = emp.work_days || 5; // work_days 컬럼 사용
     if (!hireDate) {
       return respond(400, { success: false, error: '입사일 정보가 없습니다. 직원 정보를 먼저 확인해주세요.' });
     }
