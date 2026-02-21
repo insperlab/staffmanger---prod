@@ -323,8 +323,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif
           </div>
           <div class="form-group">
             <label>근무지</label>
-            <!-- employees.work_location 컬럼 (예: 강남점, 본점 2층) -->
-            <input type="text" id="editWorkLocation" placeholder="예: 강남점, 본점 2층">
+            <!-- employees.work_location 컬럼 → 사업장 드롭다운 (businesses-list API) -->
+            <!-- loadBusinessList()가 API로 가져온 사업장 목록을 동적 추가 -->
+            <select id="editWorkLocation">
+              <option value="">미배정</option>
+            </select>
           </div>
         </div>
         <div class="form-row">
@@ -455,12 +458,26 @@ async function loadBusinessList() {
     var res = await r.json();
     if (res.success && res.businesses) {
       businessList = res.businesses;
+
+      // ── editBusiness 드롭다운 채우기 (사업장 배정용, id 저장) ──
       var sel = document.getElementById('editBusiness');
+      // ── editWorkLocation 드롭다운 채우기 (근무지 표시용, 이름 저장) ──
+      var selLoc = document.getElementById('editWorkLocation');
+
       res.businesses.forEach(function(b) {
-        var opt       = document.createElement('option');
-        opt.value     = b.id;
-        opt.textContent = b.name + (b.is_headquarters ? ' (본점)' : '');
-        sel.appendChild(opt);
+        var label = b.name + (b.is_headquarters ? ' (본점)' : '');
+
+        // editBusiness: value = b.id (business_id FK 저장)
+        var opt1 = document.createElement('option');
+        opt1.value       = b.id;
+        opt1.textContent = label;
+        sel.appendChild(opt1);
+
+        // editWorkLocation: value = b.name (work_location 텍스트 저장, 이름으로 매칭)
+        var opt2 = document.createElement('option');
+        opt2.value       = b.name;
+        opt2.textContent = label;
+        selLoc.appendChild(opt2);
       });
     }
   } catch(e) {
