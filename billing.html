@@ -1,12 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StaffManager 구독 결제</title>
-    <meta name="description" content="StaffManager 구독을 시작하세요. Pro 월 19,900원, Business 월 49,900원.">
-    <meta property="og:title" content="StaffManager 결제">
-    <meta property="og:url" content="https://staffmanager.io/billing.html">
+    <title>StaffManager 결제</title>
+    <meta name="description" content="StaffManager 구독 결제">
     <script src="https://js.tosspayments.com/v1/payment"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -45,6 +44,9 @@
             font-weight: 600;
             margin-bottom: 0.5rem;
         }
+        .plan-badge.business {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
         .plan-info {
             background: #f0f4ff;
             border: 2px solid #667eea;
@@ -52,14 +54,20 @@
             border-radius: 12px;
             margin-bottom: 2rem;
         }
+        .plan-info.business {
+            background: #fff0f8;
+            border-color: #f5576c;
+        }
         .plan-name { font-size: 1.4rem; font-weight: bold; color: #333; margin-bottom: 0.3rem; }
         .plan-price { font-size: 1.8rem; font-weight: bold; color: #667eea; margin-bottom: 1rem; }
+        .plan-price.business { color: #f5576c; }
         .plan-price span { font-size: 1rem; color: #888; font-weight: normal; }
         .plan-features { list-style: none; padding: 0; }
         .plan-features li { padding: 0.3rem 0; color: #555; font-size: 0.9rem; }
-        .plan-features li::before { content: "✓ "; color: #2ecc71; font-weight: bold; }
+        .plan-features li::before { content: "✅ "; }
         .form-group { margin-bottom: 1.2rem; }
         label { display: block; margin-bottom: 0.4rem; font-weight: 600; color: #333; font-size: 0.9rem; }
+        .optional { font-weight: 400; color: #999; font-size: 0.8rem; margin-left: 4px; }
         input {
             width: 100%;
             padding: 0.9rem 1rem;
@@ -92,6 +100,9 @@
             transition: transform 0.2s, box-shadow 0.2s;
             margin-top: 0.5rem;
         }
+        .submit-button.business {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
         .submit-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
         .submit-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .secure-badge { text-align: center; margin-top: 1rem; font-size: 0.8rem; color: #888; }
@@ -112,67 +123,132 @@
                 <input type="text" id="customerName" required placeholder="홍길동" autocomplete="name">
             </div>
             <div class="form-group">
-                <label for="customerEmail">이메일 *</label>
-                <input type="email" id="customerEmail" required placeholder="example@company.com" autocomplete="email">
+                <label for="customerEmail">
+                    이메일 <span class="optional">(선택)</span>
+                </label>
+                <input type="email" id="customerEmail" placeholder="example@company.com" autocomplete="email">
             </div>
             <div class="notice">
-                ⚠️ 다음 단계에서 토스페이먼츠 화면으로 이동하여 카드를 등록합니다.<br>
-                카드 정보는 토스페이먼츠에서 안전하게 처리되며 StaffManager 서버에 저장되지 않습니다.<br>
+                💡 결제는 토스페이먼츠를 통해 안전하게 처리됩니다.<br>
+                월 단위로 자동 갱신되며, StaffManager 설정에서 언제든 취소할 수 있습니다.<br>
                 <a href="/refund.html" style="color:#667eea;">환불 정책 보기</a>
             </div>
             <button type="submit" class="submit-button" id="submitButton">
-                카드 등록하고 구독 시작하기 →
+                카드 등록하고 구독 시작하기 🚀
             </button>
         </form>
-        <div class="secure-badge">🔒 토스페이먼츠 보안 결제</div>
+        <div class="secure-badge">🔒 토스페이먼츠를 통해 안전하게 결제됩니다</div>
     </div>
+
     <script>
+        // =============================================
+        // URL 파라미터로 플랜 결정 (?plan=pro 또는 ?plan=business)
+        // =============================================
         const urlParams = new URLSearchParams(window.location.search);
         const selectedPlan = urlParams.get('plan') || 'pro';
+
         const plans = {
-            free:     { name: 'Free 플랜',     price: 0,     priceText: '무료',    badge: 'Free',     features: ['직원 3명까지', 'QR 근태', '기본 급여 계산'] },
-            pro:      { name: 'Pro 플랜',       price: 19900, priceText: '19,900원', badge: 'Pro',      features: ['직원 20명까지', 'GPS·WiFi 근태', '급여명세서', '카카오 알림', '전자계약'] },
-            business: { name: 'Business 플랜', price: 49900, priceText: '49,900원', badge: 'Business', features: ['직원 무제한', '다중 지점 관리', 'AI 급여 자동화', '맞춤형 리포트', '전용 고객지원'] }
+            pro: {
+                name: 'Pro 플랜',
+                badge: 'Pro',
+                price: 19900,
+                priceText: '19,900원',
+                features: ['팀원 20명까지', 'GPS+WiFi 출퇴근', '근무일정 관리', '연차/휴가 관리', '급여 정산']
+            },
+            business: {
+                name: 'Business 플랜',
+                badge: 'Business',
+                price: 49900,
+                priceText: '49,900원',
+                features: ['팀원 무제한', '유연근무 설정', 'AI 근태 관리', '관리자/부서별 권한', '맞춤형 컨설팅']
+            }
         };
+
+        // pro/business 외 파라미터 방어 — 기본값 pro
         const plan = plans[selectedPlan] || plans.pro;
+        const isPro = selectedPlan === 'pro' || !plans[selectedPlan];
+
+        // 플랜 정보 렌더링
         document.getElementById('planBadge').textContent = plan.badge;
         document.getElementById('planName').textContent = plan.name;
-        document.getElementById('planPrice').innerHTML = plan.price === 0 ? '무료' : `${plan.priceText}<span> / 월</span>`;
+        document.getElementById('planPrice').innerHTML = plan.priceText + '<span> / 월</span>';
         document.getElementById('planFeatures').innerHTML = plan.features.map(f => `<li>${f}</li>`).join('');
-        if (selectedPlan === 'free') {
-            document.getElementById('submitButton').textContent = '무료로 시작하기 →';
+        document.getElementById('submitButton').textContent = `월 ${plan.priceText} 카드 등록하기 🚀`;
+
+        // Business 플랜이면 색상 변경
+        if (selectedPlan === 'business') {
+            document.getElementById('planInfo').classList.add('business');
+            document.getElementById('planBadge').classList.add('business');
+            document.getElementById('planPrice').classList.add('business');
+            document.getElementById('submitButton').classList.add('business');
         }
+
+        // =============================================
+        // 토스페이먼츠 SDK 초기화
+        // ※ 운영 배포 전 clientKey를 라이브 키로 교체할 것
+        // =============================================
         const clientKey = 'test_ck_Z61JOxRQVEBzXa0b2m7grW0X9bAq';
         const tossPayments = TossPayments(clientKey);
+
+        // =============================================
+        // 폼 제출 → 토스 카드 등록 UI 호출
+        // =============================================
         document.getElementById('billingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
             const customerName = document.getElementById('customerName').value.trim();
             const customerEmail = document.getElementById('customerEmail').value.trim();
-            if (!customerName || !customerEmail) {
-                alert('이름과 이메일을 모두 입력해주세요.');
+
+            if (!customerName) {
+                alert('이름을 입력해주세요.');
                 return;
             }
-            if (selectedPlan === 'free') {
-                window.location.href = '/dashboard.html';
-                return;
-            }
+
+            // 이메일 없으면 이름 기반으로 customerKey 생성 (토스 필수값)
+            const emailForKey = customerEmail || (customerName.replace(/\s/g, '') + '@staffmanager.io');
+
             const submitButton = document.getElementById('submitButton');
             submitButton.disabled = true;
-            submitButton.textContent = '토스 결제 페이지로 이동 중...';
+            submitButton.textContent = '결제 화면으로 이동 중...';
+
             try {
-                const customerKey = 'cust_' + btoa(customerEmail).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                // customerKey: 고객 고유 식별자 (이메일 기반 해시)
+                const customerKey = 'cust_' + btoa(unescape(encodeURIComponent(emailForKey)))
+                    .replace(/[^a-zA-Z0-9]/g, '')
+                    .substring(0, 20);
+
+                // successUrl / failUrl에 플랜 정보 포함
+                const successUrl = window.location.origin
+                    + '/billing-success.html'
+                    + '?plan=' + selectedPlan
+                    + '&customerKey=' + encodeURIComponent(customerKey)
+                    + '&customerName=' + encodeURIComponent(customerName)
+                    + '&customerEmail=' + encodeURIComponent(emailForKey);
+
+                const failUrl = window.location.origin
+                    + '/billing-fail.html'
+                    + '?plan=' + selectedPlan;
+
+                // ★ 핵심: 첫 번째 인자는 반드시 '카드' 
                 await tossPayments.requestBillingAuth('카드', {
                     customerKey: customerKey,
                     customerName: customerName,
-                    customerEmail: customerEmail,
-                    successUrl: window.location.origin + '/billing-success.html?plan=' + selectedPlan + '&customerKey=' + encodeURIComponent(customerKey) + '&customerName=' + encodeURIComponent(customerName) + '&customerEmail=' + encodeURIComponent(customerEmail),
-                    failUrl: window.location.origin + '/billing-fail.html?plan=' + selectedPlan,
+                    customerEmail: emailForKey,
+                    successUrl: successUrl,
+                    failUrl: failUrl,
                 });
+
+                // requestBillingAuth는 리다이렉트 방식이므로
+                // 아래 코드는 실행되지 않음 (정상)
+
             } catch (error) {
-                console.error('결제 요청 오류:', error);
-                alert('결제 요청 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
+                console.error('결제 요청 실패:', error);
+                // 사용자가 뒤로가기로 취소한 경우 코드 = 'USER_CANCEL'
+                if (error.code !== 'USER_CANCEL') {
+                    alert('결제 요청에 실패했습니다: ' + (error.message || '알 수 없는 오류'));
+                }
                 submitButton.disabled = false;
-                submitButton.textContent = '카드 등록하고 구독 시작하기 →';
+                submitButton.textContent = `월 ${plan.priceText} 카드 등록하기 🚀`;
             }
         });
     </script>
