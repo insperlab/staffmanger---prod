@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>요금제 - StaffManager</title>
-    <meta name="description" content="무료부터 월 49,900원까지. 소상공인 맞춤 HR 자동화. 출퇴근, 급여계산, 전자계약 모두 포함. 언제든 해지 가능.">
-    <meta property="og:title" content="StaffManager 요금제 - 무료로 시작하세요">
-    <meta property="og:description" content="Free 플랜 무료 제공. Pro 플랜 월 19,900원. Business 플랜 월 49,900원. 언제든 해지 가능.">
+    <meta name="description" content="무료로 시작, 필요할 때 업그레이드. 직원 수 무제한 영구 무료. Pro 월 19,900원, Business 월 49,900원.">
+    <meta property="og:title" content="StaffManager 요금제 - 직원 수 무제한 영구 무료">
+    <meta property="og:description" content="핵심 기능은 직원 수 무제한 영구 무료. Pro 월 19,900원. Business 월 49,900원. 언제든 해지 가능.">
     <meta property="og:url" content="https://staffmanager.io/plans.html">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,7 +23,7 @@
 
         /* 플랜 카드 그리드 */
         .plans-section { padding: 4rem 2rem; background: #f8f9fa; }
-        .plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 2rem; }
+        .plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 2rem; align-items: start; }
         .plan-card { background: white; border-radius: 20px; padding: 2.5rem 2rem; box-shadow: 0 5px 20px rgba(0,0,0,0.08); position: relative; transition: transform 0.3s; }
         .plan-card:hover { transform: translateY(-5px); }
         .plan-card.featured { border: 3px solid #667eea; }
@@ -31,10 +31,12 @@
         .plan-name { font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 0.5rem; }
         .plan-price { font-size: 2.5rem; font-weight: bold; color: #667eea; margin: 1rem 0 0.3rem; }
         .plan-price span { font-size: 1rem; color: #666; font-weight: normal; }
+        .plan-price-annual { font-size: 0.85rem; color: #2ecc71; margin-bottom: 0.3rem; }
         .plan-sub { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
-        .plan-divider { border: none; border-top: 1px solid #eee; margin: 1.5rem 0; }
+        .plan-divider { border: none; border-top: 1px solid #eee; margin: 1.2rem 0; }
+        .plan-section-label { font-size: 0.75rem; font-weight: 700; color: #999; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.7rem; }
         .feature-list { list-style: none; padding: 0; }
-        .feature-list li { padding: 0.6rem 0; display: flex; align-items: flex-start; gap: 0.7rem; font-size: 0.95rem; border-bottom: 1px solid #f5f5f5; }
+        .feature-list li { padding: 0.5rem 0; display: flex; align-items: flex-start; gap: 0.7rem; font-size: 0.9rem; border-bottom: 1px solid #f5f5f5; }
         .feature-list li:last-child { border-bottom: none; }
         .feature-list .check { color: #2ecc71; font-weight: bold; flex-shrink: 0; }
         .feature-list .cross { color: #ddd; flex-shrink: 0; }
@@ -43,6 +45,10 @@
         .cta-btn.primary:hover { opacity: 0.9; transform: translateY(-1px); }
         .cta-btn.secondary { background: #f8f9fa; color: #667eea; border: 2px solid #667eea; }
         .cta-btn.secondary:hover { background: #667eea; color: white; }
+
+        /* 첫달 할인 배너 */
+        .promo-banner { background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-align: center; padding: 0.8rem; font-size: 0.9rem; font-weight: 600; }
+        .promo-banner span { background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 6px; margin: 0 0.3rem; }
 
         /* 비교표 */
         .comparison-section { padding: 4rem 2rem; }
@@ -57,14 +63,6 @@
         .comparison-table .cat-row td { background: #667eea; }
         .check-icon { color: #2ecc71; font-size: 1.3rem; }
         .cross-icon { color: #ddd; font-size: 1.3rem; }
-
-        /* ROI 섹션 */
-        .roi-section { padding: 4rem 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; }
-        .roi-section h2 { font-size: 2rem; margin-bottom: 1rem; }
-        .roi-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem; }
-        .roi-card { background: rgba(255,255,255,0.15); border-radius: 15px; padding: 2rem; }
-        .roi-num { font-size: 2.5rem; font-weight: bold; }
-        .roi-label { font-size: 0.9rem; opacity: 0.85; margin-top: 0.5rem; }
 
         /* FAQ */
         .faq-section { padding: 4rem 2rem; background: #f8f9fa; }
@@ -82,11 +80,13 @@
 
         @media (max-width: 900px) {
             .plans-grid { grid-template-columns: 1fr; }
-            .roi-cards { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+    <div class="promo-banner">
+        🎉 첫 달 50% 할인 <span>Pro ₩9,950</span> / <span>Business ₩24,950</span> &nbsp;|&nbsp; 👥 친구 추천 시 양쪽 모두 1개월 무료
+    </div>
     <header>
         <nav class="container">
             <a href="/" class="logo">StaffManager</a>
@@ -102,7 +102,7 @@
     <section class="page-hero">
         <div class="container">
             <h1>요금제 안내</h1>
-            <p>사업장 규모에 맞는 플랜을 선택하세요. 언제든 변경하거나 해지할 수 있습니다.</p>
+            <p>핵심 기능은 직원 수 무제한으로 영구 무료. 필요할 때만 업그레이드하세요.</p>
         </div>
     </section>
 
@@ -114,20 +114,29 @@
                 <div class="plan-card" id="free">
                     <div class="plan-name">Free</div>
                     <div class="plan-price">₩0 <span>/ 월</span></div>
-                    <div class="plan-sub">직원 3명까지 · 무료로 시작</div>
-                    <hr class="plan-divider">
-                    <ul class="feature-list">
-                        <li><span class="check">✓</span> 직원 3명까지 관리</li>
-                        <li><span class="check">✓</span> QR 출퇴근 관리</li>
-                        <li><span class="check">✓</span> 급여 자동 계산 (시급·월급·일급)</li>
-                        <li><span class="check">✓</span> 연차 자동 계산</li>
-                        <li><span class="check">✓</span> 이메일 고객 지원</li>
-                        <li><span class="cross">✗</span> 카카오톡 알림</li>
-                        <li><span class="cross">✗</span> 전자계약</li>
-                        <li><span class="cross">✗</span> 급여명세서 이메일 발송</li>
-                        <li><span class="cross">✗</span> 퇴직금 계산</li>
-                    </ul>
+                    <div class="plan-sub">영구 무료 · 카드 불필요<br>5~100인 사업장 어디서나 시작</div>
                     <a href="/signup.html" class="cta-btn secondary">무료로 시작하기</a>
+                    <hr class="plan-divider">
+                    <div class="plan-section-label">핵심 기능 (전부 포함)</div>
+                    <ul class="feature-list">
+                        <li><span class="check">✓</span> 직원 수 무제한</li>
+                        <li><span class="check">✓</span> 사업장 1개</li>
+                        <li><span class="check">✓</span> QR · GPS · WiFi 출퇴근</li>
+                        <li><span class="check">✓</span> 자동 급여 계산 (5대 유형)</li>
+                        <li><span class="check">✓</span> 급여명세서 PDF</li>
+                        <li><span class="check">✓</span> 연차 · 휴가 관리</li>
+                        <li><span class="check">✓</span> 4대보험 자동 계산</li>
+                        <li><span class="check">✓</span> 정부 지원금 자동 계산</li>
+                    </ul>
+                    <hr class="plan-divider">
+                    <div class="plan-section-label">프리미엄 기능 (맛보기)</div>
+                    <ul class="feature-list">
+                        <li><span class="check">✓</span> 카카오톡 알림 30건/월</li>
+                        <li><span class="check">✓</span> 전자 근로계약 1건/월</li>
+                        <li><span class="check">✓</span> AI 노무 상담 5건/월</li>
+                        <li><span class="cross">✗</span> 데이터 Excel 내보내기</li>
+                        <li><span class="cross">✗</span> 지원금 신청 가이드</li>
+                    </ul>
                 </div>
 
                 <!-- Pro 플랜 -->
@@ -135,40 +144,43 @@
                     <div class="badge">⭐ 인기</div>
                     <div class="plan-name">Pro</div>
                     <div class="plan-price">₩19,900 <span>/ 월</span></div>
-                    <div class="plan-sub">직원 20명까지 · 핵심 기능 모두</div>
-                    <hr class="plan-divider">
-                    <ul class="feature-list">
-                        <li><span class="check">✓</span> 직원 20명까지 관리</li>
-                        <li><span class="check">✓</span> Free 플랜 모든 기능</li>
-                        <li><span class="check">✓</span> 카카오톡 알림 (출퇴근·급여·휴가)</li>
-                        <li><span class="check">✓</span> 전자계약 (근로계약서 자동 발송)</li>
-                        <li><span class="check">✓</span> 급여명세서 이메일 발송</li>
-                        <li><span class="check">✓</span> GPS·WiFi 출퇴근 인증</li>
-                        <li><span class="check">✓</span> 급여대장 엑셀 내보내기</li>
-                        <li><span class="cross">✗</span> 퇴직금 계산</li>
-                        <li><span class="cross">✗</span> 멀티 사업장 관리</li>
-                    </ul>
+                    <div class="plan-price-annual">연간 결제 시 ₩15,900/월 (20% 절약)</div>
+                    <div class="plan-sub">5~20인 사업장 · 대부분의 소상공인</div>
                     <a href="/billing.html?plan=pro" class="cta-btn primary">Pro 시작하기 →</a>
+                    <hr class="plan-divider">
+                    <div class="plan-section-label">Free 기능 전체 포함 +</div>
+                    <ul class="feature-list">
+                        <li><span class="check">✓</span> 사업장 3개</li>
+                        <li><span class="check">✓</span> 카카오톡 알림 300건/월</li>
+                        <li><span class="check">✓</span> 전자 근로계약 15건/월</li>
+                        <li><span class="check">✓</span> AI 노무 상담 50건/월</li>
+                        <li><span class="check">✓</span> 데이터 Excel 내보내기</li>
+                        <li><span class="check">✓</span> 정부 지원금 신청 가이드</li>
+                        <li><span class="check">✓</span> 관리자 권한 분리 (2명)</li>
+                        <li><span class="check">✓</span> 카카오 채널 우선 지원</li>
+                        <li><span class="check">✓</span> 급여 이체 연동 (출시 예정)</li>
+                    </ul>
                 </div>
 
                 <!-- Business 플랜 -->
                 <div class="plan-card" id="business">
                     <div class="plan-name">Business</div>
                     <div class="plan-price">₩49,900 <span>/ 월</span></div>
-                    <div class="plan-sub">직원 무제한 · 모든 기능</div>
-                    <hr class="plan-divider">
-                    <ul class="feature-list">
-                        <li><span class="check">✓</span> 직원 무제한</li>
-                        <li><span class="check">✓</span> Pro 플랜 모든 기능</li>
-                        <li><span class="check">✓</span> 퇴직금 자동 계산 (퇴직소득세 포함)</li>
-                        <li><span class="check">✓</span> 멀티 사업장 관리</li>
-                        <li><span class="check">✓</span> 4대보험 신고 자료 자동 생성</li>
-                        <li><span class="check">✓</span> 우선 고객 지원</li>
-                        <li><span class="check">✓</span> API 연동 지원</li>
-                        <li><span class="check">✓</span> 데이터 내보내기 (전체)</li>
-                        <li><span class="check">✓</span> 맞춤 온보딩 지원</li>
-                    </ul>
+                    <div class="plan-price-annual">연간 결제 시 ₩39,900/월 (20% 절약)</div>
+                    <div class="plan-sub">20~100인 · 다점포 · 프랜차이즈</div>
                     <a href="/billing.html?plan=business" class="cta-btn secondary">Business 시작하기</a>
+                    <hr class="plan-divider">
+                    <div class="plan-section-label">Pro 기능 전체 포함 +</div>
+                    <ul class="feature-list">
+                        <li><span class="check">✓</span> 사업장 무제한</li>
+                        <li><span class="check">✓</span> 카카오톡 알림 무제한</li>
+                        <li><span class="check">✓</span> 전자 근로계약 무제한</li>
+                        <li><span class="check">✓</span> AI 노무 상담 무제한</li>
+                        <li><span class="check">✓</span> 관리자 권한 무제한</li>
+                        <li><span class="check">✓</span> 정부 지원금 신청 대행</li>
+                        <li><span class="check">✓</span> 전담 매니저 배정</li>
+                        <li><span class="check">✓</span> SLA 99.5% 보장</li>
+                    </ul>
                 </div>
 
             </div>
@@ -195,29 +207,36 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="cat-row"><th colspan="4">직원 관리</th></tr>
-                    <tr><th>직원 수 제한</th><td>3명</td><td>20명</td><td>무제한</td></tr>
-                    <tr><th>직원 정보 등록</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>멀티 사업장</th><td><span class="cross-icon">✗</span></td><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr class="cat-row"><th>기본 제한</th><td></td><td></td><td></td></tr>
+                    <tr><th>직원 수</th><td>무제한</td><td>무제한</td><td>무제한</td></tr>
+                    <tr><th>사업장 수</th><td>1개</td><td>3개</td><td>무제한</td></tr>
 
-                    <tr class="cat-row"><th colspan="4">출퇴근 관리</th></tr>
-                    <tr><th>QR 출퇴근</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>GPS 위치 인증</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>WiFi 인증</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr class="cat-row"><th>출퇴근 관리</th><td></td><td></td><td></td></tr>
+                    <tr><th>QR · GPS · WiFi 출퇴근</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
 
-                    <tr class="cat-row"><th colspan="4">급여 관리</th></tr>
-                    <tr><th>급여 자동 계산</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>급여명세서 이메일 발송</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>급여대장 엑셀 내보내기</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>퇴직금 자동 계산</th><td><span class="cross-icon">✗</span></td><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr class="cat-row"><th>급여 관리</th><td></td><td></td><td></td></tr>
+                    <tr><th>자동 급여 계산 (5대 유형)</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr><th>급여명세서 PDF</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr><th>4대보험 자동 계산</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr><th>데이터 Excel 내보내기</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
 
-                    <tr class="cat-row"><th colspan="4">계약 & 알림</th></tr>
-                    <tr><th>전자계약 (근로계약서)</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>카카오톡 알림</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr class="cat-row"><th>카카오톡 알림</th><td></td><td></td><td></td></tr>
+                    <tr><th>카카오톡 알림</th><td>30건/월</td><td>300건/월</td><td>무제한</td></tr>
 
-                    <tr class="cat-row"><th colspan="4">지원</th></tr>
-                    <tr><th>이메일 지원</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
-                    <tr><th>우선 고객 지원</th><td><span class="cross-icon">✗</span></td><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr class="cat-row"><th>전자계약 &amp; 연차</th><td></td><td></td><td></td></tr>
+                    <tr><th>전자 근로계약</th><td>1건/월</td><td>15건/월</td><td>무제한</td></tr>
+                    <tr><th>연차 · 휴가 관리</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+
+                    <tr class="cat-row"><th>AI &amp; 지원금</th><td></td><td></td><td></td></tr>
+                    <tr><th>AI 노무 상담</th><td>5건/월</td><td>50건/월</td><td>무제한</td></tr>
+                    <tr><th>정부 지원금 자동 계산</th><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr><th>정부 지원금 신청 가이드</th><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr><th>정부 지원금 신청 대행</th><td><span class="cross-icon">✗</span></td><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td></tr>
+
+                    <tr class="cat-row"><th>관리자 &amp; 지원</th><td></td><td></td><td></td></tr>
+                    <tr><th>관리자 권한 분리</th><td><span class="cross-icon">✗</span></td><td>2명</td><td>무제한</td></tr>
+                    <tr><th>전담 매니저 배정</th><td><span class="cross-icon">✗</span></td><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td></tr>
+                    <tr><th>SLA 99.5% 보장</th><td><span class="cross-icon">✗</span></td><td><span class="cross-icon">✗</span></td><td><span class="check-icon">✓</span></td></tr>
                 </tbody>
             </table>
         </div>
@@ -228,6 +247,14 @@
         <div class="container">
             <h2>자주 묻는 질문</h2>
             <div class="faq-item">
+                <div class="faq-q">Q. 정말 영구 무료인가요?</div>
+                <p>네, 진짜 영구 무료입니다. 출퇴근 관리, 급여 계산, 연차 관리 등 핵심 기능은 직원 수 제한 없이 영원히 무료입니다. 카카오 알림·전자계약·AI 상담처럼 건당 비용이 발생하는 기능만 월별 한도를 두었습니다.</p>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Q. Pro와 Business의 가장 큰 차이가 뭔가요?</div>
+                <p>가장 큰 차이는 사업장 수와 알림 건수입니다. Pro는 사업장 3개까지, 카카오 알림 300건/월, 전자계약 15건/월. Business는 전부 무제한이며 정부 지원금 신청 대행, 전담 매니저, SLA 99.5% 보장이 추가됩니다. 단일 매장이라면 Pro로 충분합니다.</p>
+            </div>
+            <div class="faq-item">
                 <div class="faq-q">Q. 무료 플랜에서 유료 플랜으로 업그레이드하면 데이터는 유지되나요?</div>
                 <p>네, 모든 데이터는 그대로 유지됩니다. 업그레이드 즉시 추가 기능을 이용하실 수 있습니다.</p>
             </div>
@@ -236,12 +263,8 @@
                 <p>결제 후 7일 이내에는 전액 환불이 가능합니다. 이후에는 사용 일수를 제외한 일할 계산으로 환불됩니다. 자세한 내용은 <a href="/refund.html" style="color:#667eea">환불정책</a>을 확인해 주세요.</p>
             </div>
             <div class="faq-item">
-                <div class="faq-q">Q. 정기결제는 어떻게 되나요?</div>
-                <p>매월 자동 결제됩니다. 설정에서 언제든지 해지할 수 있으며, 해지 시 다음 결제일부터 청구되지 않습니다.</p>
-            </div>
-            <div class="faq-item">
                 <div class="faq-q">Q. 직원이 앱을 설치해야 하나요?</div>
-                <p>아니요. StaffManager는 웹 기반이라 별도 앱 설치 없이 모바일 브라우저로 이용 가능합니다. QR 출퇴근도 카메라만 있으면 됩니다.</p>
+                <p>아니요. 직원이 별도 앱을 설치할 필요가 없습니다. QR 출퇴근은 카메라만 있으면 되고, 급여명세서·계약서·공지는 카카오톡으로 자동 전달됩니다.</p>
             </div>
         </div>
     </section>
@@ -282,7 +305,7 @@
                 <p>상호명: 주식회사 인스퍼랩 | 대표: 김진호 | 사업자등록번호: 501-88-00966</p>
                 <p>주소: 서울특별시 송파구 올림픽로 300, 롯데월드타워 7003호</p>
                 <p>이메일: support@staffmanager.io | 고객센터: 평일 10:00~18:00</p>
-                <p style="margin-top:1rem">&copy; 2025 주식회사 인스퍼랩. All rights reserved.</p>
+                <p style="margin-top:1rem">&copy; 2026 주식회사 인스퍼랩. All rights reserved.</p>
             </div>
         </div>
     </footer>
