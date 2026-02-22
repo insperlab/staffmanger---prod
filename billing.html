@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -141,9 +140,7 @@
     </div>
 
     <script>
-        // =============================================
         // URL 파라미터로 플랜 결정 (?plan=pro 또는 ?plan=business)
-        // =============================================
         const urlParams = new URLSearchParams(window.location.search);
         const selectedPlan = urlParams.get('plan') || 'pro';
 
@@ -153,20 +150,37 @@
                 badge: 'Pro',
                 price: 19900,
                 priceText: '19,900원',
-                features: ['팀원 20명까지', 'GPS+WiFi 출퇴근', '근무일정 관리', '연차/휴가 관리', '급여 정산']
+                features: [
+                    '직원 20명까지 관리',
+                    'Free 플랜 모든 기능',
+                    '카카오톡 알림 (출퇴근·급여·휴가)',
+                    '전자계약 (근로계약서 자동 발송)',
+                    '급여명세서 이메일 발송',
+                    'GPS·WiFi 출퇴근 인증',
+                    '급여대장 엑셀 내보내기'
+                ]
             },
             business: {
                 name: 'Business 플랜',
                 badge: 'Business',
                 price: 49900,
                 priceText: '49,900원',
-                features: ['팀원 무제한', '유연근무 설정', 'AI 근태 관리', '관리자/부서별 권한', '맞춤형 컨설팅']
+                features: [
+                    '직원 무제한',
+                    'Pro 플랜 모든 기능',
+                    '퇴직금 자동 계산 (퇴직소득세 포함)',
+                    '멀티 사업장 관리',
+                    '4대보험 신고 자료 자동 생성',
+                    '우선 고객 지원',
+                    'API 연동 지원',
+                    '데이터 내보내기 (전체)',
+                    '맞춤 온보딩 지원'
+                ]
             }
         };
 
         // pro/business 외 파라미터 방어 — 기본값 pro
         const plan = plans[selectedPlan] || plans.pro;
-        const isPro = selectedPlan === 'pro' || !plans[selectedPlan];
 
         // 플랜 정보 렌더링
         document.getElementById('planBadge').textContent = plan.badge;
@@ -183,16 +197,11 @@
             document.getElementById('submitButton').classList.add('business');
         }
 
-        // =============================================
         // 토스페이먼츠 SDK 초기화
-        // ※ 운영 배포 전 clientKey를 라이브 키로 교체할 것
-        // =============================================
         const clientKey = 'test_ck_Z61JOxRQVEBzXa0b2m7grW0X9bAq';
         const tossPayments = TossPayments(clientKey);
 
-        // =============================================
         // 폼 제출 → 토스 카드 등록 UI 호출
-        // =============================================
         document.getElementById('billingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -212,12 +221,10 @@
             submitButton.textContent = '결제 화면으로 이동 중...';
 
             try {
-                // customerKey: 고객 고유 식별자 (이메일 기반 해시)
                 const customerKey = 'cust_' + btoa(unescape(encodeURIComponent(emailForKey)))
                     .replace(/[^a-zA-Z0-9]/g, '')
                     .substring(0, 20);
 
-                // successUrl / failUrl에 플랜 정보 포함
                 const successUrl = window.location.origin
                     + '/billing-success.html'
                     + '?plan=' + selectedPlan
@@ -229,7 +236,7 @@
                     + '/billing-fail.html'
                     + '?plan=' + selectedPlan;
 
-                // ★ 핵심: 첫 번째 인자는 반드시 '카드' 
+                // 첫 번째 인자는 반드시 '카드'
                 await tossPayments.requestBillingAuth('카드', {
                     customerKey: customerKey,
                     customerName: customerName,
@@ -238,12 +245,8 @@
                     failUrl: failUrl,
                 });
 
-                // requestBillingAuth는 리다이렉트 방식이므로
-                // 아래 코드는 실행되지 않음 (정상)
-
             } catch (error) {
                 console.error('결제 요청 실패:', error);
-                // 사용자가 뒤로가기로 취소한 경우 코드 = 'USER_CANCEL'
                 if (error.code !== 'USER_CANCEL') {
                     alert('결제 요청에 실패했습니다: ' + (error.message || '알 수 없는 오류'));
                 }
