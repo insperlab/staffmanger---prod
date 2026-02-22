@@ -9,7 +9,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
             background: #f8f9fa;
             padding: 2rem;
             min-height: 100vh;
@@ -43,9 +43,7 @@
             font-weight: 600;
             margin-bottom: 0.5rem;
         }
-        .plan-badge.business {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
+        .plan-badge.business { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .plan-info {
             background: #f0f4ff;
             border: 2px solid #667eea;
@@ -53,14 +51,13 @@
             border-radius: 12px;
             margin-bottom: 2rem;
         }
-        .plan-info.business {
-            background: #fff0f8;
-            border-color: #f5576c;
-        }
+        .plan-info.business { background: #fff0f8; border-color: #f5576c; }
         .plan-name { font-size: 1.4rem; font-weight: bold; color: #333; margin-bottom: 0.3rem; }
-        .plan-price { font-size: 1.8rem; font-weight: bold; color: #667eea; margin-bottom: 1rem; }
+        .plan-price { font-size: 1.8rem; font-weight: bold; color: #667eea; margin-bottom: 0.2rem; }
         .plan-price.business { color: #f5576c; }
         .plan-price span { font-size: 1rem; color: #888; font-weight: normal; }
+        .plan-annual { font-size: 0.82rem; color: #2ecc71; margin-bottom: 0.3rem; }
+        .plan-target { font-size: 0.85rem; color: #888; margin-bottom: 1rem; }
         .plan-features { list-style: none; padding: 0; }
         .plan-features li { padding: 0.3rem 0; color: #555; font-size: 0.9rem; }
         .plan-features li::before { content: "✅ "; }
@@ -99,9 +96,7 @@
             transition: transform 0.2s, box-shadow 0.2s;
             margin-top: 0.5rem;
         }
-        .submit-button.business {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
+        .submit-button.business { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .submit-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
         .submit-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .secure-badge { text-align: center; margin-top: 1rem; font-size: 0.8rem; color: #888; }
@@ -114,6 +109,8 @@
             <div class="plan-badge" id="planBadge">Pro</div>
             <div class="plan-name" id="planName">Pro 플랜</div>
             <div class="plan-price" id="planPrice">19,900원<span> / 월</span></div>
+            <div class="plan-annual" id="planAnnual"></div>
+            <div class="plan-target" id="planTarget"></div>
             <ul class="plan-features" id="planFeatures"></ul>
         </div>
         <form id="billingForm">
@@ -122,9 +119,7 @@
                 <input type="text" id="customerName" required placeholder="홍길동" autocomplete="name">
             </div>
             <div class="form-group">
-                <label for="customerEmail">
-                    이메일 <span class="optional">(선택)</span>
-                </label>
+                <label for="customerEmail">이메일 <span class="optional">(선택)</span></label>
                 <input type="email" id="customerEmail" placeholder="example@company.com" autocomplete="email">
             </div>
             <div class="notice">
@@ -132,32 +127,34 @@
                 월 단위로 자동 갱신되며, StaffManager 설정에서 언제든 취소할 수 있습니다.<br>
                 <a href="/refund.html" style="color:#667eea;">환불 정책 보기</a>
             </div>
-            <button type="submit" class="submit-button" id="submitButton">
-                카드 등록하고 구독 시작하기 🚀
-            </button>
+            <button type="submit" class="submit-button" id="submitButton">카드 등록하고 구독 시작하기 🚀</button>
         </form>
         <div class="secure-badge">🔒 토스페이먼츠를 통해 안전하게 결제됩니다</div>
     </div>
-
     <script>
-        // URL 파라미터로 플랜 결정 (?plan=pro 또는 ?plan=business)
+        // URL 파라미터로 플랜 결정
         const urlParams = new URLSearchParams(window.location.search);
         const selectedPlan = urlParams.get('plan') || 'pro';
 
+        // 랜딩페이지(index.html) 확정 기준
         const plans = {
             pro: {
                 name: 'Pro 플랜',
                 badge: 'Pro',
                 price: 19900,
                 priceText: '19,900원',
+                annual: '연간 결제 시 ₩15,900/월 (20% 절약)',
+                target: '5~20인 사업장 · 대부분의 소상공인',
                 features: [
-                    '직원 20명까지 관리',
-                    'Free 플랜 모든 기능',
-                    '카카오톡 알림 (출퇴근·급여·휴가)',
-                    '전자계약 (근로계약서 자동 발송)',
-                    '급여명세서 이메일 발송',
-                    'GPS·WiFi 출퇴근 인증',
-                    '급여대장 엑셀 내보내기'
+                    'Free 기능 전체 포함',
+                    '사업장 3개',
+                    '카카오톡 알림 300건/월',
+                    '전자 근로계약 15건/월',
+                    'AI 노무 상담 50건/월',
+                    '데이터 Excel 내보내기',
+                    '정부 지원금 신청 가이드',
+                    '관리자 권한 분리 (2명)',
+                    '카카오 채널 우선 지원'
                 ]
             },
             business: {
@@ -165,31 +162,32 @@
                 badge: 'Business',
                 price: 49900,
                 priceText: '49,900원',
+                annual: '연간 결제 시 ₩39,900/월 (20% 절약)',
+                target: '20~100인 · 다점포 · 프랜차이즈',
                 features: [
-                    '직원 무제한',
-                    'Pro 플랜 모든 기능',
-                    '퇴직금 자동 계산 (퇴직소득세 포함)',
-                    '멀티 사업장 관리',
-                    '4대보험 신고 자료 자동 생성',
-                    '우선 고객 지원',
-                    'API 연동 지원',
-                    '데이터 내보내기 (전체)',
-                    '맞춤 온보딩 지원'
+                    'Pro 기능 전체 포함',
+                    '사업장 무제한',
+                    '카카오톡 알림 무제한',
+                    '전자 근로계약 무제한',
+                    'AI 노무 상담 무제한',
+                    '관리자 권한 무제한',
+                    '정부 지원금 신청 대행',
+                    '전담 매니저 배정',
+                    'SLA 99.5% 보장'
                 ]
             }
         };
 
-        // pro/business 외 파라미터 방어 — 기본값 pro
         const plan = plans[selectedPlan] || plans.pro;
 
-        // 플랜 정보 렌더링
         document.getElementById('planBadge').textContent = plan.badge;
         document.getElementById('planName').textContent = plan.name;
         document.getElementById('planPrice').innerHTML = plan.priceText + '<span> / 월</span>';
-        document.getElementById('planFeatures').innerHTML = plan.features.map(f => `<li>${f}</li>`).join('');
-        document.getElementById('submitButton').textContent = `월 ${plan.priceText} 카드 등록하기 🚀`;
+        document.getElementById('planAnnual').textContent = plan.annual;
+        document.getElementById('planTarget').textContent = plan.target;
+        document.getElementById('planFeatures').innerHTML = plan.features.map(f => '<li>' + f + '</li>').join('');
+        document.getElementById('submitButton').textContent = '월 ' + plan.priceText + ' 카드 등록하기 🚀';
 
-        // Business 플랜이면 색상 변경
         if (selectedPlan === 'business') {
             document.getElementById('planInfo').classList.add('business');
             document.getElementById('planBadge').classList.add('business');
@@ -197,46 +195,22 @@
             document.getElementById('submitButton').classList.add('business');
         }
 
-        // 토스페이먼츠 SDK 초기화
         const clientKey = 'test_ck_Z61JOxRQVEBzXa0b2m7grW0X9bAq';
         const tossPayments = TossPayments(clientKey);
 
-        // 폼 제출 → 토스 카드 등록 UI 호출
         document.getElementById('billingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
             const customerName = document.getElementById('customerName').value.trim();
             const customerEmail = document.getElementById('customerEmail').value.trim();
-
-            if (!customerName) {
-                alert('이름을 입력해주세요.');
-                return;
-            }
-
-            // 이메일 없으면 이름 기반으로 customerKey 생성 (토스 필수값)
+            if (!customerName) { alert('이름을 입력해주세요.'); return; }
             const emailForKey = customerEmail || (customerName.replace(/\s/g, '') + '@staffmanager.io');
-
             const submitButton = document.getElementById('submitButton');
             submitButton.disabled = true;
             submitButton.textContent = '결제 화면으로 이동 중...';
-
             try {
-                const customerKey = 'cust_' + btoa(unescape(encodeURIComponent(emailForKey)))
-                    .replace(/[^a-zA-Z0-9]/g, '')
-                    .substring(0, 20);
-
-                const successUrl = window.location.origin
-                    + '/billing-success.html'
-                    + '?plan=' + selectedPlan
-                    + '&customerKey=' + encodeURIComponent(customerKey)
-                    + '&customerName=' + encodeURIComponent(customerName)
-                    + '&customerEmail=' + encodeURIComponent(emailForKey);
-
-                const failUrl = window.location.origin
-                    + '/billing-fail.html'
-                    + '?plan=' + selectedPlan;
-
-                // 첫 번째 인자는 반드시 '카드'
+                const customerKey = 'cust_' + btoa(unescape(encodeURIComponent(emailForKey))).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                const successUrl = window.location.origin + '/billing-success.html?plan=' + selectedPlan + '&customerKey=' + encodeURIComponent(customerKey) + '&customerName=' + encodeURIComponent(customerName) + '&customerEmail=' + encodeURIComponent(emailForKey);
+                const failUrl = window.location.origin + '/billing-fail.html?plan=' + selectedPlan;
                 await tossPayments.requestBillingAuth('카드', {
                     customerKey: customerKey,
                     customerName: customerName,
@@ -244,14 +218,13 @@
                     successUrl: successUrl,
                     failUrl: failUrl,
                 });
-
             } catch (error) {
                 console.error('결제 요청 실패:', error);
                 if (error.code !== 'USER_CANCEL') {
                     alert('결제 요청에 실패했습니다: ' + (error.message || '알 수 없는 오류'));
                 }
                 submitButton.disabled = false;
-                submitButton.textContent = `월 ${plan.priceText} 카드 등록하기 🚀`;
+                submitButton.textContent = '월 ' + plan.priceText + ' 카드 등록하기 🚀';
             }
         });
     </script>
