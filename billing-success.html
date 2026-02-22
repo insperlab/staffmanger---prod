@@ -4,200 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>구독 완료 - StaffManager</title>
-    <meta name="description" content="StaffManager 구독이 완료되었습니다. 지금부터 AI 세무사, 회계사와 함께 업무 효율을 높이세요">
-    <meta property="og:title" content="구독 완료 - StaffManager">
-    <meta property="og:url" content="https://staffmanager.io/billing-success.html">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
-            background: #f8f9fa;
-            padding: 2rem;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            max-width: 600px;
-            background: white;
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 2rem;
-            font-size: 3rem;
-        }
-        h1 {
-            color: #667eea;
-            margin-bottom: 1rem;
-            font-size: 2rem;
-        }
-        .info-box {
-            background: #f8f9fa;
-            padding: 2rem;
-            border-radius: 10px;
-            margin: 2rem 0;
-            text-align: left;
-        }
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.8rem 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif; background: #f8f9fa; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+        .container { max-width: 520px; width: 100%; background: white; border-radius: 20px; padding: 3rem; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; }
+        .loading-section { display: block; }
+        .success-section { display: none; }
+        .error-section { display: none; }
+        .spinner { width: 50px; height: 50px; border: 4px solid #f0f0f0; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1.5rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { color: #666; font-size: 1rem; }
+        .success-icon { width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem; }
+        h1 { color: #333; margin-bottom: 0.5rem; font-size: 1.8rem; }
+        .subtitle { color: #666; margin-bottom: 2rem; }
+        .info-box { background: #f8f9fa; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; text-align: left; }
+        .info-item { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid #eee; }
         .info-item:last-child { border-bottom: none; }
-        .info-label { font-weight: 600; color: #666; }
-        .info-value { color: #333; }
-        .button-group {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-        }
-        .button {
-            flex: 1;
-            padding: 1rem 2rem;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: transform 0.3s;
-        }
-        .button:hover { transform: translateY(-2px); }
-        .button-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .button-secondary {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-        .loading {
-            text-align: center;
-            padding: 2rem;
-        }
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .info-label { color: #666; font-size: 0.9rem; }
+        .info-value { color: #333; font-weight: 600; }
+        .btn-group { display: flex; gap: 1rem; }
+        .btn { flex: 1; padding: 0.9rem; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 0.95rem; text-align: center; cursor: pointer; border: none; display: block; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-secondary { background: white; color: #667eea; border: 2px solid #667eea; }
+        .error-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .error-msg { color: #e74c3c; margin-bottom: 2rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="loading" id="loading">
+        <div class="loading-section" id="loadingSection">
             <div class="spinner"></div>
-            <p>결제 정보를 확인하는 중...</p>
+            <p class="loading-text">카드 등록을 처리하고 있습니다...</p>
+            <p class="loading-text" style="font-size:0.85rem;color:#aaa;margin-top:0.5rem;">잠시만 기다려주세요</p>
         </div>
-        
-        <div id="content" style="display: none;">
+        <div class="success-section" id="successSection">
             <div class="success-icon">✓</div>
-            <h1>구독이 완료되었습니다!</h1>
-            <p style="color: #666; margin-bottom: 2rem;">
-                환영합니다! 이제 StaffManager의 모든 기능을 사용하실 수 있습니다.
-            </p>
-            
+            <h1>구독이 시작됐습니다!</h1>
+            <p class="subtitle">StaffManager와 함께 스마트한 HR 관리를 경험하세요.</p>
             <div class="info-box">
-                <div class="info-item">
-                    <span class="info-label">플랜</span>
-                    <span class="info-value" id="planName">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">월 결제 금액</span>
-                    <span class="info-value" id="amount">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">다음 결제일</span>
-                    <span class="info-value" id="nextPayment">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">빌링키</span>
-                    <span class="info-value" id="billingKey" style="font-family: monospace; font-size: 0.85rem;">-</span>
-                </div>
+                <div class="info-item"><span class="info-label">구독 플랜</span><span class="info-value" id="resultPlan">-</span></div>
+                <div class="info-item"><span class="info-label">월 결제 금액</span><span class="info-value" id="resultAmount">-</span></div>
+                <div class="info-item"><span class="info-label">다음 결제일</span><span class="info-value" id="resultNextDate">-</span></div>
+                <div class="info-item"><span class="info-label">등록 이메일</span><span class="info-value" id="resultEmail">-</span></div>
             </div>
-            
-            <div class="button-group">
-                <a href="/" class="button button-primary">대시보드로 이동</a>
-                <a href="/plans.html" class="button button-secondary">플랜 관리</a>
+            <div class="btn-group">
+                <a href="/dashboard.html" class="btn btn-primary">대시보드로 이동</a>
+                <a href="/settings.html" class="btn btn-secondary">설정 보기</a>
+            </div>
+        </div>
+        <div class="error-section" id="errorSection">
+            <div class="error-icon">⚠️</div>
+            <h1 style="color:#e74c3c;">처리 중 오류가 발생했습니다</h1>
+            <p class="error-msg" id="errorMsg">잠시 후 다시 시도해주세요.</p>
+            <div class="btn-group">
+                <a href="/billing.html" class="btn btn-primary">다시 시도</a>
+                <a href="/dashboard.html" class="btn btn-secondary">대시보드로</a>
             </div>
         </div>
     </div>
-
     <script>
-        // URL 파라미터 파싱
-        const urlParams = new URLSearchParams(window.location.search);
-        const authKey = urlParams.get('authKey');
-        const customerKey = urlParams.get('customerKey');
-        const plan = urlParams.get('plan') || 'pro';
-        
+        const params = new URLSearchParams(window.location.search);
+        const authKey = params.get('authKey');
+        const customerKey = params.get('customerKey');
+        const plan = params.get('plan') || 'pro';
+        const customerEmail = params.get('customerEmail') || '';
+        const customerName = params.get('customerName') || '';
         const plans = {
-            free: { name: 'Free', price: 0 },
-            pro: { name: 'Pro', price: 19900 },
-            business: { name: 'Business', price: 49900 }
+            free:     { name: 'Free 플랜',     price: 0,     text: '무료' },
+            pro:      { name: 'Pro 플랜',       price: 19900, text: '19,900원' },
+            business: { name: 'Business 플랜', price: 49900, text: '49,900원' }
         };
-        
-        // 빌링키 발급 완료 처리
-        async function confirmBilling() {
-            try {
-                // 실제로는 백엔드 API로 빌링키 발급 완료 요청
-                // const response = await fetch('/api/billing/confirm', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({ authKey, customerKey })
-                // });
-                
-                // 시뮬레이션: 1초 후 성공 처리
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // UI 업데이트
-                const selectedPlan = plans[plan];
-                document.getElementById('planName').textContent = selectedPlan.name + ' 플랜';
-                document.getElementById('amount').textContent = selectedPlan.price.toLocaleString() + '원';
-                
-                // 다음 결제일 (오늘로부터 1개월 후)
-                const nextDate = new Date();
-                nextDate.setMonth(nextDate.getMonth() + 1);
-                document.getElementById('nextPayment').textContent = 
-                    nextDate.toLocaleDateString('ko-KR', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    });
-                
-                // 빌링키 표시 (실제로는 백엔드에서 받아옴)
-                document.getElementById('billingKey').textContent = 
-                    authKey ? authKey.substring(0, 20) + '...' : 'BK_' + Date.now();
-                
-                // 로딩 숨기고 컨텐츠 표시
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
-                
-            } catch (error) {
-                console.error('빌링키 발급 확인 실패:', error);
-                alert('결제 확인 중 오류가 발생했습니다. 고객센터로 문의해주세요.');
-                window.location.href = '/billing-fail.html';
-            }
+        function getNextPaymentDate() {
+            const d = new Date();
+            d.setMonth(d.getMonth() + 1);
+            return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
         }
-        
-        // 페이지 로드 시 실행
-        confirmBilling();
+        function showSection(name) {
+            ['loading', 'success', 'error'].forEach(s => {
+                document.getElementById(s + 'Section').style.display = s === name ? 'block' : 'none';
+            });
+        }
+        if (!authKey) {
+            showSection('error');
+            document.getElementById('errorMsg').textContent = '결제 인증 정보가 없습니다. 결제 페이지에서 다시 시도해주세요.';
+        } else {
+            (async () => {
+                try {
+                    const response = await fetch('/.netlify/functions/payments-billing-confirm', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ authKey, customerKey, plan, customerEmail, customerName })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || '빌링키 발급 실패');
+                    const planInfo = plans[plan] || plans.pro;
+                    document.getElementById('resultPlan').textContent = planInfo.name;
+                    document.getElementById('resultAmount').textContent = planInfo.price === 0 ? '무료' : planInfo.text + ' / 월';
+                    document.getElementById('resultNextDate').textContent = getNextPaymentDate();
+                    document.getElementById('resultEmail').textContent = customerEmail || result.customerEmail || '-';
+                    showSection('success');
+                } catch (err) {
+                    console.error('빌링 확정 오류:', err);
+                    showSection('error');
+                    document.getElementById('errorMsg').textContent = err.message || '처리 중 오류가 발생했습니다.';
+                }
+            })();
+        }
     </script>
 </body>
 </html>
