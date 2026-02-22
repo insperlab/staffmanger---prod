@@ -3,6 +3,7 @@
 // 해결된 문제: 4대보험 2026요율, 국민연금 상하한, NTS 간이세액, 주휴수당 15시간,
 //             비과세 수당 분리, 사업주 부담분, 연령 면제, 이상탐지 경고
 
+const { captureError } = require('./lib/sentry');
 const { verifyToken } = require('./lib/auth');
 const { createClient } = require('@supabase/supabase-js');
 const { loadAllPayrollRules, getIncomeTax, calculateAge, isHoliday } = require('./lib/payroll-rules');
@@ -383,4 +384,10 @@ exports.handler = async (event) => {
     console.error('급여 계산 오류:', error);
     return respond(500, { success: false, error: '서버 오류가 발생했습니다.' });
   }
+  } catch (error) {
+  captureError(error, { function: 'calculate-payroll', companyId: /* 있으면 */ });
+  return { statusCode: 500, body: JSON.stringify({ error: '서버 오류' }) };
+  }
+}
+
 };
