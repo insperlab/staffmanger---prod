@@ -6,4 +6,4 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(self)
 
 /*.html
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://staffmanager.io https://*.netlify.app; img-src 'self' data: https:; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.tosspayments.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://staffmanager.io https://*.netlify.app https://api.tosspayments.com https://*.tosspayments.com; img-src 'self' data: https:; frame-src https://*.tosspayments.com https://tosspayments.com; frame-ancestors 'none'
