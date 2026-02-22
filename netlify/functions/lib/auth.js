@@ -4,7 +4,10 @@
 // =====================================================
 
 const crypto = require('crypto');
+const { captureError } = require('./sentry'); // ← 이 줄 추가
 
+// ★ Sentry 연동 테스트 - 확인 후 삭제
+captureError(new Error('Sentry 테스트 성공!'), { function: 'auth-init' });
 const JWT_SECRET = process.env.JWT_SECRET;
 const ALLOWED_ORIGIN = 'https://staffmanager.io';
 
