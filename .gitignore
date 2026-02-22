@@ -1,3 +1,20 @@
 # Local Netlify folder
 .netlify
 repository/
+
+# macOS 시스템 파일
+.DS_Store
+**/.DS_Store
+
+# Node modules (용량 큰 폴더, 커밋 불필요)
+node_modules/
+npm-debug.log*
+
+# 환경변수 (절대 커밋 금지)
+.env
+.env.local
+.env.*.local
+
+# 빌드 산출물
+dist/
+.cache/
