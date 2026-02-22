@@ -148,9 +148,9 @@
         const plan = urlParams.get('plan') || 'pro';
         
         const plans = {
-            basic: { name: 'BASIC', price: 29900 },
-            pro: { name: 'PRO', price: 49900 },
-            enterprise: { name: 'ENTERPRISE', price: 99900 }
+            free: { name: 'Free', price: 0 },
+            pro: { name: 'Pro', price: 19900 },
+            business: { name: 'Business', price: 49900 }
         };
         
         // 빌링키 발급 완료 처리

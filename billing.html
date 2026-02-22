@@ -6,7 +6,7 @@
     <title>StaffManager 구독 시작 | 안전한 토스 페이먼츠 결제</title>
     <meta name="description" content="간편한 카드 자동결제로 StaffManager 구독 시작. 언제든 취소 가능, 첫 7일 전액 환불 보장">
     <meta property="og:title" content="StaffManager 구독 시작">
-    <meta property="og:description" content="월 49,900원으로 AI 세무사 + 회계사를 만나보세요">
+    <meta property="og:description" content="Pro 월 19,900원, Business 월 49,900원. 소상공인 전용 HR SaaS">
     <meta property="og:url" content="https://staffmanager.io/billing.html">
     <script src="https://js.tosspayments.com/v1/payment"></script>
     <style>
@@ -220,8 +220,8 @@
         <h1>StaffManager 구독</h1>
         
         <div class="plan-info" id="planInfo">
-            <div class="plan-name" id="planName">PRO 플랜</div>
-            <div class="plan-price" id="planPrice">49,900원 / 월</div>
+            <div class="plan-name" id="planName">Pro 플랜</div>
+            <div class="plan-price" id="planPrice">19,900원 / 월</div>
             <ul class="plan-features">
                 <li>직원 30명까지 관리</li>
                 <li>AI 세무/회계 자동화</li>
@@ -304,37 +304,39 @@
         
         // 플랜 정보
         const plans = {
-            basic: {
-                name: 'BASIC 플랜',
-                price: 29900,
-                priceText: '29,900원 / 월',
+            free: {
+                name: 'Free 플랜',
+                price: 0,
+                priceText: '무료',
                 features: [
-                    '직원 10명까지 관리',
-                    'AI 계정과목 추천',
-                    '영수증 AI 분류',
-                    '세무 경고'
+                    '직원 3명까지 관리',
+                    'QR 출퇴근 관리',
+                    '급여 자동 계산',
+                    '연차 자동 계산'
                 ]
             },
             pro: {
-                name: 'PRO 플랜',
+                name: 'Pro 플랜',
+                price: 19900,
+                priceText: '19,900원 / 월',
+                features: [
+                    '직원 20명까지 관리',
+                    '카카오톡 알림',
+                    '전자계약 (근로계약서)',
+                    '급여명세서 이메일 발송',
+                    'GPS·WiFi 출퇴근 인증'
+                ]
+            },
+            business: {
+                name: 'Business 플랜',
                 price: 49900,
                 priceText: '49,900원 / 월',
                 features: [
-                    '직원 30명까지 관리',
-                    'AI 세무/회계 자동화',
-                    'POS 연동',
-                    '정부 지원금 추천'
-                ]
-            },
-            enterprise: {
-                name: 'ENTERPRISE 플랜',
-                price: 99900,
-                priceText: '99,900원 / 월',
-                features: [
                     '직원 무제한',
-                    '전담 매니저',
-                    '우선 지원',
-                    'API 연동'
+                    '퇴직금 자동 계산',
+                    '멀티 사업장 관리',
+                    '4대보험 신고 자료',
+                    '우선 고객 지원'
                 ]
             }
         };
