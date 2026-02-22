@@ -3,485 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StaffManager 구독 시작 | 안전한 토스 페이먼츠 결제</title>
-    <meta name="description" content="간편한 카드 자동결제로 StaffManager 구독 시작. 언제든 취소 가능, 첫 7일 전액 환불 보장">
-    <meta property="og:title" content="StaffManager 구독 시작">
-    <meta property="og:description" content="Pro 월 19,900원, Business 월 49,900원. 소상공인 전용 HR SaaS">
+    <title>StaffManager 구독 결제</title>
+    <meta name="description" content="StaffManager 구독을 시작하세요. Pro 월 19,900원, Business 월 49,900원.">
+    <meta property="og:title" content="StaffManager 결제">
     <meta property="og:url" content="https://staffmanager.io/billing.html">
     <script src="https://js.tosspayments.com/v1/payment"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
             background: #f8f9fa;
             padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        
         .container {
-            max-width: 600px;
-            margin: 0 auto;
+            max-width: 520px;
+            width: 100%;
             background: white;
             border-radius: 20px;
             padding: 3rem;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
-        
         h1 {
             text-align: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 2rem;
-            font-size: 2rem;
+            font-size: 1.8rem;
         }
-        
+        .plan-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
         .plan-info {
-            background: #f8f9fa;
-            padding: 2rem;
-            border-radius: 10px;
+            background: #f0f4ff;
+            border: 2px solid #667eea;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
             margin-bottom: 2rem;
         }
-        
-        .plan-name {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 0.5rem;
-        }
-        
-        .plan-price {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 1rem;
-        }
-        
-        .plan-features {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .plan-features li {
-            padding: 0.5rem 0;
-            color: #666;
-        }
-        
-        .plan-features li:before {
-            content: "✓ ";
-            color: #2ecc71;
-            font-weight: bold;
-            margin-right: 0.5rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #333;
-        }
-        
+        .plan-name { font-size: 1.4rem; font-weight: bold; color: #333; margin-bottom: 0.3rem; }
+        .plan-price { font-size: 1.8rem; font-weight: bold; color: #667eea; margin-bottom: 1rem; }
+        .plan-price span { font-size: 1rem; color: #888; font-weight: normal; }
+        .plan-features { list-style: none; padding: 0; }
+        .plan-features li { padding: 0.3rem 0; color: #555; font-size: 0.9rem; }
+        .plan-features li::before { content: "✓ "; color: #2ecc71; font-weight: bold; }
+        .form-group { margin-bottom: 1.2rem; }
+        label { display: block; margin-bottom: 0.4rem; font-weight: 600; color: #333; font-size: 0.9rem; }
         input {
             width: 100%;
-            padding: 1rem;
+            padding: 0.9rem 1rem;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 1rem;
             transition: border-color 0.3s;
         }
-        
-        input:focus {
-            outline: none;
-            border-color: #667eea;
+        input:focus { outline: none; border-color: #667eea; }
+        .notice {
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            color: #555;
+            line-height: 1.6;
         }
-        
-        .payment-methods {
-            margin: 2rem 0;
-        }
-        
-        .payment-method {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            cursor: pointer;
-            border: 2px solid #e0e0e0;
-            transition: all 0.3s;
-        }
-        
-        .payment-method:hover {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-        
-        .payment-method.selected {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-        
-        .payment-method input[type="radio"] {
-            margin-right: 1rem;
-            width: auto;
-        }
-        
-        .payment-method label {
-            display: inline;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        
-        .card-form {
-            display: none;
-            margin-top: 1rem;
-            padding: 1.5rem;
-            background: white;
-            border-radius: 8px;
-        }
-        
-        .card-form.active {
-            display: block;
-        }
-        
         .submit-button {
             width: 100%;
-            padding: 1.2rem;
+            padding: 1.1rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 0.5rem;
         }
-        
-        .submit-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        .submit-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .notice {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 1rem;
-            margin: 1.5rem 0;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            display: none;
-        }
-        
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .card-input-row {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .card-input-row > div {
-            flex: 1;
-        }
+        .submit-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
+        .submit-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .secure-badge { text-align: center; margin-top: 1rem; font-size: 0.8rem; color: #888; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>StaffManager 구독</h1>
-        
         <div class="plan-info" id="planInfo">
+            <div class="plan-badge" id="planBadge">Pro</div>
             <div class="plan-name" id="planName">Pro 플랜</div>
-            <div class="plan-price" id="planPrice">19,900원 / 월</div>
-            <ul class="plan-features">
-                <li>직원 30명까지 관리</li>
-                <li>AI 세무/회계 자동화</li>
-                <li>POS 연동</li>
-                <li>정부 지원금 추천</li>
-            </ul>
+            <div class="plan-price" id="planPrice">19,900원<span> / 월</span></div>
+            <ul class="plan-features" id="planFeatures"></ul>
         </div>
-        
         <form id="billingForm">
             <div class="form-group">
                 <label for="customerName">이름 *</label>
-                <input type="text" id="customerName" name="customerName" required placeholder="홍길동">
+                <input type="text" id="customerName" required placeholder="홍길동" autocomplete="name">
             </div>
-            
             <div class="form-group">
                 <label for="customerEmail">이메일 *</label>
-                <input type="email" id="customerEmail" name="customerEmail" required placeholder="example@company.com">
+                <input type="email" id="customerEmail" required placeholder="example@company.com" autocomplete="email">
             </div>
-            
-            <div class="form-group">
-                <label for="companyName">회사명</label>
-                <input type="text" id="companyName" name="companyName" placeholder="주식회사 인스퍼랩">
-            </div>
-            
-            <div class="payment-methods">
-                <h3 style="margin-bottom: 1rem;">결제 수단 선택</h3>
-                
-                <div class="payment-method selected" onclick="selectPaymentMethod('card')">
-                    <input type="radio" id="card" name="paymentMethod" value="card" checked>
-                    <label for="card">💳 카드 자동결제</label>
-                </div>
-                
-                <div class="card-form active" id="cardForm">
-                    <div class="form-group">
-                        <label for="cardNumber">카드 번호 *</label>
-                        <input type="text" id="cardNumber" inputmode="numeric" pattern="[0-9-]*" maxlength="19" placeholder="0000-0000-0000-0000" required autocomplete="cc-number">
-                    </div>
-                    
-                    <div class="card-input-row">
-                        <div class="form-group">
-                            <label for="expiry">유효기간 *</label>
-                            <input type="text" id="expiry" inputmode="numeric" pattern="[0-9/]*" maxlength="5" placeholder="MM/YY" required autocomplete="cc-exp">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="birth">생년월일 6자리 *</label>
-                            <input type="text" id="birth" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="YYMMDD" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="pwd2digit">카드 비밀번호 앞 2자리 *</label>
-                        <input type="password" id="pwd2digit" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="••" required>
-                    </div>
-                </div>
-            </div>
-            
             <div class="notice">
-                ⚠️ <strong>자동결제 안내</strong><br>
-                • 첫 결제 후 매월 자동으로 결제됩니다.<br>
-                • 언제든지 구독을 취소할 수 있습니다.<br>
-                • 환불 정책은 <a href="/refund.html" target="_blank">여기</a>를 참고하세요.
+                ⚠️ 다음 단계에서 토스페이먼츠 화면으로 이동하여 카드를 등록합니다.<br>
+                카드 정보는 토스페이먼츠에서 안전하게 처리되며 StaffManager 서버에 저장되지 않습니다.<br>
+                <a href="/refund.html" style="color:#667eea;">환불 정책 보기</a>
             </div>
-            
             <button type="submit" class="submit-button" id="submitButton">
-                구독 시작하기
+                카드 등록하고 구독 시작하기 →
             </button>
         </form>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 1rem;">결제 처리 중...</p>
-        </div>
+        <div class="secure-badge">🔒 토스페이먼츠 보안 결제</div>
     </div>
-
     <script>
-        // URL에서 플랜 정보 가져오기
         const urlParams = new URLSearchParams(window.location.search);
         const selectedPlan = urlParams.get('plan') || 'pro';
-        
-        // 플랜 정보
         const plans = {
-            free: {
-                name: 'Free 플랜',
-                price: 0,
-                priceText: '무료',
-                features: [
-                    '직원 3명까지 관리',
-                    'QR 출퇴근 관리',
-                    '급여 자동 계산',
-                    '연차 자동 계산'
-                ]
-            },
-            pro: {
-                name: 'Pro 플랜',
-                price: 19900,
-                priceText: '19,900원 / 월',
-                features: [
-                    '직원 20명까지 관리',
-                    '카카오톡 알림',
-                    '전자계약 (근로계약서)',
-                    '급여명세서 이메일 발송',
-                    'GPS·WiFi 출퇴근 인증'
-                ]
-            },
-            business: {
-                name: 'Business 플랜',
-                price: 49900,
-                priceText: '49,900원 / 월',
-                features: [
-                    '직원 무제한',
-                    '퇴직금 자동 계산',
-                    '멀티 사업장 관리',
-                    '4대보험 신고 자료',
-                    '우선 고객 지원'
-                ]
-            }
+            free:     { name: 'Free 플랜',     price: 0,     priceText: '무료',    badge: 'Free',     features: ['직원 3명까지', 'QR 근태', '기본 급여 계산'] },
+            pro:      { name: 'Pro 플랜',       price: 19900, priceText: '19,900원', badge: 'Pro',      features: ['직원 20명까지', 'GPS·WiFi 근태', '급여명세서', '카카오 알림', '전자계약'] },
+            business: { name: 'Business 플랜', price: 49900, priceText: '49,900원', badge: 'Business', features: ['직원 무제한', '다중 지점 관리', 'AI 급여 자동화', '맞춤형 리포트', '전용 고객지원'] }
         };
-        
-        // 선택된 플랜 정보 표시
-        const plan = plans[selectedPlan];
+        const plan = plans[selectedPlan] || plans.pro;
+        document.getElementById('planBadge').textContent = plan.badge;
         document.getElementById('planName').textContent = plan.name;
-        document.getElementById('planPrice').textContent = plan.priceText;
-        
-        const featuresList = document.querySelector('.plan-features');
-        featuresList.innerHTML = plan.features.map(f => `<li>${f}</li>`).join('');
-        
-        // 토스 페이먼츠 초기화
+        document.getElementById('planPrice').innerHTML = plan.price === 0 ? '무료' : `${plan.priceText}<span> / 월</span>`;
+        document.getElementById('planFeatures').innerHTML = plan.features.map(f => `<li>${f}</li>`).join('');
+        if (selectedPlan === 'free') {
+            document.getElementById('submitButton').textContent = '무료로 시작하기 →';
+        }
         const clientKey = 'test_ck_Z61JOxRQVEBzXa0b2m7grW0X9bAq';
         const tossPayments = TossPayments(clientKey);
-        
-        // 카드 번호 자동 포맷팅
-        document.getElementById('cardNumber').addEventListener('input', function(e) {
-            // 숫자만 추출
-            let value = e.target.value.replace(/[^\d]/g, '');
-            
-            // 최대 16자리로 제한
-            value = value.substring(0, 16);
-            
-            // 4자리마다 하이픈 추가
-            let formattedValue = '';
-            for (let i = 0; i < value.length; i++) {
-                if (i > 0 && i % 4 === 0) {
-                    formattedValue += '-';
-                }
-                formattedValue += value[i];
-            }
-            
-            e.target.value = formattedValue;
-        });
-        
-        // 유효기간 자동 포맷팅
-        document.getElementById('expiry').addEventListener('input', function(e) {
-            // 숫자만 추출
-            let value = e.target.value.replace(/[^\d]/g, '');
-            
-            // 최대 4자리로 제한
-            value = value.substring(0, 4);
-            
-            // MM/YY 형식으로 포맷팅
-            if (value.length >= 2) {
-                e.target.value = value.slice(0, 2) + '/' + value.slice(2);
-            } else {
-                e.target.value = value;
-            }
-        });
-        
-        // 생년월일 숫자만 입력
-        document.getElementById('birth').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^\d]/g, '');
-            e.target.value = value.substring(0, 6);
-        });
-        
-        // 비밀번호 숫자만 입력
-        document.getElementById('pwd2digit').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^\d]/g, '');
-            e.target.value = value.substring(0, 2);
-        });
-        
-        // 결제 수단 선택
-        function selectPaymentMethod(method) {
-            document.querySelectorAll('.payment-method').forEach(el => {
-                el.classList.remove('selected');
-            });
-            event.currentTarget.classList.add('selected');
-            document.getElementById(method).checked = true;
-        }
-        
-        // 폼 제출 처리
         document.getElementById('billingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const submitButton = document.getElementById('submitButton');
-            const loading = document.getElementById('loading');
-            
-            // 입력값 가져오기
-            const customerName = document.getElementById('customerName').value;
-            const customerEmail = document.getElementById('customerEmail').value;
-            const companyName = document.getElementById('companyName').value;
-            const cardNumber = document.getElementById('cardNumber').value.replace(/-/g, '');
-            const expiry = document.getElementById('expiry').value.replace(/\//g, '');
-            const birth = document.getElementById('birth').value;
-            const pwd2digit = document.getElementById('pwd2digit').value;
-            
-            // 유효성 검사
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerEmail = document.getElementById('customerEmail').value.trim();
             if (!customerName || !customerEmail) {
-                alert('이름과 이메일을 입력해주세요.');
+                alert('이름과 이메일을 모두 입력해주세요.');
                 return;
             }
-            
-            if (cardNumber.length !== 16) {
-                alert('카드 번호를 정확히 입력해주세요.');
+            if (selectedPlan === 'free') {
+                window.location.href = '/dashboard.html';
                 return;
             }
-            
-            if (expiry.length !== 4) {
-                alert('유효기간을 MM/YY 형식으로 입력해주세요.');
-                return;
-            }
-            
-            if (birth.length !== 6) {
-                alert('생년월일 6자리를 입력해주세요.');
-                return;
-            }
-            
-            if (pwd2digit.length !== 2) {
-                alert('카드 비밀번호 앞 2자리를 입력해주세요.');
-                return;
-            }
-            
-            // UI 업데이트
+            const submitButton = document.getElementById('submitButton');
             submitButton.disabled = true;
-            submitButton.textContent = '처리 중...';
-            loading.style.display = 'block';
-            
+            submitButton.textContent = '토스 결제 페이지로 이동 중...';
             try {
-                // customerKey 생성 (실제로는 서버에서 생성)
-                const customerKey = 'customer_' + Date.now();
-                
-                // 빌링키 발급 요청
+                const customerKey = 'cust_' + btoa(customerEmail).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
                 await tossPayments.requestBillingAuth('카드', {
                     customerKey: customerKey,
                     customerName: customerName,
                     customerEmail: customerEmail,
-                    cardNumber: cardNumber,
-                    cardExpirationYear: '20' + expiry.slice(2, 4),
-                    cardExpirationMonth: expiry.slice(0, 2),
-                    cardPassword: pwd2digit,
-                    customerIdentityNumber: birth,
-                    successUrl: window.location.origin + '/billing-success.html?plan=' + selectedPlan + '&customerKey=' + customerKey,
-                    failUrl: window.location.origin + '/billing-fail.html',
+                    successUrl: window.location.origin + '/billing-success.html?plan=' + selectedPlan + '&customerKey=' + encodeURIComponent(customerKey) + '&customerName=' + encodeURIComponent(customerName) + '&customerEmail=' + encodeURIComponent(customerEmail),
+                    failUrl: window.location.origin + '/billing-fail.html?plan=' + selectedPlan,
                 });
             } catch (error) {
-                console.error('빌링키 발급 실패:', error);
-                
-                loading.style.display = 'none';
-                alert('결제 처리 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
-                
+                console.error('결제 요청 오류:', error);
+                alert('결제 요청 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
                 submitButton.disabled = false;
-                submitButton.textContent = '다시 시도하기';
+                submitButton.textContent = '카드 등록하고 구독 시작하기 →';
             }
         });
     </script>
