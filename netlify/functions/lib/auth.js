@@ -7,7 +7,6 @@ const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const ALLOWED_ORIGIN = 'https://staffmanager.io';
-const { captureError } = require('./sentry'); // Sentry 에러 추적 추가
 
 // ====================================
 // CORS 헤더 (staffmanager.io만 허용)
@@ -100,11 +99,6 @@ function verifyToken(authHeader) {
       if (e.message === '토큰이 만료되었습니다') throw e;
       throw new Error('토큰 파싱에 실패했습니다');
     }
-    } catch (error) {
-      captureError(error, { function: 'verifyToken' }); // Sentry 전송
-      return null;
-    }
-  }
 
   if (parts.length !== 2) {
     throw new Error('잘못된 토큰 형식입니다');
