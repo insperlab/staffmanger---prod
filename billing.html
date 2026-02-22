@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StaffManager 결제</title>
-<script src="https://js.tosspayments.com/v1/payment"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f8f9fa;padding:2rem;min-height:100vh;display:flex;align-items:center;justify-content:center}
@@ -65,50 +64,30 @@ input.err{border-color:#e74c3c}
 <div class="foot">🔒 토스페이먼츠를 통해 안전하게 결제됩니다</div>
 </div>
 <script>
+// ── 플랜 데이터 ──────────────────────────────────────────────
 var Q = new URLSearchParams(window.location.search);
 var SP = Q.get("plan") || "pro";
-
 var DATA = {
   pro: {
-    name: "Pro 플랜",
-    badge: "Pro",
-    pt: "19,900원",
+    name: "Pro 플랜", badge: "Pro", pt: "19,900원",
     ann: "연간 결제 시 월 15,900원 (20% 절약)",
     tgt: "5~20인 사업장 · 대부분의 소상공인",
-    fs: [
-      "Free 기능 전체 포함",
-      "사업장 3개",
-      "카카오톡 알림 300건/월",
-      "전자 근로계약 15건/월",
-      "AI 노무 상담 50건/월",
-      "Excel 내보내기",
-      "지원금 신청 가이드",
-      "관리자 2명",
-      "우선 지원"
-    ]
+    fs: ["Free 기능 전체 포함","사업장 3개","카카오톡 알림 300건/월",
+         "전자 근로계약 15건/월","AI 노무 상담 50건/월","Excel 내보내기",
+         "지원금 신청 가이드","관리자 2명","우선 지원"]
   },
   business: {
-    name: "Business 플랜",
-    badge: "Business",
-    pt: "49,900원",
+    name: "Business 플랜", badge: "Business", pt: "49,900원",
     ann: "연간 결제 시 월 39,900원 (20% 절약)",
     tgt: "20~100인 · 다점포 · 프랜차이즈",
-    fs: [
-      "Pro 기능 전체 포함",
-      "사업장 무제한",
-      "카카오톡 무제한",
-      "전자계약 무제한",
-      "AI 상담 무제한",
-      "관리자 무제한",
-      "지원금 신청 대행",
-      "전담 매니저",
-      "SLA 99.5%"
-    ]
+    fs: ["Pro 기능 전체 포함","사업장 무제한","카카오톡 무제한",
+         "전자계약 무제한","AI 상담 무제한","관리자 무제한",
+         "지원금 신청 대행","전담 매니저","SLA 99.5%"]
   }
 };
-
 var d = DATA[SP] || DATA["pro"];
 
+// ── 플랜 렌더링 ──────────────────────────────────────────────
 document.getElementById("pb").textContent = d.badge;
 document.getElementById("pn").textContent = d.name;
 document.getElementById("pp").innerHTML = d.pt + "<span> / 월</span>";
@@ -118,7 +97,6 @@ document.getElementById("pf").innerHTML = d.fs.map(function(f) {
   return "<li>" + f + "</li>";
 }).join("");
 document.getElementById("sb").textContent = "월 " + d.pt + " 카드 등록하기 🚀";
-
 if (SP === "business") {
   document.getElementById("pi").classList.add("biz");
   document.getElementById("pb").classList.add("biz");
@@ -126,11 +104,54 @@ if (SP === "business") {
   document.getElementById("sb").classList.add("biz");
 }
 
+// ── 토스 SDK 로드 (동적, 중복 방지) ─────────────────────────
+// head의 정적 script 대신 클릭 시점에 동적으로 로드
+// → CSP, 캐시, 타이밍 문제를 모두 우회
+var tossSDKLoaded = false;
+function loadTossSDK() {
+  return new Promise(function(resolve, reject) {
+    // 이미 로드 완료된 경우
+    if (typeof TossPayments === "function") {
+      resolve();
+      return;
+    }
+    // 이미 script 태그가 있으면 로드 완료 대기
+    if (tossSDKLoaded) {
+      var check = setInterval(function() {
+        if (typeof TossPayments === "function") {
+          clearInterval(check);
+          resolve();
+        }
+      }, 100);
+      setTimeout(function() {
+        clearInterval(check);
+        reject(new Error("SDK 로드 타임아웃"));
+      }, 10000);
+      return;
+    }
+    tossSDKLoaded = true;
+    var s = document.createElement("script");
+    s.src = "https://js.tosspayments.com/v1/payment";
+    s.onload = function() {
+      if (typeof TossPayments === "function") {
+        resolve();
+      } else {
+        reject(new Error("SDK 로드됐으나 TossPayments 함수 없음 (URL 확인 필요)"));
+      }
+    };
+    s.onerror = function() {
+      tossSDKLoaded = false;
+      reject(new Error("네트워크 오류 - js.tosspayments.com 접근 실패"));
+    };
+    document.head.appendChild(s);
+  });
+}
+
+// ── 결제 실행 ────────────────────────────────────────────────
 function go() {
   var ni = document.getElementById("nm");
   var ne = document.getElementById("nmerr");
   var cn = ni.value.trim();
-
   if (!cn) {
     ni.classList.add("err");
     ne.style.display = "block";
@@ -145,19 +166,15 @@ function go() {
 
   var btn = document.getElementById("sb");
   btn.disabled = true;
-  btn.textContent = "결제 화면으로 이동 중...";
+  btn.textContent = "결제 모듈 로딩 중...";
 
-  try {
-    if (typeof TossPayments === "undefined") {
-      throw new Error("토스 SDK 로드 실패 - 페이지를 새로고침 해주세요.");
-    }
-
+  loadTossSDK().then(function() {
+    btn.textContent = "결제 화면으로 이동 중...";
     var tp = TossPayments("test_ck_Z61JOxRQVEBzXa0b2m7grW0X9bAq");
     var ck = "cust_" + btoa(unescape(encodeURIComponent(ek)))
       .replace(/[^a-zA-Z0-9]/g, "").substring(0, 20);
     var base = window.location.origin;
-
-    tp.requestBillingAuth("카드", {
+    return tp.requestBillingAuth("카드", {
       customerKey: ck,
       customerName: cn,
       customerEmail: ek,
@@ -166,19 +183,14 @@ function go() {
         + "&customerName=" + encodeURIComponent(cn)
         + "&customerEmail=" + encodeURIComponent(ek),
       failUrl: base + "/billing-fail.html?plan=" + SP
-    }).catch(function(err) {
-      if (err.code !== "USER_CANCEL") {
-        alert("오류: " + (err.message || "알 수 없는 오류"));
-      }
-      btn.disabled = false;
-      btn.textContent = "월 " + d.pt + " 카드 등록하기 🚀";
     });
-
-  } catch (err) {
-    alert("오류: " + err.message);
+  }).catch(function(err) {
+    if (err.code !== "USER_CANCEL") {
+      alert("오류: " + (err.message || "알 수 없는 오류"));
+    }
     btn.disabled = false;
     btn.textContent = "월 " + d.pt + " 카드 등록하기 🚀";
-  }
+  });
 }
 
 document.getElementById("nm").addEventListener("keydown", function(e) {
