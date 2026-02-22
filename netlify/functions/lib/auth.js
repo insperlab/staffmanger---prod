@@ -99,7 +99,7 @@ function verifyToken(authHeader) {
       if (e.message === '토큰이 만료되었습니다') throw e;
       throw new Error('토큰 파싱에 실패했습니다');
     }
-
+  }
   if (parts.length !== 2) {
     throw new Error('잘못된 토큰 형식입니다');
   }
