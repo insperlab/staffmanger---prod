@@ -27,3 +27,9 @@ function captureError(error, context = {}) {
 }
 
 module.exports = { Sentry, captureError };
+
+// ⚠️ 테스트용 - 확인 후 바로 삭제할 것!
+captureError(new Error('Sentry 연동 테스트 - 이게 보이면 성공!'), {
+  function: 'sentry-test',
+  companyId: 'test'
+});
